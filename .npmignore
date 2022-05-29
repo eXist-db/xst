@@ -1,0 +1,5 @@
+spec
+nohup.out
+.github
+*.tgz
+.env*

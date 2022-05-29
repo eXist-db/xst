@@ -1,0 +1,44 @@
+{
+  "name": "xst",
+  "version": "0.0.0-development",
+  "description": "Command line tool to interact with exist-db instances",
+  "main": "cli.js",
+  "bin": {
+    "xst": "./cli.js"
+  },
+  "type": "module",
+  "engines": {
+    "node": "^14.18 || ^16.13 || >=18"
+  },
+  "scripts": {
+    "test": "standard --fix && tape spec/tests/*.js"
+  },
+  "keywords": [
+    "exist-db",
+    "existdb",
+    "exist",
+    "xst",
+    "db",
+    "database",
+    "cli"
+  ],
+  "author": "Juri Leino",
+  "maintainers": [
+    {
+      "name": "Juri Leino",
+      "email": "npm@line-o.de"
+    }
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@existdb/node-exist": "^4.9.2",
+    "bottleneck": "^2.19.5",
+    "fast-glob": "^3.2.11",
+    "yargs": "^17.5.1"
+  },
+  "devDependencies": {
+    "@types/yargs": "^17.0.10",
+    "standard": "^17.0.0",
+    "tape": "^5.5.3"
+  }
+}

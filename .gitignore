@@ -1,0 +1,12 @@
+# dotfiles
+.*
+!.gitignore
+!.npmignore
+!.github
+!.releaserc
+
+# dependencies
+node_modules
+
+# artifacts
+*.tgz
