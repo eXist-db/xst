@@ -37,7 +37,9 @@
     "yargs": "^17.5.1"
   },
   "devDependencies": {
+    "@semantic-release/github": "^8.0.4",
     "@types/yargs": "^17.0.10",
+    "semantic-release": "^19.0.2",
     "standard": "^17.0.0",
     "tape": "^5.5.3"
   }
