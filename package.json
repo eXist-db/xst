@@ -22,13 +22,15 @@
     "database",
     "cli"
   ],
-  "author": "Juri Leino",
-  "maintainers": [
-    {
-      "name": "Juri Leino",
-      "email": "npm@line-o.de"
-    }
-  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/line-o/xst"
+  },
+  "author": {
+    "name": "Juri Leino",
+    "email": "npm@line-o.de"
+  },
+  "maintainers": [],
   "license": "MIT",
   "dependencies": {
     "@existdb/node-exist": "^4.9.2",
