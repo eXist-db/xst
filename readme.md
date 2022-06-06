@@ -1,4 +1,4 @@
-# xst
+# xst [ĭg-zĭst′]
 
 Command line tool to interact with exist-db instances.
 
@@ -6,9 +6,28 @@ Built on top of [@existdb/node-exist](https://www.npmjs.com/package/@existdb/nod
 
 ## Installation
 
-```bash
-npm install -g xst
-```
+Until this package is officially released you can already use
+it by following the steps below
+
+1. clone this repository
+    ```bash
+    git clone https://github.com/line-o/xst
+    ```
+
+2. change to the working directory
+    ```bash
+    cd xst
+    ```
+
+3. install package dependencies
+    ```bash
+    npm install
+    ```
+
+4. link this package into your global packages directory
+    ```bash
+    npm link
+    ```
 
 ## Usage
 
@@ -16,7 +35,29 @@ npm install -g xst
 xst <command>
 ```
 
+You can verify your installation is working with
+
+```bash
+xst --version
+```
+
+This will output `0.0.0-development` for the moment.
+
+```bash
+xst --help
+```
+
+will output all available commands and 
+
+```bash
+xst <command> --help
+```
+
+will output useful information how to use each of the commands.
+
 **Available Commands**
+
+Currently all command line examples from node-exist were ported over:
 
 - `list` list the contents of a collection in eXist-db
 - `tree` list the contents of a collection in eXist-db as a tree
@@ -26,8 +67,8 @@ xst <command>
 
 **Example**
 
-```
-xst install mypackage.xar
+```bash
+xst install path/to/my-package.xar
 ```
 
 Installs a local XAR package into any database you have access to (with all its declared dependencies).
@@ -95,3 +136,4 @@ That also works when running the tests (on a remote server maybe or a different 
 dotenv npm test
 ```
 
+#
