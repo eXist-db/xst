@@ -39,11 +39,7 @@ function renderTree (json, level = 0, indent = '', last = false) {
   const nextLevel = level + 1
   const nextIndent = getNextIndent(indent, last, level === 0)
   const length = json.children.length - 1
-  for (const i in json.children) {
-    const nextItem = json.children[i]
-    const isLast = length === i
-    renderTree(nextItem, nextLevel, nextIndent, isLast)
-  }
+  json.children.forEach((nextItem, index) => renderTree(nextItem, nextLevel, nextIndent, length === index))
 }
 
 async function tree (db, collection, level) {
