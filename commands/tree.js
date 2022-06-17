@@ -3,10 +3,10 @@ import { readXquery } from '../utility/xq.js'
 
 const query = readXquery('tree.xq')
 
-const FILL = '│  '
-const ITEM = '├─ '
-const LAST = '└─ '
-const EMPTY = '   '
+const FILL  = '│   '
+const ITEM  = '├── '
+const LAST  = '└── '
+const EMPTY = '    '
 
 function renderItem (name, indent, last, root) {
   if (root) {
