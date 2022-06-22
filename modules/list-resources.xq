@@ -6,8 +6,8 @@ declare variable $extended as xs:boolean external;
 declare function local:glob-to-regex ($glob as xs:string) as xs:string {
     let $pattern := 
         $glob
-        => replace("\\.", "\\\\.")
-        => replace("(\\*|\\?)", ".$1")
+        => replace("\.", "\\.")
+        => replace("(\*|\?)", ".$1")
 
     return concat("^", $pattern, "$")
 };
