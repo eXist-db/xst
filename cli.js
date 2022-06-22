@@ -11,14 +11,14 @@ import { readConnection } from './utility/connection.js'
  * @param {String} $0 raw value of argv.$0
  * @returns {String} script name with relative path stripped if linked
  */
-function getScriptName($0) {
+function getScriptName ($0) {
   if ($0.startsWith('.')) {
     return $0.substring($0.lastIndexOf('/') + 1)
   }
   return $0
 }
 
-function showCompletionHelp(scriptName) {
+function showCompletionHelp (scriptName) {
   console.log(`
 You can install completions for ZSH and BASH. For details have a look at the
 comments in the output of
@@ -26,7 +26,7 @@ comments in the output of
   ${scriptName} completion`)
 }
 
-function showExamples(scriptName) {
+function showExamples (scriptName) {
   console.log(`
 Examples:
   ${scriptName} ls --extended /db/apps
@@ -35,7 +35,7 @@ Examples:
 `)
 }
 
-function showLogo() {
+function showLogo () {
   console.log(`
  ╲ ╱  ╓───   ──┰──
   ╳   ╰───╮    │ 
