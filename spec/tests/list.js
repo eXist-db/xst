@@ -21,3 +21,14 @@ test("calling 'xst ls -l /db/system' as guest", async (t) => {
     'exerr:ERROR Permission to retrieve permissions is denied for user \'guest\' on \'/db/system/'), stderr)
   t.end()
 })
+
+test("calling 'xst ls -g \"e*\" /db/apps' as guest", async (t) => {
+  const { stderr, stdout } = await run('xst', ['list', '-g', 'e*', '/db/apps'], { env: { ...process.env, EXISTDB_USER: 'guest', EXISTDB_PASS: 'guest' } })
+
+  console.log(stdout)
+  if (stderr) t.fail(stderr)
+
+  const lines = stdout.split('\n')
+  t.ok(lines.includes('eXide'))
+  t.end()
+})
