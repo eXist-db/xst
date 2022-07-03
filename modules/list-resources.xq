@@ -1,7 +1,15 @@
 xquery version "3.1";
+
+(: required parameter :)
 declare variable $collection as xs:string external;
-declare variable $glob as xs:string external;
-declare variable $extended as xs:boolean external;
+
+(: options :)
+declare variable $glob as xs:string? external;
+declare variable $extended as xs:boolean? external;
+declare variable $depth as xs:integer? external;
+declare variable $recursive as xs:boolean? external;
+declare variable $collections-only as xs:boolean? external;
+
 
 declare function local:glob-to-regex ($glob as xs:string) as xs:string {
     let $pattern := 
@@ -12,81 +20,172 @@ declare function local:glob-to-regex ($glob as xs:string) as xs:string {
     return concat("^", $pattern, "$")
 };
 
-declare function local:get-item-info ($type as xs:string, $child as xs:string) as map(*) {
+declare function local:get-filter ($glob as xs:string?) as function(xs:string) as xs:boolean {
+    if (not(exists($glob)) or $glob = ("*"))
+    then function ($_) { true() }
+    else (
+        let $regex := local:glob-to-regex($glob)
+        return matches(?, $regex)
+    )
+};
+
+declare function local:get-item-info ($type as xs:string, $collection as xs:string, $name as xs:string) as map(*) {
     map {
         "type": $type,
-        "name": $child
+        "name": $name,
+        "path": $collection || "/" || $name
     }
 };
 
-declare function local:get-extended-info ($type as xs:string, $child as xs:string) as map(*) {
-    let $path := xs:anyURI($collection || "/" || $child)
-    let $perm := sm:get-permissions($path)/sm:permission
-    let $e := 
-        if ($type = "collection")
-        then map {
-            "size": 0,
-            "modified": xmldb:created($path)
-        }
-        else map {
-            "size": xmldb:size($collection, $child),
-            "modified": xmldb:last-modified($collection, $child)
-        }
+(: query extended info :)
+declare function local:get-extended-info ($type as xs:string, $collection as xs:string, $name as xs:string) as map(*) {
+    let $path := $collection || "/" || $name
+    let $uri := xs:anyURI($path)
 
     return map:merge((
         map {
             "type": $type,
-            "name": $child,
-            "mode": $perm/@mode/string(),
-            "owner": $perm/@owner/string(),
-            "group": $perm/@group/string()
+            "name": $name,
+            "path": $path
         },
-        $e
+        local:get-permissions($uri),
+        if ($type = "collection")
+        then (local:get-collection-size-and-created-date($path))
+        else (local:get-resource-size-and-last-modified-date($collection, $name))
     ))
 };
 
-declare function local:get-mapping-function ($type as xs:string, $glob as xs:string?) as function(xs:string) as map(*) {
-    if ($glob = ("*", "**") and $extended)
-    then (
-        local:get-extended-info($type, ?)
-    )
-    else if ($glob = ("*", "**"))
-    then (
-        local:get-item-info($type, ?)
-    )
-    else (
-        let $pattern := local:glob-to-regex($glob)
-        let $get-info-for :=
-            if ($extended)
-            then local:get-extended-info($type, ?)
-            else local:get-item-info($type, ?)
-
-        return
-            function ($child as xs:string) {
-                if (matches($child, $pattern))
-                then $get-info-for($child)
-                else ()
-            }
-    )
-
+declare function local:get-resource-size-and-last-modified-date ($collection as xs:string, $resource as xs:string) as map(*) {
+    map {
+        "size": xmldb:size($collection, $resource),
+        "modified": xmldb:last-modified($collection, $resource),
+        "created": xmldb:created($collection, $resource)
+    }
 };
 
-
-if (xmldb:collection-available($collection))
-then (
-    let $list := array {
-        for-each(
-            xmldb:get-child-collections($collection),
-            local:get-mapping-function("collection", $glob)
-        ),
-        for-each(
-            xmldb:get-child-resources($collection),
-            local:get-mapping-function("resource", $glob)
-        )
+declare function local:get-collection-size-and-created-date ($collection as xs:string) as map(*) {
+    map {
+        "size": 0,
+        "modified": xmldb:created($collection), (: collections do not seem to have a mtime :)
+        "created": xmldb:created($collection)
     }
-    return serialize($list, map { "method": "json" })
-)
-else serialize(
-    map { "error": 'Collection "' || $collection || '" not found!' }, 
-    map { "method": "json" }
-)
+};
+
+declare function local:get-permissions($uri as xs:anyURI) as map(*) {
+    let $perm := sm:get-permissions($uri)/sm:permission
+
+    return map {
+        "mode": $perm/@mode/string(),
+        "owner": $perm/@owner/string(),
+        "group": $perm/@group/string()
+    }
+};
+
+declare function local:list-sub-collection ($sub-collection as xs:string, $collection as xs:string, $current-level as xs:integer, $options as map(*)) as map(*)? {
+    try {
+        let $path := concat($collection, "/", $sub-collection)
+        let $children := local:get-children($path, $current-level, $options)
+        (: this should work but does not in 6.1.0-SNAPSHOT :)
+        (: let $name-matches := $options?item-filter($sub-collection) :)
+        let $name-matches := matches($sub-collection, $options?pattern)
+        let $has-children := exists($children) and array:size($children?children) > 0
+        return
+            if ($name-matches or $has-children)
+            then map:merge((
+                $options?item-mapper("collection", $collection, $sub-collection),
+                $children
+            ))
+            else ()
+    }
+    catch * {
+        util:log("error", $err:description)
+    }
+};
+
+declare function local:list-collections ($collection as xs:string, $current-level as xs:integer, $options as map(*)) as map(*)* {
+    for-each(
+        xmldb:get-child-collections($collection),
+        local:list-sub-collection(?, $collection, $current-level, $options))
+};
+
+declare function local:list-resources ($collection, $options) {
+    if ($options?collections-only)
+    then ()
+    else 
+        let $resources := filter(xmldb:get-child-resources($collection), $options?item-filter)
+        for $resource in $resources
+        return $options?item-mapper("resource", $collection, $resource)
+};
+
+(: recursive :)
+declare function local:get-children ($collection as xs:string, $current-level as xs:integer, $options as map(*)) {
+    if (not($options?recursive))
+    then ()
+    else if ($options?depth = 0 or $options?depth > $current-level)
+    then
+        map {
+            "children": array {
+                local:list-resources($collection, $options),
+                local:list-collections($collection, $current-level + 1, $options)
+            }
+        }
+    else map { "children": [] }
+};
+
+declare function local:list ($collection as xs:string, $options as map(*)) as map(*) {
+    let $normalized-collection := replace($collection, "^(.*?)/?$", "$1")
+    let $parent-collection := replace($normalized-collection, "(/[^/]+)$", "")
+    let $collection-name := replace($normalized-collection, "^(.*?/)([^/]+)$", "$2")
+    return
+        map:merge((
+            $options?item-mapper("collection", $parent-collection, $collection-name),
+            map {
+                "children": array {
+                    local:list-resources($normalized-collection, $options),
+                    local:list-collections($normalized-collection, 1, $options)
+                }
+            }
+        ))
+};
+
+try {
+    if (xmldb:collection-available($collection))
+    then (
+        let $options := map {
+            "collections-only": ($collections-only, false())[1],
+            "depth": ($depth, 0)[1],
+            "recursive": ($recursive, true())[1],
+            "pattern": local:glob-to-regex($glob),
+            "item-filter": local:get-filter($glob),
+            "item-mapper": 
+                if (exists($extended) and $extended)
+                then local:get-extended-info#3
+                else local:get-item-info#3
+        }
+
+        let $list := local:list($collection, $options)
+
+        return serialize($list, map { "method": "json" })
+    )
+    else (
+        error(xs:QName('not_available'), 'Collection "' || $collection || '" not found!')
+    )
+}
+catch * {
+    serialize(
+        map {
+            "error": map {
+                "code": $err:code,
+                "description": $err:description,
+                "value": $err:value,
+                "module": $err:module,
+                "line-number": $err:line-number,
+                "column-number": $err:column-number,
+                "additional": $err:additional,
+                "xquery-stack-trace": $exerr:xquery-stack-trace
+            }
+        },
+        map { "method": "json" }
+    )
+}
+

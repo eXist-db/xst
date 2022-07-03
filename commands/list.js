@@ -1,29 +1,83 @@
-import { connect } from '@existdb/node-exist'
+import { connect, getMimeType } from '@existdb/node-exist'
 import { cc } from '../utility/console.js'
 import { readXquery } from '../utility/xq.js'
 
+/**
+ * @typedef { import("node-exist").NodeExist } NodeExist
+ */
+
+/**
+ * @typedef {Object} ListResultItem
+ * @prop {"collection"|"resource"} type the type of the item
+ * @prop {String} name the name of the collection or resource
+ * @prop {String} path absolute path to the collection or resource
+ * @prop {Number} [size] size in bytes
+ * @prop {String} [created] the iso dateTime string when the item was created
+ * @prop {String} [modified] the iso dateTime string when the item was last modified
+ * @prop {String} [mode] the mode (permission) string of the item
+ * @prop {String} [owner] the username of the owner of this item
+ * @prop {String} [group] the group this item belongs to
+ * @prop {ListResultItem[]} [children] list of chilren of a collection
+ */
+
+/**
+ * @typedef {Object} ListOptions
+ * @prop {Boolean} color color output or not
+ * @prop {Boolean} extended show more info per entry in list
+ * @prop {boolean} collectionsOnly only show collections
+ * @prop {"human"|"bytes"} size size in bytes
+ * @prop {Boolean} recursive traverse the tree
+ * @prop {Boolean} tree show output as a tree
+ * @prop {Number} depth how many levels to traverse down for recursive and tree views
+ * @prop {String} glob filter items
+ * @prop {Object} connectionOptions DB connection options
+ */
+
 const query = readXquery('list-resources.xq')
 
+// paddings
+
+/**
+ * @typedef {Map<String, Number>} BlockPaddings
+ */
 const initialPaddings = new Map([
   ['padOwner', 0],
   ['padGroup', 0],
   ['padSize', 4]
 ])
 
-const padReducer = (res, next) => {
-  if (res.get('padGroup') < next.group.length) {
-    res.set('padGroup', next.group.length)
+/**
+ * Get maximum needed paddings for owner, group and size (in bytes)
+ * @param {BlockPaddings} paddings
+ * @param {ListResultItem} next
+ * @returns {Map} actual paddings
+ */
+function padReducer (paddings, next) {
+  if (paddings.get('padGroup') < next.group.length) {
+    paddings.set('padGroup', next.group.length)
   }
-  if (res.get('padOwner') < next.owner.length) {
-    res.set('padOwner', next.owner.length)
+  if (paddings.get('padOwner') < next.owner.length) {
+    paddings.set('padOwner', next.owner.length)
   }
-  if (res.get('padSize') < next.size.toFixed().length) {
-    res.set('padSize', next.size.toFixed().length)
+  if (paddings.get('padSize') < next.size.toFixed(0).length) {
+    paddings.set('padSize', next.size.toFixed(0).length)
   }
-  return res
+  if (next.children && next.children.length) {
+    return next.children.reduce(padReducer, paddings)
+  }
+  return paddings
 }
 
-const getPaddings = (list) => list.reduce(padReducer, initialPaddings)
+/**
+ * get block paddings for list
+ * @param {ListResultItem[]} list of result items
+ * @returns {BlockPaddings} block paddings for list
+ */
+function getPaddings (list) {
+  return list.reduce(padReducer, initialPaddings)
+}
+
+// time
 
 const timeFormat = {
   hour12: false,
@@ -36,8 +90,13 @@ const dateFormat = {
 
 const currentYear = (new Date()).getFullYear()
 
-function formatDateTime (xsDateTime) {
-  const date = new Date(xsDateTime)
+/**
+ * format iso dateTime string
+ * @param {ListResultItem} item
+ * @returns {String} formatted date
+ */
+function formatDateTime (item) {
+  const date = new Date(item.modified)
   const year = date.getFullYear()
   const month = date.toLocaleDateString('iso', dateFormat)
   const day = date.getDate().toString().padStart(3)
@@ -48,60 +107,444 @@ function formatDateTime (xsDateTime) {
   return month + day + time
 }
 
-function formatName (item, color) {
-  if (!color) {
-    return item.name
+/**
+ * format iso dateTime string with color
+ * @param {ListResultItem} item
+ * @returns {String} colored, formatted date
+ */
+function formatDateTimeColored (item) {
+  const date = new Date(item.modified)
+  const year = date.getFullYear()
+  const month = date.toLocaleDateString('iso', dateFormat)
+  const day = date.getDate().toString().padStart(3)
+  if (year < currentYear) {
+    return cc('FgGreen') + month + day + year.toString().padStart(6) + cc('Reset')
   }
+  const time = date.toLocaleTimeString('iso', timeFormat).padStart(6)
+  return cc('Bright') + cc('FgGreen') + month + day + time + cc('Reset')
+}
+
+/**
+ * get date formatting function
+ * @param {ListResultItem} options list rendering options
+ * @returns {formatDateTime|formatDateTimeColored} date formatting function
+ */
+function getDateFormatter (options) {
+  if (options.color) {
+    return formatDateTimeColored
+  }
+  return formatDateTime
+}
+
+// tree
+
+const FILL = '│   '
+const ITEM = '├── '
+const LAST = '└── '
+const EMPTY = '    '
+
+function getNextIndent (indent, last) {
+  if (last) {
+    return indent + EMPTY
+  }
+  return indent + FILL
+}
+
+/**
+ * get part for current position in tree
+ * @param {String} indent current indent
+ * @param {Boolean} last is this the last element in this branch
+ * @param {Boolean} root is this the root element of this tree
+ * @returns {String} tree part
+ */
+function getTreeForItem (indent, last, root) {
+  if (root) {
+    return ''
+  }
+  if (last) {
+    return indent + LAST
+  }
+  return indent + ITEM
+}
+
+/**
+ * get tree formatter
+ * @param {Object} options
+ * @returns {(item:ListResultItem, indent:String, last:Boolean, level:Number)=>String}
+ */
+function getTreeFormatter (options) {
+  const formatName = getNameFormatter(options)
+
+  return function (item, indent, last, level) {
+    return getTreeForItem(indent, last, level === 0) + formatName(item)
+  }
+}
+
+// name
+
+/**
+ * transform globbing pattern to regular expression
+ * @param {String} glob globbing pattern
+ * @returns {String} regular expression
+ */
+function toRegExpPattern (glob) {
+  const converted = glob
+    .replaceAll('.', '\\.') // make . literals
+    .replaceAll('?', '.') // transform ?
+    .replaceAll('*', '.*?') // transform *
+
+  return `^${converted}$`
+}
+
+/**
+ * get filter function that checks item names against globbing pattern
+ * @param {String} glob globbing pattern
+ * @returns {(item:ListResultItem) => Boolean}
+ */
+function getGlobMatcher (glob) {
+  const regex = new RegExp(toRegExpPattern(glob), 'i')
+  return (item) => regex.test(item.name)
+}
+
+/**
+ * show displayName of item depending on its type
+ * @param {ListResultItem} item the current item
+ * @param {String} display the path or name of the item
+ * @returns {String} formatted name or path
+ */
+function formatNameColored (item, display) {
   if (item.type === 'resource') {
-    return item.name
+    const mimetype = getMimeType(item.name)
+    switch (mimetype) {
+      case 'text/html': return cc('FgWhite') + display + cc('Reset')
+      case 'application/xml': return cc('FgGreen') + display + cc('Reset')
+      case 'application/xquery': return cc('FgCyan') + display + cc('Reset')
+      case 'application/vnd.xara': return cc('FgRed') + display + cc('Reset')
+      default: return display
+    }
   }
-  return cc('Bright') + cc('FgCyan') + item.name + cc('Reset')
+  return cc('Bright') + cc('FgBlue') + display + cc('Reset')
 }
 
-function renderList (list, color) {
-  for (const item of list) {
-    console.log(formatName(item, color))
+/**
+ * get name formatting function for options
+ * @param {Object} options options object
+ * @returns {(item:ListResultItem) => String} formatter
+ */
+function getNameFormatter (options) {
+  if (options.recursive && !options.extended) {
+    if (options.color) {
+      return item => formatNameColored(item, item.path)
+    }
+    return item => item.path
+  }
+  if (options.color) {
+    return item => formatNameColored(item, item.name)
+  }
+  return item => item.name
+}
+
+// path
+
+function noOp () {}
+
+/**
+ * render path colored
+ * @param {ListResultItem} item
+ * @param {String} separator
+ * @returns {void}
+ */
+function renderColoredPath (item, separator) {
+  console.log(separator + cc('Dim') + cc('FgWhite') + item.path + ':' + cc('Reset'))
+}
+
+/**
+ * render path
+ * @param {ListResultItem} item
+ * @param {String} separator
+ * @returns {void}
+ */
+function renderPath (item, separator) {
+  console.log(separator + item.path + ':')
+}
+
+/**
+ * Get path rendering function
+ * @param {Object} options
+ * @returns {renderPath|renderColoredPath|noOp} path rendering function or no-op
+ */
+function getPathRenderer (options) {
+  if (options.recursive && options.extended) {
+    if (options.color) {
+      return renderColoredPath
+    }
+    return renderPath
+  }
+  return noOp
+}
+
+// size
+
+const FORMAT_SIZE_BASE = 1024
+const FORMAT_SIZE_PAD = 7
+
+/**
+ * convert raw bytes to humand readable size string
+ * @param {Number} size bytes
+ * @returns {String} human readable size
+ */
+function formatSizeHumanReadable (size) {
+  if (size === 0) {
+    return '0 B '.padStart(FORMAT_SIZE_PAD)
+  }
+  const power = Math.floor(Math.log(size) / Math.log(FORMAT_SIZE_BASE))
+  const _s = size / Math.pow(FORMAT_SIZE_BASE, power)
+  const _p = Math.floor(Math.log(_s) / Math.log(10))
+  const digits = _p < 2 ? 1 : 0
+  const humanReadableSize = _s.toFixed(digits) + ' ' +
+    ['B ', 'KB', 'MB', 'GB', 'TB'][power]
+
+  return humanReadableSize.padStart(FORMAT_SIZE_PAD)
+}
+
+/**
+ * get size formatting function
+ * @param {ListOptions} options
+ * @param {BlockPaddings} paddings
+ * @returns {(item:ListResultItem) => String} formatting function
+ */
+function getSizeFormatter (options, paddings) {
+  let formatter
+  if (options.size === 'bytes') {
+    const padStart = paddings.get('padSize')
+    formatter = (size) => size.toFixed(0).padStart(padStart)
+  } else {
+    formatter = formatSizeHumanReadable
+  }
+  if (options.color) {
+    return (item) => cc('Bright') + cc('FgYellow') + formatter(item.size) + cc('Reset')
+  }
+  return (item) => formatter(item.size)
+}
+
+// mode
+
+/**
+ * prepend collection indicator or dot to mode string
+ * @param {ListResultItem} item current list item
+ * @returns {String} prepended mode
+ */
+function withCollectionIndicator (item) {
+  return (item.type === 'collection' ? 'c' : '.') + item.mode
+}
+
+/**
+ * color mode string
+ * @param {ListResultItem} item current list item
+ * @returns {String} prepended, colored mode
+ */
+function formatModeColor (item) {
+  return withCollectionIndicator(item)
+    .split('')
+    .map(p => {
+      switch (p) {
+        case 'c': return cc('Bright') + cc('FgBlue') + p + cc('Reset')
+        case 'r': return cc('FgGreen') + p + cc('Reset')
+        case 'w': return cc('FgYellow') + p + cc('Reset')
+        case 'x': return cc('FgRed') + p + cc('Reset')
+        case 's': return cc('FgCyan') + p + cc('Reset')
+        case 'S': return cc('Bright') + cc('FgCyan') + p + cc('Reset')
+        default: return p
+      }
+    })
+    .join('')
+}
+
+/**
+ * get mode formatting function
+ * @param {ListOptions} options
+ * @returns {(item:ListResultItem)=>String} mode formatter
+ */
+function getModeFormatter (options) {
+  if (options.color) {
+    return formatModeColor
+  }
+  return withCollectionIndicator
+}
+
+/**
+ * get owner formatting function
+ * @param {ListOptions} options list rendering options
+ * @param {BlockPaddings} paddings block paddings
+ * @returns {(item:ListResultItem)=>String} owner formatter
+ */
+function getOwnerFormatter (options, paddings) {
+  const padStart = paddings.get('padOwner')
+  if (options.color) {
+    return (item) => cc('FgWhite') + item.owner.padStart(padStart) + cc('Reset')
+  }
+  return (item) => item.owner.padStart(padStart)
+}
+
+/**
+ * get group formatting function
+ * @param {ListOptions} options list rendering options
+ * @param {BlockPaddings} paddings block paddings
+ * @returns {(item:ListResultItem)=>String} group formatter
+ */
+function getGroupFormatter (options, paddings) {
+  const padStart = paddings.get('padGroup')
+  if (options.color) {
+    return (item) => cc('FgWhite') + item.group.padStart(padStart) + cc('Reset')
+  }
+  return (item) => item.group.padStart(padStart)
+}
+
+/**
+ * get item rendering function
+ * @param {Object} options given options
+ * @param {Function[]} blocks block rendering functions
+ * @returns {(item:ListResultItem)=>void|(item:ListResultItem, indent:String, last:Boolean, level:Number)=>void} rendering function
+ */
+function getItemRenderer (options, blocks) {
+  if (options.tree) {
+    return function (item, indent = '', last = false, level = 1) {
+      const output = blocks.map(bf => bf(item, indent, last, level))
+      console.log(output.join(' '))
+    }
+  }
+  return function (item) {
+    const output = blocks.map(bf => bf(item))
+    console.log(output.join(' '))
   }
 }
 
-function renderExtendedListItem (item, paddings, color) {
-  console.log(
-    item.mode,
-    item.owner.padStart(paddings.get('padOwner')),
-    item.group.padStart(paddings.get('padGroup')),
-    item.size.toFixed().padStart(paddings.get('padSize')),
-    formatDateTime(item.modified),
-    formatName(item, color)
-  )
-}
-
-function renderExtendedList (list, noColor) {
-  const paddings = getPaddings(list)
-  for (const item of list) {
-    renderExtendedListItem(item, paddings, noColor)
+/**
+ * get list rendering function
+ * @param {ListOptions} options list rendering options
+ * @param {(item:ListResultItem)=>void} renderItem item rendering function
+ * @returns {function} list rendering function
+ */
+function getListRenderer (options, renderItem) {
+  if (options.tree) {
+    const renderTreeList = function (list, indent = '', level = 1) {
+      const l = list.length
+      for (let index = 0; index < l; index++) {
+        const item = list[index]
+        const isLastItem = index === l - 1
+        renderItem(item, indent, isLastItem, level)
+        if (item.children) {
+          // sort
+          renderTreeList(item.children, getNextIndent(indent, isLastItem), level + 1)
+        }
+      }
+    }
+    return renderTreeList
   }
+  if (options.recursive) {
+    const matchesGlob = getGlobMatcher(options.glob)
+    const renderPath = getPathRenderer(options)
+
+    const renderRecursiveList = function (parent, separator = true) {
+      const list = parent.children
+      const fl = list.filter(matchesGlob)
+      // maybe render the path
+      if (fl.length) {
+        renderPath(parent, separator ? '\n' : '')
+      }
+      // maybe render the path
+      for (let l = fl.length, index = 0; index < l; index++) {
+        const item = fl[index]
+        renderItem(item)
+      }
+      const collections = list.filter(child => Boolean(child.children))
+      for (let cl = collections.length, ci = 0; ci < cl; ci++) {
+        const collection = collections[ci]
+        // sort
+        renderRecursiveList(collection)
+      }
+    }
+    return renderRecursiveList
+  }
+  const renderList = function (list) {
+    const l = list.length
+    for (let index = 0; index < l; index++) {
+      const item = list[index]
+      renderItem(item)
+      if (item.children) {
+        // sort
+        renderList(item.children)
+      }
+    }
+  }
+  return renderList
 }
 
+/**
+ * list elements in exist db and output to stdout
+ * @param {import("@existdb/node-exist").NodeExist} db database client
+ * @param {String} collection path to collection in db
+ * @param {ListOptions} options command line options
+ * @returns {void}
+ */
 async function ls (db, collection, options) {
-  const { glob, color, extended } = options
+  const { glob, extended, tree, recursive, depth } = options
   const result = await db.queries.readAll(query, {
-    variables: { collection, glob, extended }
+    variables: {
+      collection,
+      glob,
+      extended,
+      depth,
+      recursive: tree || recursive,
+      'collections-only': options['collections-only']
+    }
   })
   const json = JSON.parse(result.pages.toString())
   if (json.error) {
-    throw Error(json.error)
+    if (options.debug) {
+      console.error(json.error)
+    }
+    throw Error(json.error.description)
   }
+  if (options.debug) {
+    console.log(json)
+  }
+
+  const list = json.children
+  const blocks = []
+
   if (extended) {
-    renderExtendedList(json, color)
-    return
+    const paddings = getPaddings(list)
+    blocks.push(getModeFormatter(options))
+    blocks.push(getOwnerFormatter(options, paddings))
+    blocks.push(getGroupFormatter(options, paddings))
+    blocks.push(getSizeFormatter(options, paddings))
+    blocks.push(getDateFormatter(options, paddings))
   }
-  renderList(json, color)
+
+  if (tree) {
+    blocks.push(getTreeFormatter(options))
+  } else {
+    blocks.push(getNameFormatter(options))
+  }
+
+  // const sortItemList = getSorter(options)
+  const renderItem = getItemRenderer(options, blocks)
+  const renderList = getListRenderer(options, renderItem)
+
+  if (tree) {
+    renderItem(json, '', false, 0)
+  }
+  if (recursive) {
+    return renderList(json, false)
+  }
+  renderList(list)
 }
 
 export const command = ['list [options] <collection>', 'ls']
 export const describe = 'List connection contents'
 
-export const builder = {
+const options = {
   G: {
     alias: 'color',
     describe: 'Color the output',
@@ -114,28 +557,65 @@ export const builder = {
     default: false,
     type: 'boolean'
   },
+  R: {
+    alias: 'recursive',
+    describe: 'Descend down the collection tree',
+    type: 'boolean'
+  },
+  d: {
+    alias: 'depth',
+    describe: 'Limit how deep to traverse down collection the collection tree',
+    default: 0,
+    type: 'number'
+  },
+  t: {
+    alias: 'tree',
+    describe: 'Show as tree',
+    type: 'boolean'
+  },
+  c: {
+    alias: 'collections-only',
+    describe: 'Only show collections',
+    default: false,
+    type: 'boolean'
+  },
   g: {
     alias: 'glob',
     describe:
-            'Include only collection names and resources whose name match the pattern.',
-    type: String,
+          'Include only collection names and resources whose name match the pattern.',
+    type: 'string',
     default: '*'
+  },
+  size: {
+    describe: 'How to display resource size',
+    choices: ['short', 'bytes'],
+    default: 'short'
   }
 }
 
+export const builder = yargs => {
+  return yargs.options(options)
+    .conflicts('R', 't')
+}
+
+/**
+ * handle list command
+ * @param {ListOptions} argv options
+ * @returns {Number} exit code
+ */
 export async function handler (argv) {
   if (argv.help) {
     return 0
   }
 
-  const { glob, color, extended, collection } = argv
+  const { glob, collection } = argv
 
-  if (typeof glob !== 'string') {
-    console.error('Invalid value for option "glob"; must be a string.')
+  if (glob.includes('**')) {
+    console.error('Invalid value for option "glob"; "**" is not supported yet')
     return 1
   }
 
   const db = connect(argv.connectionOptions)
 
-  return ls(db, collection, { glob, color, extended })
+  return ls(db, collection, argv)
 }

@@ -17,3 +17,5 @@ export async function run (cmd, args, options) {
     ls.on('error', error => reject(error))
   })
 }
+
+export const asGuest = { env: { ...process.env, EXISTDB_USER: 'guest', EXISTDB_PASS: 'guest' } }
