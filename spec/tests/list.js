@@ -40,8 +40,8 @@ test("calling 'xst ls --recursive /db/apps/eXide'", async (t) => {
   t.end()
 })
 
-test("calling 'xst list /db/apps/dashboard --recursive --extended'", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/dashboard', '--recursive', '--extended'])
+test("calling 'xst list /db/apps/dashboard --recursive --long'", async (t) => {
+  const { stderr, stdout } = await run('xst', ['list', '/db/apps/dashboard', '--recursive', '--long'])
   if (stderr) t.fail(stderr)
   t.ok(stdout, 'got output')
   const actualLines = stdout.split('\n')
@@ -76,8 +76,10 @@ test("calling 'xst list /db/apps/dashboard --tree --depth 2 --glob \"*.css\"'", 
   t.end()
 })
 
-test("calling \"xst list /db/apps/eXide --extended --size 'bytes'\"", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '--extended', '--size', 'bytes'])
+// size
+
+test("calling \"xst list /db/apps/eXide --long --size 'bytes'\"", async (t) => {
+  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '--long', '--size', 'bytes'])
 
   if (stderr) { t.fail(stderr) }
   const actualLines = stdout.split('\n')
@@ -298,8 +300,8 @@ test.skip("calling \"xst list /db --size 'bytes'\"", async (t) => {
   t.end()
 })
 
-test("calling \"xst list /db --extended --size 'qqq'\"", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db', '--extended', '--size', 'qqq'])
+test("calling \"xst list /db --long --size 'qqq'\"", async (t) => {
+  const { stderr, stdout } = await run('xst', ['list', '/db', '--long', '--size', 'qqq'])
   if (stdout) t.fail(stdout)
   t.equal(stderr, 'Invalid values:\n  Argument: size, Given: "qqq", Choices: "short", "bytes"\n')
   t.end()

@@ -23,7 +23,7 @@ import { readXquery } from '../utility/xq.js'
 /**
  * @typedef {Object} ListOptions
  * @prop {Boolean} color color output or not
- * @prop {Boolean} extended show more info per entry in list
+ * @prop {Boolean} long show more info per entry in list
  * @prop {boolean} collectionsOnly only show collections
  * @prop {"human"|"bytes"} size size in bytes
  * @prop {Boolean} recursive traverse the tree
@@ -255,7 +255,7 @@ function formatNameColored (item, display) {
  * @returns {BlockFormatter} formatter
  */
 function getNameFormatter (options) {
-  if (options.recursive && !options.extended) {
+  if (options.recursive && !options.long) {
     if (options.color) {
       return item => formatNameColored(item, item.path)
     }
@@ -297,7 +297,7 @@ function renderPath (item, separator) {
  * @returns {renderPath|renderColoredPath|noOp} path rendering function or no-op
  */
 function getPathRenderer (options) {
-  if (options.recursive && options.extended) {
+  if (options.recursive && options.long) {
     if (options.color) {
       return renderColoredPath
     }
@@ -574,7 +574,7 @@ function getListRenderer (options, renderItem, sortItemList) {
   if (options.recursive) {
     const matchesGlob = getGlobMatcher(options.glob)
     const renderPath = getPathRenderer(options)
-    const extended = options.extended
+    const long = options.long
 
     const renderRecursiveList = function (parent, separator = true) {
       const list = parent.children
@@ -589,10 +589,10 @@ function getListRenderer (options, renderItem, sortItemList) {
       for (let l = filteredSortedList.length, index = 0; index < l; index++) {
         const item = filteredSortedList[index]
         renderItem(item)
-        if (extended || !isCollection(item)) { continue }
+        if (long || !isCollection(item)) { continue }
         renderRecursiveList(item)
       }
-      if (!extended) { return }
+      if (!long) { return }
       const collections = sortedList.filter(isCollection)
       for (let cl = collections.length, ci = 0; ci < cl; ci++) {
         const collection = collections[ci]
@@ -616,12 +616,11 @@ function getListRenderer (options, renderItem, sortItemList) {
  * @returns {void}
  */
 async function ls (db, collection, options) {
-  const { glob, extended, tree, recursive, depth } = options
+  const { glob, long, tree, recursive, depth } = options
   const result = await db.queries.readAll(query, {
     variables: {
       collection,
       glob,
-      extended,
       depth,
       recursive: tree || recursive,
       'collections-only': options['collections-only']
@@ -641,7 +640,7 @@ async function ls (db, collection, options) {
   const list = json.children
   const blocks = []
 
-  if (extended) {
+  if (long) {
     const paddings = getPaddings(list)
     blocks.push(getModeFormatter(options))
     blocks.push(getOwnerFormatter(options, paddings))
@@ -680,7 +679,7 @@ const options = {
     type: 'boolean'
   },
   l: {
-    alias: 'extended',
+    alias: 'long',
     describe: 'Display more information for each item',
     default: false,
     type: 'boolean'
