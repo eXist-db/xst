@@ -1,6 +1,6 @@
 import { test } from 'tape'
 import { run, asGuest } from '../test.js'
-import { cc } from '../../utility/console.js'
+import { ct } from '../../utility/console.js'
 
 test("calling 'xst ls -l /db/system' as admin", async (t) => {
   const { stderr, stdout } = await run('xst', ['ls', '-l', '/db/system'])
@@ -55,10 +55,10 @@ test("calling 'xst ls --color /db/apps/eXide'", async (t) => {
 
   if (stderr) { t.fail(stderr) }
   const lines = stdout.split('\n')
-  t.ok(lines.includes(cc('FgWhite') + 'index.html' + cc('Reset')))
-  t.ok(lines.includes(cc('FgGreen') + 'expath-pkg.xml' + cc('Reset')))
-  t.ok(lines.includes(cc('FgCyan') + 'controller.xql' + cc('Reset')))
-  t.ok(lines.includes(cc('Bright') + cc('FgBlue') + 'resources' + cc('Reset')))
+  t.ok(lines.includes(ct('index.html', 'FgWhite')))
+  t.ok(lines.includes(ct('expath-pkg.xml', 'FgGreen')))
+  t.ok(lines.includes(ct('controller.xql', 'FgCyan')))
+  t.ok(lines.includes(ct('resources', 'FgBlue', 'Bright')))
   t.end()
 })
 
@@ -84,6 +84,26 @@ test("calling \"xst list /db/apps/eXide --long --size 'bytes'\"", async (t) => {
   if (stderr) { t.fail(stderr) }
   const actualLines = stdout.split('\n')
   t.ok(/^\.[rwx-]{9} [^ ]+ [^ ]+ +\d+ \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
+  t.end()
+})
+
+// date
+
+test('calling "xst list /db/apps/eXide --long --date iso"', async (t) => {
+  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '--long', '--date', 'iso'])
+
+  if (stderr) { t.fail(stderr) }
+  const actualLines = stdout.split('\n')
+  t.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \d{4}-[0-1]\d-[0-2]\dT[0-1]\d:[0-5]\d:[0-5]\d\.\d{3}Z .*?$/.test(actualLines[0]), actualLines[0])
+  t.end()
+})
+
+test('calling "xst list /db/apps/eXide --long --date short"', async (t) => {
+  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '--long', '--date', 'short'])
+
+  if (stderr) { t.fail(stderr) }
+  const actualLines = stdout.split('\n')
+  t.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
   t.end()
 })
 

@@ -1,5 +1,5 @@
 import { connect, getMimeType } from '@existdb/node-exist'
-import { cc } from '../utility/console.js'
+import { ct } from '../utility/console.js'
 import { readXquery } from '../utility/xq.js'
 
 /**
@@ -26,6 +26,7 @@ import { readXquery } from '../utility/xq.js'
  * @prop {Boolean} long show more info per entry in list
  * @prop {boolean} collectionsOnly only show collections
  * @prop {"human"|"bytes"} size size in bytes
+ * @prop {"short"|"iso"} date format for dates
  * @prop {Boolean} recursive traverse the tree
  * @prop {Boolean} tree show output as a tree
  * @prop {Number} depth how many levels to traverse down for recursive and tree views
@@ -111,15 +112,16 @@ const dateFormat = {
   month: 'short'
 }
 
-const currentYear = (new Date()).getFullYear()
+const now = new Date()
+const currentYear = now.getFullYear()
+const nowMs = now.getTime()
 
 /**
- * format iso dateTime string
- * @param {ListResultItem} item
+ * format date to short representation
+ * @param {Date} date
  * @returns {String} formatted date
  */
-function formatDateTime (item) {
-  const date = new Date(item.modified)
+function formatDateShort (date) {
   const year = date.getFullYear()
   const month = date.toLocaleDateString('iso', dateFormat)
   const day = date.getDate().toString().padStart(3)
@@ -130,33 +132,45 @@ function formatDateTime (item) {
   return month + day + time
 }
 
+const quarterHour = 900000
+const hour = 3600000
+const day = 86400000
+const month = 2592000000
+const quarterYear = 7776000000
+const year = 31104000000
+const steps = [year, quarterYear, month, day, hour, quarterHour]
+const greens = [70, 34, 40, 114, 84, 156]
+
 /**
- * format iso dateTime string with color
- * @param {ListResultItem} item
- * @returns {String} colored, formatted date
+ * receive a color from the greens palette to color a date
+ * relative to the current date
+ * @param {Date} date the date to get the color for
+ * @returns {Number} xterm256color
  */
-function formatDateTimeColored (item) {
-  const date = new Date(item.modified)
-  const year = date.getFullYear()
-  const month = date.toLocaleDateString('iso', dateFormat)
-  const day = date.getDate().toString().padStart(3)
-  if (year < currentYear) {
-    return cc('FgGreen') + month + day + year.toString().padStart(6) + cc('Reset')
-  }
-  const time = date.toLocaleTimeString('iso', timeFormat).padStart(6)
-  return cc('Bright') + cc('FgGreen') + month + day + time + cc('Reset')
+function colorForDate (date) {
+  const msSince = nowMs - date.getTime()
+  const index = steps.reduce((acc, next, step) => (msSince < next ? step : acc), 0)
+  return greens[index]
 }
 
 /**
  * get date formatting function
- * @param {ListResultItem} options list rendering options
- * @returns {formatDateTime|formatDateTimeColored} date formatting function
+ * @param {ListOptions} options list rendering options
+ * @returns {(item:ListResultItem) => String} date formatting function
  */
 function getDateFormatter (options) {
-  if (options.color) {
-    return formatDateTimeColored
+  let formatter = formatDateShort
+  if (options.date === 'iso') {
+    formatter = (date) => date.toISOString()
   }
-  return formatDateTime
+  if (options.color) {
+    return (item) => {
+      const date = new Date(item.modified)
+      const formattedDate = formatter(date)
+      return ct(formattedDate, colorForDate(date))
+    }
+  }
+  return (item) => formatter(new Date(item.modified))
 }
 
 // tree
@@ -239,14 +253,14 @@ function formatNameColored (item, display) {
   if (item.type === 'resource') {
     const mimetype = getMimeType(item.name)
     switch (mimetype) {
-      case 'text/html': return cc('FgWhite') + display + cc('Reset')
-      case 'application/xml': return cc('FgGreen') + display + cc('Reset')
-      case 'application/xquery': return cc('FgCyan') + display + cc('Reset')
-      case 'application/vnd.xara': return cc('FgRed') + display + cc('Reset')
+      case 'text/html': return ct(display, 'FgWhite')
+      case 'application/xml': return ct(display, 'FgGreen')
+      case 'application/xquery': return ct(display, 'FgCyan')
+      case 'application/vnd.xara': return ct(display, 'FgRed')
       default: return display
     }
   }
-  return cc('Bright') + cc('FgBlue') + display + cc('Reset')
+  return ct(display, 'FgBlue', 'Bright')
 }
 
 /**
@@ -278,7 +292,8 @@ function noOp () {}
  * @returns {void}
  */
 function renderColoredPath (item, separator) {
-  console.log(separator + cc('Dim') + cc('FgWhite') + item.path + ':' + cc('Reset'))
+  const coloredPath = ct(item.path + ':', 'FgWhite', 'Dim')
+  console.log(separator + coloredPath)
 }
 
 /**
@@ -345,7 +360,7 @@ function getSizeFormatter (options, paddings) {
     formatter = formatSizeHumanReadable
   }
   if (options.color) {
-    return (item) => cc('Bright') + cc('FgYellow') + formatter(item.size) + cc('Reset')
+    return (item) => ct(formatter(item.size), 'FgYellow', 'Bright')
   }
   return (item) => formatter(item.size)
 }
@@ -369,15 +384,15 @@ function withCollectionIndicator (item) {
 function formatModeColor (item) {
   return withCollectionIndicator(item)
     .split('')
-    .map(p => {
-      switch (p) {
-        case 'c': return cc('Bright') + cc('FgBlue') + p + cc('Reset')
-        case 'r': return cc('FgGreen') + p + cc('Reset')
-        case 'w': return cc('FgYellow') + p + cc('Reset')
-        case 'x': return cc('FgRed') + p + cc('Reset')
-        case 's': return cc('FgCyan') + p + cc('Reset')
-        case 'S': return cc('Bright') + cc('FgCyan') + p + cc('Reset')
-        default: return p
+    .map(mode => {
+      switch (mode) {
+        case 'c': return ct(mode, 'FgBlue', 'Bright')
+        case 'r': return ct(mode, 'FgGreen')
+        case 'w': return ct(mode, 'FgYellow')
+        case 'x': return ct(mode, 'FgRed')
+        case 's': return ct(mode, 'FgCyan')
+        case 'S': return ct(mode, 'FgCyan', 'Bright')
+        default: return mode
       }
     })
     .join('')
@@ -404,7 +419,7 @@ function getModeFormatter (options) {
 function getOwnerFormatter (options, paddings) {
   const padStart = paddings.get('padOwner')
   if (options.color) {
-    return (item) => cc('FgWhite') + item.owner.padStart(padStart) + cc('Reset')
+    return (item) => ct(item.owner.padStart(padStart), 'FgWhite')
   }
   return (item) => item.owner.padStart(padStart)
 }
@@ -418,7 +433,7 @@ function getOwnerFormatter (options, paddings) {
 function getGroupFormatter (options, paddings) {
   const padStart = paddings.get('padGroup')
   if (options.color) {
-    return (item) => cc('FgWhite') + item.group.padStart(padStart) + cc('Reset')
+    return (item) => ct(item.group.padStart(padStart), 'FgWhite')
   }
   return (item) => item.group.padStart(padStart)
 }
@@ -736,6 +751,11 @@ const options = {
   size: {
     describe: 'How to display resource size',
     choices: ['short', 'bytes'],
+    default: 'short'
+  },
+  date: {
+    describe: 'How to display resource dates',
+    choices: ['short', 'iso'],
     default: 'short'
   }
 }
