@@ -178,26 +178,26 @@ pre-install.xql
 test('calling "xst list /db/apps/eXide -s"', async (t) => {
   const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-s'])
   if (stderr) { t.fail(stderr) }
-  const expectedlines = `docs
+  const expectedlines = `index.html
+LICENSE.txt
+repo.xml
+controller.xql
+help.html
+icon.png
+collection.xconf
+configuration.xml
+expath-pkg.xml
+README.md
+keybindings.js
+pre-install.xql
+package.json
+build.js
+cypress.json
+docs
 modules
 resources
 src
 templates
-cypress.json
-build.js
-package.json
-pre-install.xql
-keybindings.js
-README.md
-collection.xconf
-configuration.xml
-expath-pkg.xml
-icon.png
-help.html
-controller.xql
-repo.xml
-LICENSE.txt
-index.html
 `
 
   t.equal(expectedlines, stdout, stdout)
@@ -207,26 +207,26 @@ index.html
 test('calling "xst list /db/apps/eXide -sr"', async (t) => {
   const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-sr'])
   if (stderr) { t.fail(stderr) }
-  const expectedlines = `index.html
-LICENSE.txt
-repo.xml
-controller.xql
-help.html
-icon.png
-expath-pkg.xml
-configuration.xml
-collection.xconf
-README.md
-keybindings.js
-pre-install.xql
-package.json
-build.js
-cypress.json
-templates
+  const expectedlines = `templates
 src
 resources
 modules
 docs
+cypress.json
+build.js
+package.json
+pre-install.xql
+keybindings.js
+README.md
+expath-pkg.xml
+configuration.xml
+collection.xconf
+icon.png
+help.html
+controller.xql
+repo.xml
+LICENSE.txt
+index.html
 `
 
   t.equal(expectedlines, stdout, stdout)
@@ -236,26 +236,27 @@ docs
 test('calling "xst list /db/apps/eXide -t"', async (t) => {
   const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-t'])
   if (stderr) { t.fail(stderr) }
-  const expectedlines = `expath-pkg.xml
-collection.xconf
-icon.png
-cypress.json
-keybindings.js
-help.html
-index.html
-controller.xql
-build.js
-configuration.xml
-README.md
+
+  const expectedlines = `repo.xml
+src
+modules
+templates
+docs
+resources
 LICENSE.txt
 package.json
 pre-install.xql
-resources
-docs
-templates
-modules
-src
-repo.xml
+configuration.xml
+README.md
+build.js
+controller.xql
+index.html
+help.html
+cypress.json
+keybindings.js
+collection.xconf
+icon.png
+expath-pkg.xml
 `
 
   t.equal(expectedlines, stdout, stdout)
@@ -265,26 +266,26 @@ repo.xml
 test('calling "xst list /db/apps/eXide -stxr"', async (t) => {
   const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-stxr'])
   if (stderr) { t.fail(stderr) }
-  const expectedlines = `index.html
-LICENSE.txt
-repo.xml
-controller.xql
-help.html
-icon.png
-configuration.xml
-collection.xconf
-expath-pkg.xml
-README.md
-keybindings.js
-pre-install.xql
-package.json
-build.js
-cypress.json
-src
-modules
-templates
+  const expectedlines = `resources
 docs
-resources
+templates
+modules
+src
+cypress.json
+build.js
+package.json
+pre-install.xql
+keybindings.js
+README.md
+expath-pkg.xml
+collection.xconf
+configuration.xml
+icon.png
+help.html
+controller.xql
+repo.xml
+LICENSE.txt
+index.html
 `
 
   t.equal(expectedlines, stdout, stdout)

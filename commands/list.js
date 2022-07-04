@@ -461,7 +461,7 @@ function sortByName (itemA, itemB) {
  * @returns {Number} sort direction
  */
 function sortBySize (itemA, itemB) {
-  return itemA.size - itemB.size
+  return itemB.size - itemA.size
 }
 
 /**
@@ -512,7 +512,7 @@ function getModifiedMillis (item) {
 function sortByTime (itemA, itemB) {
   const mtA = getModifiedMillis(itemA)
   const mtB = getModifiedMillis(itemB)
-  return mtA - mtB
+  return mtB - mtA
 }
 
 /**
