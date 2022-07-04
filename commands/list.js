@@ -33,7 +33,30 @@ import { readXquery } from '../utility/xq.js'
  * @prop {Object} connectionOptions DB connection options
  */
 
+/**
+ * @typedef {(item:ListResultItem) => String} BlockFormatter
+ */
+/**
+ * @typedef {(item:ListResultItem) => void} ItemRenderer
+ */
+/**
+ * @typedef {(item:ListResultItem, indent:String, last:Boolean, level:Number) => void} TreeItemRenderer
+ */
+/**
+ * @typedef {(itemA:ListResultItem, itemB:ListResultItem) => Number} ItemSorter
+ */
+
+/**
+ * the xquery file to execute on the DB
+ */
 const query = readXquery('list-resources.xq')
+
+/**
+ * is the item a collection
+ * @param {ListResultItem} item
+ * @returns {Boolean} true if item is a collection
+ */
+const isCollection = item => item.type === 'collection'
 
 // paddings
 
@@ -229,7 +252,7 @@ function formatNameColored (item, display) {
 /**
  * get name formatting function for options
  * @param {Object} options options object
- * @returns {(item:ListResultItem) => String} formatter
+ * @returns {BlockFormatter} formatter
  */
 function getNameFormatter (options) {
   if (options.recursive && !options.extended) {
@@ -311,7 +334,7 @@ function formatSizeHumanReadable (size) {
  * get size formatting function
  * @param {ListOptions} options
  * @param {BlockPaddings} paddings
- * @returns {(item:ListResultItem) => String} formatting function
+ * @returns {BlockFormatter} formatting function
  */
 function getSizeFormatter (options, paddings) {
   let formatter
@@ -363,7 +386,7 @@ function formatModeColor (item) {
 /**
  * get mode formatting function
  * @param {ListOptions} options
- * @returns {(item:ListResultItem)=>String} mode formatter
+ * @returns {BlockFormatter} mode formatter
  */
 function getModeFormatter (options) {
   if (options.color) {
@@ -376,7 +399,7 @@ function getModeFormatter (options) {
  * get owner formatting function
  * @param {ListOptions} options list rendering options
  * @param {BlockPaddings} paddings block paddings
- * @returns {(item:ListResultItem)=>String} owner formatter
+ * @returns {BlockFormatter} owner formatter
  */
 function getOwnerFormatter (options, paddings) {
   const padStart = paddings.get('padOwner')
@@ -390,7 +413,7 @@ function getOwnerFormatter (options, paddings) {
  * get group formatting function
  * @param {ListOptions} options list rendering options
  * @param {BlockPaddings} paddings block paddings
- * @returns {(item:ListResultItem)=>String} group formatter
+ * @returns {BlockFormatter} group formatter
  */
 function getGroupFormatter (options, paddings) {
   const padStart = paddings.get('padGroup')
@@ -403,8 +426,8 @@ function getGroupFormatter (options, paddings) {
 /**
  * get item rendering function
  * @param {Object} options given options
- * @param {Function[]} blocks block rendering functions
- * @returns {(item:ListResultItem)=>void|(item:ListResultItem, indent:String, last:Boolean, level:Number)=>void} rendering function
+ * @param {BlockFormatter[]} blocks block rendering functions
+ * @returns {ItemRenderer|TreeItemRenderer} rendering function
  */
 function getItemRenderer (options, blocks) {
   if (options.tree) {
@@ -419,18 +442,125 @@ function getItemRenderer (options, blocks) {
   }
 }
 
+// sorting
+
+/**
+ * sort items by their name in alphabetical order
+ * @param {ListResultItem} itemA
+ * @param {ListResultItem} itemB
+ * @returns {Number} sort direction
+ */
+function sortByName (itemA, itemB) {
+  return itemA.name.localeCompare(itemB.name)
+}
+
+/**
+ * sort items by their size
+ * @param {ListResultItem} itemA
+ * @param {ListResultItem} itemB
+ * @returns {Number} sort direction
+ */
+function sortBySize (itemA, itemB) {
+  return itemA.size - itemB.size
+}
+
+/**
+ * get type for item
+ * resource extension, which could be an empty string
+ * or "__collection__" for collections
+ * @param {ListResultItem} item resource or collection name
+ * @returns {String}
+ */
+function getType (item) {
+  if (isCollection(item)) { return '__collection' }
+
+  const lastDot = item.name.lastIndexOf('.')
+  if (lastDot < 0) {
+    return ''
+  }
+  return item.name.substring(lastDot + 1)
+}
+
+/**
+ * sort items by their extension and type
+ * @param {ListResultItem} itemA
+ * @param {ListResultItem} itemB
+ * @returns {Number} sort direction
+ */
+function sortByType (itemA, itemB) {
+  const extA = getType(itemA)
+  const extB = getType(itemB)
+  return extA.localeCompare(extB)
+}
+
+/**
+ * get the modified date as milliseconds since epoch start
+ * @param {ListResultItem} item result item
+ * @returns {Number} milliseconds since epoch start
+ */
+function getModifiedMillis (item) {
+  const d = new Date(item.modified)
+  return d.getTime()
+}
+
+/**
+ * sort items by their modified time
+ * @param {ListResultItem} itemA
+ * @param {ListResultItem} itemB
+ * @returns {Number} sort direction
+ */
+function sortByTime (itemA, itemB) {
+  const mtA = getModifiedMillis(itemA)
+  const mtB = getModifiedMillis(itemB)
+  return mtA - mtB
+}
+
+/**
+ * get sorting function
+ * @param {ListOptions} options given options
+ * @returns {ItemSorter} sorting function
+ */
+function getSorter (options) {
+  const { reverse, extensionsort, sizesort, timesort } = options
+  const sorters = []
+  if (sizesort) {
+    sorters.push(sortBySize)
+  }
+  if (timesort) {
+    sorters.push(sortByTime)
+  }
+  if (extensionsort) {
+    sorters.push(sortByType)
+  }
+  sorters.push(sortByName)
+  return (a, b) => {
+    let v = 0
+    let i = 0
+    let sf = sorters[i]
+    while (v === 0 && sf) {
+      v = reverse ? sf(b, a) : sf(a, b)
+      sf = sorters[++i]
+    }
+    return v
+  }
+}
+
+// list
+
 /**
  * get list rendering function
  * @param {ListOptions} options list rendering options
- * @param {(item:ListResultItem)=>void} renderItem item rendering function
+ * @param {ItemRenderer|TreeItemRenderer} renderItem item rendering function
+ * @param {ItemSorter} sortItemList sorting function
  * @returns {function} list rendering function
  */
-function getListRenderer (options, renderItem) {
+function getListRenderer (options, renderItem, sortItemList) {
   if (options.tree) {
     const renderTreeList = function (list, indent = '', level = 1) {
       const l = list.length
+      const sortedList = list.sort(sortItemList)
       for (let index = 0; index < l; index++) {
-        const item = list[index]
+        const item = sortedList[index]
         const isLastItem = index === l - 1
         renderItem(item, indent, isLastItem, level)
         if (item.children) {
@@ -444,20 +574,26 @@ function getListRenderer (options, renderItem) {
   if (options.recursive) {
     const matchesGlob = getGlobMatcher(options.glob)
     const renderPath = getPathRenderer(options)
+    const extended = options.extended
 
     const renderRecursiveList = function (parent, separator = true) {
       const list = parent.children
-      const fl = list.filter(matchesGlob)
+      const sortedList = list.sort(sortItemList)
+      const filteredSortedList = sortedList.filter(matchesGlob)
+
       // maybe render the path
-      if (fl.length) {
+      if (filteredSortedList.length) {
         renderPath(parent, separator ? '\n' : '')
       }
       // maybe render the path
-      for (let l = fl.length, index = 0; index < l; index++) {
-        const item = fl[index]
+      for (let l = filteredSortedList.length, index = 0; index < l; index++) {
+        const item = filteredSortedList[index]
         renderItem(item)
+        if (extended || !isCollection(item)) { continue }
+        renderRecursiveList(item)
       }
-      const collections = list.filter(child => Boolean(child.children))
+      if (!extended) { return }
+      const collections = sortedList.filter(isCollection)
       for (let cl = collections.length, ci = 0; ci < cl; ci++) {
         const collection = collections[ci]
         // sort
@@ -467,15 +603,7 @@ function getListRenderer (options, renderItem) {
     return renderRecursiveList
   }
   const renderList = function (list) {
-    const l = list.length
-    for (let index = 0; index < l; index++) {
-      const item = list[index]
-      renderItem(item)
-      if (item.children) {
-        // sort
-        renderList(item.children)
-      }
-    }
+    list.sort(sortItemList).forEach(renderItem)
   }
   return renderList
 }
@@ -528,9 +656,9 @@ async function ls (db, collection, options) {
     blocks.push(getNameFormatter(options))
   }
 
-  // const sortItemList = getSorter(options)
+  const sortItemList = getSorter(options)
   const renderItem = getItemRenderer(options, blocks)
-  const renderList = getListRenderer(options, renderItem)
+  const renderList = getListRenderer(options, renderItem, sortItemList)
 
   if (tree) {
     renderItem(json, '', false, 0)
@@ -568,7 +696,27 @@ const options = {
     default: 0,
     type: 'number'
   },
+  x: {
+    alias: 'extensionsort',
+    describe: 'Sort by file extension',
+    type: 'boolean'
+  },
+  s: {
+    alias: 'sizesort',
+    describe: 'Sort by size',
+    type: 'boolean'
+  },
   t: {
+    alias: 'timesort',
+    describe: 'Sort by time modified',
+    type: 'boolean'
+  },
+  r: {
+    alias: 'reverse',
+    describe: 'Reverse the order of the sort',
+    type: 'boolean'
+  },
+  T: {
     alias: 'tree',
     describe: 'Show as tree',
     type: 'boolean'
@@ -595,7 +743,7 @@ const options = {
 
 export const builder = yargs => {
   return yargs.options(options)
-    .conflicts('R', 't')
+    .conflicts('R', 'T')
 }
 
 /**

@@ -29,16 +29,8 @@ declare function local:get-filter ($glob as xs:string?) as function(xs:string) a
     )
 };
 
+(: always query extended info for sorting :)
 declare function local:get-item-info ($type as xs:string, $collection as xs:string, $name as xs:string) as map(*) {
-    map {
-        "type": $type,
-        "name": $name,
-        "path": $collection || "/" || $name
-    }
-};
-
-(: query extended info :)
-declare function local:get-extended-info ($type as xs:string, $collection as xs:string, $name as xs:string) as map(*) {
     let $path := $collection || "/" || $name
     let $uri := xs:anyURI($path)
 
@@ -53,6 +45,16 @@ declare function local:get-extended-info ($type as xs:string, $collection as xs:
         then (local:get-collection-size-and-created-date($path))
         else (local:get-resource-size-and-last-modified-date($collection, $name))
     ))
+};
+
+declare function local:get-permissions($uri as xs:anyURI) as map(*) {
+    let $perm := sm:get-permissions($uri)/sm:permission
+
+    return map {
+        "mode": $perm/@mode/string(),
+        "owner": $perm/@owner/string(),
+        "group": $perm/@group/string()
+    }
 };
 
 declare function local:get-resource-size-and-last-modified-date ($collection as xs:string, $resource as xs:string) as map(*) {
@@ -71,16 +73,6 @@ declare function local:get-collection-size-and-created-date ($collection as xs:s
     }
 };
 
-declare function local:get-permissions($uri as xs:anyURI) as map(*) {
-    let $perm := sm:get-permissions($uri)/sm:permission
-
-    return map {
-        "mode": $perm/@mode/string(),
-        "owner": $perm/@owner/string(),
-        "group": $perm/@group/string()
-    }
-};
-
 declare function local:list-sub-collection ($sub-collection as xs:string, $collection as xs:string, $current-level as xs:integer, $options as map(*)) as map(*)? {
     try {
         let $path := concat($collection, "/", $sub-collection)
@@ -92,7 +84,7 @@ declare function local:list-sub-collection ($sub-collection as xs:string, $colle
         return
             if ($name-matches or $has-children)
             then map:merge((
-                $options?item-mapper("collection", $collection, $sub-collection),
+                local:get-item-info("collection", $collection, $sub-collection),
                 $children
             ))
             else ()
@@ -114,7 +106,7 @@ declare function local:list-resources ($collection, $options) {
     else 
         let $resources := filter(xmldb:get-child-resources($collection), $options?item-filter)
         for $resource in $resources
-        return $options?item-mapper("resource", $collection, $resource)
+        return local:get-item-info("resource", $collection, $resource)
 };
 
 (: recursive :)
@@ -138,7 +130,7 @@ declare function local:list ($collection as xs:string, $options as map(*)) as ma
     let $collection-name := replace($normalized-collection, "^(.*?/)([^/]+)$", "$2")
     return
         map:merge((
-            $options?item-mapper("collection", $parent-collection, $collection-name),
+            local:get-item-info("collection", $parent-collection, $collection-name),
             map {
                 "children": array {
                     local:list-resources($normalized-collection, $options),
@@ -156,11 +148,7 @@ try {
             "depth": ($depth, 0)[1],
             "recursive": ($recursive, true())[1],
             "pattern": local:glob-to-regex($glob),
-            "item-filter": local:get-filter($glob),
-            "item-mapper": 
-                if (exists($extended) and $extended)
-                then local:get-extended-info#3
-                else local:get-item-info#3
+            "item-filter": local:get-filter($glob)
         }
 
         let $list := local:list($collection, $options)
