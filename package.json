@@ -36,6 +36,7 @@
   "dependencies": {
     "@existdb/node-exist": "^4.9.2",
     "bottleneck": "^2.19.5",
+    "dotenv": "^16.0.1",
     "fast-glob": "^3.2.11",
     "yargs": "^17.5.1"
   },

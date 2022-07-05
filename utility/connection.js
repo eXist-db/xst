@@ -12,11 +12,10 @@
 import { readOptionsFromEnv } from '@existdb/node-exist'
 
 export function readConnection (argv) {
-  const connectionOptions = readOptionsFromEnv()
-  // test with admin user by default
-  if (!connectionOptions.basic_auth) {
-    connectionOptions.basic_auth = { user: 'admin', pass: '' }
+  if (argv.connectionOptions) {
+    return argv
   }
+  const connectionOptions = readOptionsFromEnv()
   argv.connectionOptions = connectionOptions
   return argv
 }

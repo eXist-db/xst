@@ -5,6 +5,7 @@ import { commands } from './commands/index.js'
 import { handleError } from './utility/errors.js'
 import { hideBin } from 'yargs/helpers'
 import { readConnection } from './utility/connection.js'
+import { configure } from './utility/configure.js'
 
 /**
  * if package was linked to global strip relative path from output
@@ -44,6 +45,7 @@ function showLogo () {
 }
 
 const parser = yargs(hideBin(process.argv))
+  .config('config', 'configuration to use', configure)
   .middleware(readConnection)
   .command('$0', 'interact with an exist-db instance', () => {}, async (argv) => {
     showLogo()
@@ -57,7 +59,7 @@ const parser = yargs(hideBin(process.argv))
   .completion('completion', false)
   .command(commands)
   .demandCommand(1)
-  .strict(true)
+  .strict(false)
   .fail(false)
 
 parser.wrap(parser.terminalWidth())

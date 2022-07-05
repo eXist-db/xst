@@ -1,0 +1,93 @@
+import { test } from 'tape'
+import { run, asAdmin } from '../test.js'
+
+test('no config file or env variables defaults to guest user', async function (t) {
+  const { stderr, stdout } = await run('xst', ['exec', '-f', 'modules/whoami.xq'])
+  if (stderr) {
+    return t.fail(stderr)
+  }
+  t.ok(stdout, stdout)
+  const json = JSON.parse(stdout)
+  t.equal(json.real.user, 'guest')
+  t.notOk(json.effective)
+  t.end()
+})
+
+test('read config file', async function (t) {
+  const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/.xstrc', '-f', 'modules/whoami.xq'])
+  if (stderr) {
+    return t.fail(stderr)
+  }
+  t.ok(stdout, stdout)
+  const json = JSON.parse(stdout)
+  t.equal(json.real.user, 'admin')
+  t.notOk(json.effective)
+  t.end()
+})
+
+test('reads environment variables', async function (t) {
+  const { stderr, stdout } = await run('xst', ['exec', '-f', 'modules/whoami.xq'], asAdmin)
+  if (stderr) {
+    return t.fail(stderr)
+  }
+  t.ok(stdout, stdout)
+  const json = JSON.parse(stdout)
+  t.equal(json.real.user, 'admin')
+  t.notOk(json.effective)
+  t.end()
+})
+
+test('reads configuration from .env', async function (t) {
+  const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/.env', '-f', 'modules/whoami.xq'])
+  if (stderr) {
+    return t.fail(stderr)
+  }
+  t.ok(stdout, stdout)
+  const json = JSON.parse(stdout)
+  t.equal(json.real.user, 'admin')
+  t.notOk(json.effective)
+  t.end()
+})
+
+test('reads configuration from .env.staging', async function (t) {
+  const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/.env.staging', '-f', 'modules/whoami.xq'])
+  if (stderr) {
+    return t.fail(stderr)
+  }
+  t.ok(stdout, stdout)
+  const json = JSON.parse(stdout)
+  t.equal(json.real.user, 'admin')
+  t.notOk(json.effective)
+  t.end()
+})
+
+test('reads connection from .existdb.json', async function (t) {
+  const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/.existdb.json', '-f', 'modules/whoami.xq'])
+  if (stderr) {
+    return t.fail(stderr)
+  }
+  t.ok(stdout, stdout)
+  const json = JSON.parse(stdout)
+  t.equal(json.real.user, 'admin')
+  t.notOk(json.effective)
+  t.end()
+})
+
+test('connection options set in configuration overrides environment variables', async function (t) {
+  const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/.env', '-f', 'modules/whoami.xq'], asAdmin)
+  if (stderr) {
+    return t.fail(stderr)
+  }
+  t.ok(stdout, stdout)
+  const json = JSON.parse(stdout)
+  t.equal(json.real.user, 'admin')
+  t.notOk(json.effective)
+  t.end()
+})
+
+test('fail if config file was not found', async function (t) {
+  const { stderr, stdout } = await run('xst', ['exec', '--config', 'non-existent.file', '-f', 'modules/whoami.xq'], asAdmin)
+  if (stdout) return t.fail(stdout)
+  t.ok(stderr, stderr)
+  t.end()
+})

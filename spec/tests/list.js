@@ -1,28 +1,30 @@
 import { test } from 'tape'
-import { run, asGuest } from '../test.js'
+import { run, asAdmin } from '../test.js'
 import { ct } from '../../utility/console.js'
 
-test("calling 'xst ls -l /db/system' as admin", async (t) => {
+test("calling 'xst ls -l /db/system'", async (t) => {
   const { stderr, stdout } = await run('xst', ['ls', '-l', '/db/system'])
-  if (stderr) t.fail(stderr)
-  t.ok(stdout, stdout)
-  t.end()
-})
-
-test("calling 'xst ls -l /db/system' as guest", async (t) => {
-  const { stderr, stdout } = await run('xst', ['ls', '-l', '/db/system'], asGuest)
   if (stderr) t.fail(stderr)
 
   const lines = stdout.split('\n')
 
-  t.equal(lines.length, 3)
+  t.equal(lines.length, 3, 'only a subset of entries is shown')
   t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 12]\d [0-2]\d:[0-5]\d config/.test(lines[0]))
   t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 12]\d [0-2]\d:[0-5]\d repo/.test(lines[1]))
   t.end()
 })
 
+test("calling 'xst ls -l /db/system' as admin", async (t) => {
+  const { stderr, stdout } = await run('xst', ['ls', '-l', '/db/system'], asAdmin)
+  if (stderr) t.fail(stderr)
+  const lines = stdout.split('\n')
+  t.ok(lines.length > 3, 'all items are listed')
+  t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 12]\d [0-2]\d:[0-5]\d config/.test(lines[0]))
+  t.end()
+})
+
 test("calling 'xst ls -g \"e*\" /db/apps' as guest", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '-g', 'e*', '/db/apps'], asGuest)
+  const { stderr, stdout } = await run('xst', ['list', '-g', 'e*', '/db/apps'])
 
   if (stderr) { t.fail(stderr) }
 

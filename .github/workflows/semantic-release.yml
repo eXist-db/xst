@@ -19,6 +19,7 @@ jobs:
       exist:
         image: existdb/existdb:${{ matrix.exist-version }}
         ports:
+          - 8080:8080
           - 8443:8443
     steps:
       - uses: actions/checkout@v2

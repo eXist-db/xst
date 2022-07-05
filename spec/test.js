@@ -18,4 +18,4 @@ export async function run (cmd, args, options) {
   })
 }
 
-export const asGuest = { env: { ...process.env, EXISTDB_USER: 'guest', EXISTDB_PASS: 'guest' } }
+export const asAdmin = { env: { ...process.env, EXISTDB_USER: 'admin', EXISTDB_PASS: '' } }
