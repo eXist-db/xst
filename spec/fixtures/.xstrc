@@ -1,0 +1,9 @@
+{
+    "connectionOptions": {
+        "basic_auth": {
+            "user": "admin",
+            "pass": ""
+    	}
+    },
+    "extensionsort": true
+}

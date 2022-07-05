@@ -4,6 +4,7 @@
 !.npmignore
 !.github
 !.releaserc
+!spec/fixtures/.*
 
 # dependencies
 node_modules
