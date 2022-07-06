@@ -5,7 +5,6 @@ declare variable $collection as xs:string external;
 
 (: options :)
 declare variable $glob as xs:string? external;
-declare variable $extended as xs:boolean? external;
 declare variable $depth as xs:integer? external;
 declare variable $recursive as xs:boolean? external;
 declare variable $collections-only as xs:boolean? external;
