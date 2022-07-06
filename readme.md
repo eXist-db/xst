@@ -6,28 +6,11 @@ Built on top of [@existdb/node-exist](https://www.npmjs.com/package/@existdb/nod
 
 ## Installation
 
-Until this package is officially released you can already use
-it by following the steps below
+With a version 14.18 or later of node installed, run
 
-1. clone this repository
-    ```bash
-    git clone https://github.com/eXist-db/xst
-    ```
+`npm install --global @existdb/xst`
 
-2. change to the working directory
-    ```bash
-    cd xst
-    ```
-
-3. install package dependencies
-    ```bash
-    npm install
-    ```
-
-4. link this package into your global packages directory
-    ```bash
-    npm link
-    ```
+This will put the executable `xst` in your path.
 
 ## Usage
 
@@ -40,8 +23,6 @@ You can verify your installation is working with
 ```bash
 xst --version
 ```
-
-This will output `0.0.0-development` for the moment.
 
 ```bash
 xst --help
@@ -166,3 +147,40 @@ That also works when running the tests (on a remote server maybe or a different 
 dotenv npm test
 ```
 
+## Development
+
+If you want to test or develop this package further follow the steps below
+
+1. clone this repository
+    ```bash
+    git clone https://github.com/line-o/xst
+    ```
+
+2. change to the working directory
+    ```bash
+    cd xst
+    ```
+
+3. install package dependencies
+    ```bash
+    npm install
+    ```
+
+4. link this package into your global packages directory
+    ```bash
+    npm link
+    ```
+
+**Note:** With this ssetup `--version` will always output `0.0.0-development`.
+
+## Testing
+
+Once you followed the above steps and linked a local clone of this repository 
+
+```bash
+npm test
+```
+
+willrun the testsuite.
+
+**NOTE:** You will need to have an instance of existdb running (usually a local development instance).
