@@ -1,11 +1,10 @@
 {
-  "name": "xst",
+  "name": "@existdb/xst",
   "version": "0.0.0-development",
   "description": "Command line tool to interact with exist-db instances",
   "main": "cli.js",
   "bin": {
-    "xst": "./cli.js",
-    "exist": "./cli.js"
+    "xst": "./cli.js"
   },
   "type": "module",
   "engines": {
@@ -25,7 +24,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/line-o/xst"
+    "url": "https://github.com/eXist-db/xst"
   },
   "author": {
     "name": "Juri Leino",
