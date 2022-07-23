@@ -1,4 +1,4 @@
-import { connect } from '@existdb/node-exist'
+import { connect, getMimeType } from '@existdb/node-exist'
 import { statSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import Bottleneck from 'bottleneck'
@@ -30,12 +30,20 @@ async function uploadResource (db, verbose, path, root, baseCollection) {
     const remoteFilePath = baseCollection + '/' + path
     const fileContents = readFileSync(localFilePath)
     const fileHandle = await db.documents.upload(fileContents)
-    await db.documents.parseLocal(fileHandle, remoteFilePath, {})
+
+    let options = {}
+    if (!getMimeType(path)) {
+      console.log('fallback mimetype for', path)
+      options.mimetype = 'application/octet-stream'
+    }
+    await db.documents.parseLocal(fileHandle, remoteFilePath, options)
     if (verbose) {
       console.log(`✔︎ ${path} uploaded`)
     }
+    return true
   } catch (e) {
     handleError(e, path)
+    return false
   }
 }
 
@@ -54,8 +62,10 @@ async function createCollection (db, verbose, collection, baseCollection) {
     if (verbose) {
       console.log(`✔︎ ${absCollection} created`)
     }
+    return true
   } catch (e) {
     handleError(e, absCollection)
+    return false
   }
 }
 
@@ -110,10 +120,13 @@ async function uploadFileOrFolder (db, source, target, options) {
       return 0
     }
     // ensure target collection exists
-    await createCollection(db, options.verbose, '', target)
-    await uploadResource(db, options.verbose, name, dir, target)
+    const collectionSuccess = await createCollection(db, options.verbose, '', target)
+    const uploadSuccess = await uploadResource(db, options.verbose, name, dir, target)
+    if (collectionSuccess && uploadSuccess) {
     console.log(`uploaded ${source} in ${Date.now() - start}ms`)
     return 0
+    }
+    return 1
   }
 
   const globbingOptions = { ignore: options.exclude, unique: true, cwd: source }
