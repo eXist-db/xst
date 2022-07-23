@@ -123,13 +123,13 @@ async function uploadFileOrFolder (db, source, target, options) {
     const collectionSuccess = await createCollection(db, options.verbose, '', target)
     const uploadSuccess = await uploadResource(db, options.verbose, name, dir, target)
     if (collectionSuccess && uploadSuccess) {
-    console.log(`uploaded ${source} in ${Date.now() - start}ms`)
-    return 0
+      console.log(`uploaded ${source} in ${Date.now() - start}ms`)
+      return 0  
     }
     return 1
   }
 
-  const globbingOptions = { ignore: options.exclude, unique: true, cwd: source }
+  const globbingOptions = { ignore: options.exclude, unique: true, cwd: source, dot: options.dotFiles }
   const collectionGlob = Object.assign({ onlyDirectories: true }, globbingOptions)
   const resourceGlob = Object.assign({ onlyFile: true }, globbingOptions)
 
@@ -253,7 +253,13 @@ export function builder (yargs) {
     })
     .option('a', {
       alias: 'apply-xconf',
-      describe: 'If set, will upload and apply index configurations that are in the fileset first before all other data is uploaded. The user must be a member of the dba group.',
+      describe: 'Upload and apply index configurations that are in the fileset first before all other data is uploaded. The user must be a member of the dba group.',
+      default: false,
+      type: 'boolean'
+    })
+    .option('D', {
+      alias: 'dot-files',
+      describe: 'Upload dot-files as well. This is off by default to prevent uploading of local IDE settings and the entire git-repository by accident.',
       default: false,
       type: 'boolean'
     })
