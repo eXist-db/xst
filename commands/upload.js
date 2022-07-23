@@ -31,7 +31,7 @@ async function uploadResource (db, verbose, path, root, baseCollection) {
     const fileContents = readFileSync(localFilePath)
     const fileHandle = await db.documents.upload(fileContents)
 
-    let options = {}
+    const options = {}
     if (!getMimeType(path)) {
       console.log('fallback mimetype for', path)
       options.mimetype = 'application/octet-stream'
@@ -124,7 +124,7 @@ async function uploadFileOrFolder (db, source, target, options) {
     const uploadSuccess = await uploadResource(db, options.verbose, name, dir, target)
     if (collectionSuccess && uploadSuccess) {
       console.log(`uploaded ${source} in ${Date.now() - start}ms`)
-      return 0  
+      return 0
     }
     return 1
   }
