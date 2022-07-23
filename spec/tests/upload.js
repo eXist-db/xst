@@ -15,6 +15,13 @@ test("calling 'xst up modules /db/tmp' as admin", async (t) => {
   t.end()
 })
 
+test('upload dotfile', async (t) => {
+  const { stderr, stdout } = await run('xst', ['up', '-D', 'spec/fixtures/.env', '/db/tmp'], asAdmin)
+  if (stderr) t.fail(stderr)
+  t.ok(stdout, stdout)
+  t.end()
+})
+
 test.skip("calling 'xst up modules/test.xq /db/foo' as guest", async (t) => {
   const { stderr, stdout } = await run('xst', ['up', 'modules', '/db/foo'])
   if (stdout) t.fail(stdout)
