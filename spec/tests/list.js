@@ -99,6 +99,16 @@ test('with fixtures uploaded', async (t) => {
     st.end()
   })
 
+  t.test(`calling 'xst ls -g "*.js" -R ${testCollection}' as guest`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', '-g', '*.js', '-R', testCollection])
+
+    if (stderr) { st.fail(stderr) }
+    const lines = stdout.split('\n')
+    st.ok(lines.includes(testCollection + '/test.js'), 'found js in root-collection')
+    st.ok(lines.includes(testCollection + '/tests/list.js'), 'found js in sub-collection')
+    st.end()
+  })
+
   t.test(`calling 'xst list ${testCollection} --recursive --long'`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '--recursive', '--long'])
     if (stderr) st.fail(stderr)

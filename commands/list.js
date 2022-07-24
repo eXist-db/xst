@@ -595,24 +595,25 @@ function getListRenderer (options, renderItem, sortItemList) {
     const renderRecursiveList = function (parent, separator = true) {
       const list = parent.children
       const sortedList = list.sort(sortItemList)
-      const filteredSortedList = sortedList.filter(matchesGlob)
 
       // maybe render the path
-      if (filteredSortedList.length) {
+      if (long && sortedList.filter(matchesGlob).length) {
         renderPath(parent, separator ? '\n' : '')
       }
       // maybe render the path
-      for (let l = filteredSortedList.length, index = 0; index < l; index++) {
-        const item = filteredSortedList[index]
-        renderItem(item)
-        if (long || !isCollection(item)) { continue }
-        renderRecursiveList(item)
+      for (let l = sortedList.length, index = 0; index < l; index++) {
+        const item = sortedList[index]
+        if (matchesGlob(item)) {
+          renderItem(item)
+        }
+        if (!long && isCollection(item)) {
+          renderRecursiveList(item)
+        }
       }
       if (!long) { return }
       const collections = sortedList.filter(isCollection)
       for (let cl = collections.length, ci = 0; ci < cl; ci++) {
         const collection = collections[ci]
-        // sort
         renderRecursiveList(collection)
       }
     }
