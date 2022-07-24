@@ -2,6 +2,43 @@ import { test } from 'tape'
 import { run, asAdmin } from '../test.js'
 import { ct } from '../../utility/console.js'
 
+const testCollection = '/db/list-test'
+const testSourceFolder = 'spec'
+
+async function prepare (t) {
+  try {
+    const phase1 = await run('xst', ['up', '-D', '-e', 'tests', testSourceFolder, testCollection], asAdmin)
+    if (phase1.stderr) { throw Error(phase1.stderr) }
+    const ensureTestsOlder = await run('xst', ['up', testSourceFolder + '/tests', testCollection + '/tests'], asAdmin)
+    if (ensureTestsOlder.stderr) { throw Error(ensureTestsOlder.stderr) }
+    await storeResource(testCollection, 'b', '"test"')
+    await storeResource(testCollection, 'a.txt', '"test"')
+    await storeResource(testCollection, 'a1.txt', '"test"')
+    await storeResource(testCollection, 'a11.json', '\'{"a":1}\'')
+    await storeResource(testCollection, 'a20.txt', '"test"')
+    await storeResource(testCollection, 'a22.xml', '<test />')
+    await storeResource(testCollection, 'index.html', '<html><body>1</body></html>')
+    await storeResource(testCollection, 'test.xq', '"1"')
+  } catch (e) {
+    t.fail(e)
+    t.end()
+  }
+}
+
+async function storeResource (collection, fileName, content) {
+  const query = `xmldb:store("${collection}", "${fileName}", ${content})`
+  const { stderr } = await run('xst', ['run', query], asAdmin)
+  if (stderr) { throw Error(stderr) }
+}
+
+async function cleanup (t) {
+  const { stderr, stdout } = await run('xst', ['run', `xmldb:remove("${testCollection}")`], asAdmin)
+  if (stderr) {
+    t.fail(stderr)
+  }
+  console.log(stdout)
+}
+
 test("calling 'xst ls -l /db/system'", async (t) => {
   const { stderr, stdout } = await run('xst', ['ls', '-l', '/db/system'])
   if (stderr) t.fail(stderr)
@@ -23,305 +60,238 @@ test("calling 'xst ls -l /db/system' as admin", async (t) => {
   t.end()
 })
 
-test("calling 'xst ls -g \"e*\" /db/apps' as guest", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '-g', 'e*', '/db/apps'])
+// reliable tests using fixed set
+test('with fixtures uploaded', async (t) => {
+  await prepare(t)
 
-  if (stderr) { t.fail(stderr) }
+  // glob
+  t.test(`calling 'xst ls -g "qqq*" ${testCollection}' as guest`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', '-g', 'qqq*', testCollection])
 
-  const lines = stdout.split('\n')
-  t.ok(lines.includes('eXide'))
-  t.end()
-})
+    if (stderr) { st.fail(stderr) }
+    st.notOk(stdout, 'should output nothing')
+    st.end()
+  })
 
-test("calling 'xst ls --recursive /db/apps/eXide'", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '--recursive', '/db/apps/eXide'])
+  t.test(`calling 'xst ls -g "*.js" ${testCollection}' as guest`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', '-g', '*.js', testCollection])
 
-  if (stderr) { t.fail(stderr) }
-  const lines = stdout.split('\n')
-  t.ok(lines.includes('/db/apps/eXide/expath-pkg.xml'))
-  t.end()
-})
+    if (stderr) { st.fail(stderr) }
+    st.ok(stdout, stdout)
+    st.end()
+  })
 
-test("calling 'xst list /db/apps/dashboard --recursive --long'", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/dashboard', '--recursive', '--long'])
-  if (stderr) t.fail(stderr)
-  t.ok(stdout, 'got output')
-  const actualLines = stdout.split('\n')
-  t.equal(actualLines[0], '/db/apps/dashboard:', 'parent collection headline')
-  t.ok(/\.[rwx-]{9} \w+ \w+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[1]), actualLines[1])
-  t.end()
-})
+  t.test(`calling 'xst ls --recursive ${testCollection}'`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', '--recursive', testCollection])
 
-test("calling 'xst ls --color /db/apps/eXide'", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '--color', '/db/apps/eXide'])
+    if (stderr) { st.fail(stderr) }
+    const lines = stdout.split('\n')
+    st.ok(lines.includes(testCollection + '/a22.xml'), 'found xml in root')
+    st.ok(lines.includes(testCollection + '/fixtures/.xstrc'), 'found configfile in fixtures')
+    st.end()
+  })
 
-  if (stderr) { t.fail(stderr) }
-  const lines = stdout.split('\n')
-  t.ok(lines.includes(ct('index.html', 'FgWhite')))
-  t.ok(lines.includes(ct('expath-pkg.xml', 'FgGreen')))
-  t.ok(lines.includes(ct('controller.xql', 'FgCyan')))
-  t.ok(lines.includes(ct('resources', 'FgBlue', 'Bright')))
-  t.end()
-})
+  t.test(`calling 'xst list ${testCollection} --recursive --long'`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '--recursive', '--long'])
+    if (stderr) st.fail(stderr)
+    st.ok(stdout, 'got output')
+    const actualLines = stdout.split('\n')
+    st.equal(actualLines[0], testCollection + ':', 'parent collection headline')
+    st.ok(/\.[rwx-]{9} \w+ \w+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[1]), actualLines[1])
+    st.end()
+  })
 
-test("calling 'xst list /db/apps/dashboard --tree --depth 2 --glob \"*.css\"'", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/dashboard', '--tree', '--depth', '2', '--glob', '*.css'])
-  if (stderr) t.fail(stderr)
-  const expectedlines = [
-    'dashboard',
-    '└── resources',
-    '    └── styles.css'
-  ]
-  const actualLines = stdout.split('\n')
-  t.plan(expectedlines.length)
-  expectedlines.forEach((line, index) => t.ok(actualLines[index] === line, actualLines[index]))
-  t.end()
-})
+  t.test(`calling 'xst list ${testCollection} --tree --depth 2 --glob ".env"'`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '--tree', '--depth', '2', '--glob', '.env'])
+    if (stderr) st.fail(stderr)
+    const expectedlines = [
+      'list-test',
+      '└── fixtures',
+      '    └── .env'
+    ]
+    const actualLines = stdout.split('\n')
+    st.plan(expectedlines.length)
+    expectedlines.forEach((line, index) => st.ok(actualLines[index] === line, actualLines[index]))
+    st.end()
+  })
 
-// size
+  // size
 
-test("calling \"xst list /db/apps/eXide --long --size 'bytes'\"", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '--long', '--size', 'bytes'])
+  t.test(`calling "xst list ${testCollection} --long --size 'bytes'"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '--long', '--size', 'bytes'])
 
-  if (stderr) { t.fail(stderr) }
-  const actualLines = stdout.split('\n')
-  t.ok(/^\.[rwx-]{9} [^ ]+ [^ ]+ +\d+ \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
-  t.end()
-})
+    if (stderr) { st.fail(stderr) }
+    const actualLines = stdout.split('\n')
+    st.ok(/^\.[rwx-]{9} [^ ]+ [^ ]+ +\d+ \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
+    st.end()
+  })
 
-// date
+  // date
+  t.test(`calling "xst list ${testCollection} --long --date iso"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '--long', '--date', 'iso'])
 
-test('calling "xst list /db/apps/eXide --long --date iso"', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '--long', '--date', 'iso'])
+    if (stderr) { st.fail(stderr) }
+    const actualLines = stdout.split('\n')
+    st.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \d{4}-[0-1]\d-[0-2]\dT[0-1]\d:[0-5]\d:[0-5]\d\.\d{3}Z .*?$/.test(actualLines[0]), actualLines[0])
+    st.end()
+  })
 
-  if (stderr) { t.fail(stderr) }
-  const actualLines = stdout.split('\n')
-  t.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \d{4}-[0-1]\d-[0-2]\dT[0-1]\d:[0-5]\d:[0-5]\d\.\d{3}Z .*?$/.test(actualLines[0]), actualLines[0])
-  t.end()
-})
+  t.test(`calling "xst list ${testCollection} --long --date short"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '--long', '--date', 'short'])
 
-test('calling "xst list /db/apps/eXide --long --date short"', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '--long', '--date', 'short'])
+    if (stderr) { st.fail(stderr) }
+    const actualLines = stdout.split('\n')
+    st.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
+    st.end()
+  })
 
-  if (stderr) { t.fail(stderr) }
-  const actualLines = stdout.split('\n')
-  t.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
-  t.end()
-})
+  // color
+  t.test(`calling 'xst ls --color ${testCollection}'`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', '--color', testCollection])
 
-// test sorting
+    if (stderr) { t.fail(stderr) }
+    const lines = stdout.split('\n')
 
-test('calling "xst list /db/apps/eXide" sorts by name', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide'])
-  if (stderr) { t.fail(stderr) }
-  const expectedlines = `build.js
-collection.xconf
-configuration.xml
-controller.xql
-cypress.json
-docs
-expath-pkg.xml
-help.html
-icon.png
-index.html
-keybindings.js
-LICENSE.txt
-modules
-package.json
-pre-install.xql
-README.md
-repo.xml
-resources
-src
-templates
+    st.ok(lines.includes(ct('index.html', 'FgWhite')), 'html file shown in white')
+    st.ok(lines.includes(ct('a22.xml', 'FgGreen')), 'xml file shown in green')
+    st.ok(lines.includes(ct('test.xq', 'FgCyan')), 'xquery file shown in cyan')
+    st.ok(lines.includes(ct('fixtures', 'FgBlue', 'Bright')), 'collection shown in bright blue')
+    st.end()
+  })
+
+  t.test(`calling "xst list ${testCollection}" sorts by name`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection])
+    if (stderr) { st.fail(stderr) }
+    const expectedlines = 'a.txt\na1.txt\na11.json\na20.txt\na22.xml\nb\nfixtures\nindex.html\ntest.js\ntest.xq\ntests\n'
+
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
+
+  t.test(`calling "xst list ${testCollection} -r" reverses default sorting`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '-r'])
+    if (stderr) { st.fail(stderr) }
+    const expectedlines = 'tests\ntest.xq\ntest.js\nindex.html\nfixtures\nb\na22.xml\na20.txt\na11.json\na1.txt\na.txt\n'
+
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
+
+  t.test(`calling "xst list ${testCollection} -x"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '-x'])
+    if (stderr) { st.fail(stderr) }
+    const expectedlines = 'b\nfixtures\ntests\nindex.html\ntest.js\na11.json\na.txt\na1.txt\na20.txt\na22.xml\ntest.xq\n'
+
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
+
+  t.test(`calling "xst list ${testCollection} -s"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '-s'])
+    if (stderr) { st.fail(stderr) }
+    const expectedlines = 'a22.xml\nindex.html\ntest.js\na11.json\na.txt\na1.txt\na20.txt\nb\ntest.xq\nfixtures\ntests\n'
+
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
+
+  t.test(`calling "xst list ${testCollection} -sr"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '-sr'])
+    if (stderr) { t.fail(stderr) }
+    const expectedlines = 'tests\nfixtures\ntest.xq\nb\na20.txt\na1.txt\na.txt\na11.json\ntest.js\nindex.html\na22.xml\n'
+
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
+
+  t.test(`calling "xst list ${testCollection} -t"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '-t'])
+    if (stderr) { st.fail(stderr) }
+
+    const expectedlines = 'test.xq\nindex.html\na22.xml\na20.txt\na11.json\na1.txt\na.txt\nb\ntests\ntest.js\nfixtures\n'
+
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
+
+  t.test(`calling "xst list ${testCollection} -stxr"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '-stxr'])
+    if (stderr) { st.fail(stderr) }
+    const expectedlines = 'fixtures\ntests\ntest.xq\nb\na.txt\na1.txt\na20.txt\na11.json\ntest.js\na22.xml\nindex.html\n'
+
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
+
+  t.test(`calling "xst list ${testCollection} -R"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '-R'])
+    if (stderr) { st.fail(stderr) }
+    const expectedlines = `/db/list-test/a.txt
+/db/list-test/a1.txt
+/db/list-test/a11.json
+/db/list-test/a20.txt
+/db/list-test/a22.xml
+/db/list-test/b
+/db/list-test/fixtures
+/db/list-test/fixtures/.env
+/db/list-test/fixtures/.env.staging
+/db/list-test/fixtures/.existdb.json
+/db/list-test/fixtures/.xstrc
+/db/list-test/fixtures/binding.json
+/db/list-test/fixtures/test.xml
+/db/list-test/fixtures/test.xq
+/db/list-test/index.html
+/db/list-test/test.js
+/db/list-test/test.xq
+/db/list-test/tests
+/db/list-test/tests/cli.js
+/db/list-test/tests/configuration.js
+/db/list-test/tests/exec.js
+/db/list-test/tests/install.js
+/db/list-test/tests/list.js
+/db/list-test/tests/upload.js
 `
 
-  t.equal(expectedlines, stdout, stdout)
-  t.end()
-})
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
 
-test('calling "xst list /db/apps/eXide -r" reverts default sorting', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-r'])
-  if (stderr) { t.fail(stderr) }
-  const expectedlines = `templates
-src
-resources
-repo.xml
-README.md
-pre-install.xql
-package.json
-modules
-LICENSE.txt
-keybindings.js
-index.html
-icon.png
-help.html
-expath-pkg.xml
-docs
-cypress.json
-controller.xql
-configuration.xml
-collection.xconf
-build.js
+  t.test(`calling "xst list ${testCollection} -stxrR"`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection, '-stxrR'])
+    if (stderr) { st.fail(stderr) }
+    const expectedlines = `/db/list-test/fixtures
+/db/list-test/fixtures/test.xq
+/db/list-test/fixtures/.env
+/db/list-test/fixtures/.env.staging
+/db/list-test/fixtures/binding.json
+/db/list-test/fixtures/.xstrc
+/db/list-test/fixtures/.existdb.json
+/db/list-test/fixtures/test.xml
+/db/list-test/tests
+/db/list-test/tests/cli.js
+/db/list-test/tests/upload.js
+/db/list-test/tests/install.js
+/db/list-test/tests/configuration.js
+/db/list-test/tests/exec.js
+/db/list-test/tests/list.js
+/db/list-test/test.xq
+/db/list-test/b
+/db/list-test/a.txt
+/db/list-test/a1.txt
+/db/list-test/a20.txt
+/db/list-test/a11.json
+/db/list-test/test.js
+/db/list-test/a22.xml
+/db/list-test/index.html
 `
+    st.equal(expectedlines, stdout, stdout)
+    st.end()
+  })
 
-  t.equal(expectedlines, stdout, stdout)
-  t.end()
-})
-
-test('calling "xst list /db/apps/eXide -x"', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-x'])
-  if (stderr) { t.fail(stderr) }
-  const expectedlines = `docs
-modules
-resources
-src
-templates
-help.html
-index.html
-build.js
-keybindings.js
-cypress.json
-package.json
-README.md
-icon.png
-LICENSE.txt
-collection.xconf
-configuration.xml
-expath-pkg.xml
-repo.xml
-controller.xql
-pre-install.xql
-`
-  t.equal(expectedlines, stdout, stdout)
-  t.end()
-})
-
-test('calling "xst list /db/apps/eXide -s"', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-s'])
-  if (stderr) { t.fail(stderr) }
-  const expectedlines = `index.html
-LICENSE.txt
-repo.xml
-controller.xql
-help.html
-icon.png
-collection.xconf
-configuration.xml
-expath-pkg.xml
-README.md
-keybindings.js
-pre-install.xql
-package.json
-build.js
-cypress.json
-docs
-modules
-resources
-src
-templates
-`
-
-  t.equal(expectedlines, stdout, stdout)
-  t.end()
-})
-
-test('calling "xst list /db/apps/eXide -sr"', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-sr'])
-  if (stderr) { t.fail(stderr) }
-  const expectedlines = `templates
-src
-resources
-modules
-docs
-cypress.json
-build.js
-package.json
-pre-install.xql
-keybindings.js
-README.md
-expath-pkg.xml
-configuration.xml
-collection.xconf
-icon.png
-help.html
-controller.xql
-repo.xml
-LICENSE.txt
-index.html
-`
-
-  t.equal(expectedlines, stdout, stdout)
-  t.end()
-})
-
-test('calling "xst list /db/apps/eXide -t"', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-t'])
-  if (stderr) { t.fail(stderr) }
-
-  const expectedlines = `repo.xml
-src
-modules
-templates
-docs
-resources
-LICENSE.txt
-package.json
-pre-install.xql
-configuration.xml
-README.md
-build.js
-controller.xql
-index.html
-help.html
-cypress.json
-keybindings.js
-collection.xconf
-icon.png
-expath-pkg.xml
-`
-
-  t.equal(expectedlines, stdout, stdout)
-  t.end()
-})
-
-test('calling "xst list /db/apps/eXide -stxr"', async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db/apps/eXide', '-stxr'])
-  if (stderr) { t.fail(stderr) }
-  const expectedlines = `resources
-docs
-templates
-modules
-src
-cypress.json
-build.js
-package.json
-pre-install.xql
-keybindings.js
-README.md
-expath-pkg.xml
-collection.xconf
-configuration.xml
-icon.png
-help.html
-controller.xql
-repo.xml
-LICENSE.txt
-index.html
-`
-
-  t.equal(expectedlines, stdout, stdout)
-  t.end()
+  t.teardown(cleanup)
 })
 
 // errors
-
-test.skip("calling \"xst list /db --size 'bytes'\"", async (t) => {
-  const { stderr, stdout } = await run('xst', ['list', '/db', '--size', 'bytes'])
-  if (stdout) t.fail(stdout)
-  t.equal(stderr, 'Invalid values:\n  Argument: size, Given: "qqq", Choices: "short", "bytes"\n')
-  t.end()
-})
 
 test("calling \"xst list /db --long --size 'qqq'\"", async (t) => {
   const { stderr, stdout } = await run('xst', ['list', '/db', '--long', '--size', 'qqq'])
