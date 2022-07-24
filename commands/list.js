@@ -226,9 +226,9 @@ function getTreeFormatter (options) {
  */
 function toRegExpPattern (glob) {
   const converted = glob
-    .replaceAll('.', '\\.') // make . literals
-    .replaceAll('?', '.') // transform ?
-    .replaceAll('*', '.*?') // transform *
+    .replace(/\./g, '\\.') // make . literals
+    .replace(/\?/g, '.') // transform ?
+    .replace(/\*/g, '.*?') // transform *
 
   return `^${converted}$`
 }
