@@ -73,6 +73,14 @@ test('with fixtures uploaded', async (t) => {
     st.end()
   })
 
+  t.test(`calling 'xst ls -g "\\*" ${testCollection}' as guest`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', '-g', '\\*', testCollection])
+
+    if (stderr) { st.fail(stderr) }
+    st.notOk(stdout, 'should output nothing')
+    st.end()
+  })
+
   t.test(`calling 'xst ls -g "*.js" ${testCollection}' as guest`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', '-g', '*.js', testCollection])
 

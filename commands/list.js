@@ -226,6 +226,7 @@ function getTreeFormatter (options) {
  */
 function toRegExpPattern (glob) {
   const converted = glob
+    .replace(/\\/g, '\\\\') // escape backslashes
     .replace(/\./g, '\\.') // make . literals
     .replace(/\?/g, '.') // transform ?
     .replace(/\*/g, '.*?') // transform *
