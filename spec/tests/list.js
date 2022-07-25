@@ -140,7 +140,7 @@ test('with fixtures uploaded', async (t) => {
 
     if (stderr) { st.fail(stderr) }
     const actualLines = stdout.split('\n')
-    st.ok(/^\.[rwx-]{9} [^ ]+ [^ ]+ +\d+ \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
+    st.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ +\d+ \w{3} [ 123]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
     st.end()
   })
 
@@ -150,7 +150,7 @@ test('with fixtures uploaded', async (t) => {
 
     if (stderr) { st.fail(stderr) }
     const actualLines = stdout.split('\n')
-    st.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \d{4}-[0-1]\d-[0-2]\dT[0-1]\d:[0-5]\d:[0-5]\d\.\d{3}Z .*?$/.test(actualLines[0]), actualLines[0])
+    st.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \d{4}-[0-1]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d\.\d{3}Z .*?$/.test(actualLines[0]), actualLines[0])
     st.end()
   })
 
@@ -159,7 +159,7 @@ test('with fixtures uploaded', async (t) => {
 
     if (stderr) { st.fail(stderr) }
     const actualLines = stdout.split('\n')
-    st.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
+    st.ok(/^(\.|c)[rwx-]{9} [^ ]+ [^ ]+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 123]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[0]), actualLines[0])
     st.end()
   })
 
@@ -256,6 +256,8 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/.existdb.json
 /db/list-test/fixtures/.xstrc
 /db/list-test/fixtures/binding.json
+/db/list-test/fixtures/broken-test-app.xar
+/db/list-test/fixtures/test-app.xar
 /db/list-test/fixtures/test.xml
 /db/list-test/fixtures/test.xq
 /db/list-test/index.html
@@ -284,13 +286,15 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/binding.json
 /db/list-test/fixtures/.xstrc
 /db/list-test/fixtures/.existdb.json
+/db/list-test/fixtures/test-app.xar
+/db/list-test/fixtures/broken-test-app.xar
 /db/list-test/fixtures/test.xml
 /db/list-test/tests
 /db/list-test/tests/cli.js
 /db/list-test/tests/upload.js
-/db/list-test/tests/install.js
 /db/list-test/tests/configuration.js
 /db/list-test/tests/exec.js
+/db/list-test/tests/install.js
 /db/list-test/tests/list.js
 /db/list-test/test.xq
 /db/list-test/b
