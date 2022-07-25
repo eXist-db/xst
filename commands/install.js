@@ -26,39 +26,29 @@ async function install (db, localFilePath) {
   const xarName = basename(localFilePath)
   const contents = readFileSync(localFilePath)
 
-  process.stdout.write(`Install ${xarName} on ${serverName(db)}\n`)
+  console.log(`Install ${xarName} on ${serverName(db)}`)
 
-  process.stdout.write('uploading...')
   const uploadResult = await db.app.upload(contents, xarName)
   if (!uploadResult.success) {
     throw new Error(uploadResult.error)
   }
 
-  process.stdout.clearLine()
-  process.stdout.cursorTo(0)
-  process.stdout.write('✔︎ uploaded\n')
+  console.log('✔︎ uploaded')
 
-  process.stdout.write('installing...')
   const installResult = await db.app.install(xarName)
 
   if (!installResult.success) {
     throw new Error(installResult.error)
   }
 
-  process.stdout.clearLine()
-  process.stdout.cursorTo(0)
   const installationMessage = installResult.result.update ? 'updated' : 'installed'
-  process.stdout.write(`✔︎ ${installationMessage}\n`)
+  console.log(`✔︎ ${installationMessage}`)
 
   return 0
 }
 
-export const command = ['install <package>', 'i']
+export const command = ['install [options] <packages..>', 'i']
 export const describe = 'Install XAR package'
-
-export const builder = {
-  package: { normalize: true }
-}
 
 export async function handler (argv) {
   if (argv.help) {
@@ -66,11 +56,12 @@ export async function handler (argv) {
   }
 
   // main
-  const xarPath = argv.package
-
-  if (!xarPath.match(/\.xar$/i)) {
-    throw Error('Package must have the file extension .xar!')
-  }
+  const { packages } = argv
+  packages.forEach(packagePath => {
+    if (!packagePath.match(/\.xar$/i)) {
+      throw Error('Packages must have the file extension .xar! Got: "' + packagePath + '"')
+    }
+  })
 
   // check permissions (and therefore implicitly the connection)
   const db = connect(argv.connectionOptions)
@@ -80,5 +71,9 @@ export async function handler (argv) {
     throw Error(`Package installation failed. User "${accountInfo.name}" is not a member of the "dba" group.`)
   }
 
-  return await install(db, xarPath)
+  for (const i in packages) {
+    const packagePath = packages[i]
+    await install(db, packagePath)
+  }
+  return 0
 }
