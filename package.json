@@ -45,5 +45,9 @@
     "semantic-release": "^19.0.5",
     "standard": "^17.0.0",
     "tape": "^5.6.1"
+  },
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/existdb"
   }
 }
