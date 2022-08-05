@@ -22,6 +22,10 @@ function serverName (db) {
   return `${protocol}//${options.host}:${options.port}`
 }
 
+async function removeTemporaryCollection (db) {
+  return await db.collections.remove(db.app.packageCollection)
+}
+
 async function install (db, localFilePath) {
   const xarName = basename(localFilePath)
   const contents = readFileSync(localFilePath)
@@ -71,9 +75,14 @@ export async function handler (argv) {
     throw Error(`Package installation failed. User "${accountInfo.name}" is not a member of the "dba" group.`)
   }
 
-  for (const i in packages) {
-    const packagePath = packages[i]
-    await install(db, packagePath)
+  try {
+    for (const i in packages) {
+      const packagePath = packages[i]
+      await install(db, packagePath)
+    }
+  } finally {
+    await removeTemporaryCollection(db)
   }
+
   return 0
 }
