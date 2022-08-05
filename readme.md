@@ -83,6 +83,12 @@ By default `xst` connects to https://localhost:8443 as user guest.
 `xst` now supports configuration files. The global `--config` option expects a path to a readable
 configuration file. Currently three different formats are recognized.
 
+**Example**
+
+```bash
+xst ls /db/apps --config spec/fixtures/.xstrc 
+```
+
 #### .xstrc
 
 A JSON formatted file where you can set not only connection options but also other settings like
