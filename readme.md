@@ -74,9 +74,34 @@ Installs a local XAR package into any database you have access to (with all its 
 
 ## Configuration
 
-By default `xst` connects to https://localhost:8443 as user admin. 
+By default `xst` connects to https://localhost:8443 as user guest.
 
 **NOTE:** The instance you want to connect to must be running and XML-RPC has to be enabled.
+
+### With a Configuration File
+
+`xst` now supports configuration files. The global `--config` option expects a path to a readable
+configuration file. Currently three different formats are recognized.
+
+#### .xstrc
+
+A JSON formatted file where you can set not only connection options but also other settings like
+`color`.
+Have a look at the [example .xstrc](spec/fixtures/.xstrc).
+
+#### .existdb.json
+
+These are present in projects using the sync feature from eXistdb's Visual Studio Code plugin.
+
+#### dotenv files
+
+```bash
+EXISTDB_USER=admin
+EXISTDB_PASS=my super secret p455w0rd!
+EXISTDB_SERVER=http://localhost:8080
+```
+
+### With Environment Variables
 
 Override any of the default connection parameters by setting environment 
 variables prefixed with `EXISTDB`. In the following table you see a list of the 
@@ -94,11 +119,11 @@ parameters with their default values and a description.
 EXISTDB_SERVER=http://127.0.0.1:8080 xst ls /db/apps
 ```
 
-## dotenv
+### With dotenv
 
 dotenv(-cli) is a small script that allows you to read environment variables from a file in the filesystem.
 
-### preparation
+#### preparation
 
 - Install [dotenv-cli](https://www.npmjs.com/package/dotenv-cli) globally
     ```bash
@@ -112,11 +137,11 @@ dotenv(-cli) is a small script that allows you to read environment variables fro
     EXISTDB_SERVER=http://localhost:8080
     ```
 
-### use
+#### use
 
 prepend command line script with `dotenv` in the folder you created the .env file in
 
-#### Examples
+**Examples**
 
 ```bash
 dotenv xst ls /db/apps
@@ -135,4 +160,3 @@ That also works when running the tests (on a remote server maybe or a different 
 dotenv npm test
 ```
 
-#
