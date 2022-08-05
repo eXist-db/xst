@@ -60,7 +60,6 @@ will output useful information how to use each of the commands.
 Currently all command line examples from node-exist were ported over:
 
 - `list` list the contents of a collection in eXist-db
-- `tree` list the contents of a collection in eXist-db as a tree
 - `upload` upload a files and folders to a collection in eXist-db
 - `install` upload and install a package into eXist-db
 - `execute` execute queries in an eXist-db
