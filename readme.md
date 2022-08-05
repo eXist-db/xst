@@ -11,7 +11,7 @@ it by following the steps below
 
 1. clone this repository
     ```bash
-    git clone https://github.com/line-o/xst
+    git clone https://github.com/eXist-db/xst
     ```
 
 2. change to the working directory
