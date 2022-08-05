@@ -1,28 +1,7 @@
 import { test } from 'tape'
 import { run, asAdmin } from '../test.js'
 
-import yargs from 'yargs'
-import * as install from '../../commands/install.js'
-import { readConnection } from '../../utility/connection.js'
-const parser = yargs().scriptName('xst').command(install).help().fail(false)
-
-const execCmd = async (cmd, args) => {
-  return await yargs()
-    .middleware(readConnection)
-    .scriptName('xst')
-    .command(cmd)
-    .fail(false)
-    .parse(args)
-}
-
-const execCmdAsGuest = async (cmd, args) => {
-  return await yargs()
-    .scriptName('xst')
-    .command(cmd)
-    .fail(false)
-    .parse(args)
-}
-
+const packageCollection = '/db/pkgtmp'
 const pkgUri = 'http://exist-db.org/apps/test-app'
 
 async function removeTestApp (t) {
@@ -43,15 +22,11 @@ async function noTestApp (t) {
 }
 
 test('shows help', async function (t) {
-  // Run the command module with --help as argument
-  const output = await new Promise((resolve, reject) => {
-    parser.parse(['install', '--help'], (err, argv, output) => {
-      if (err) { return reject(err) }
-      resolve(output)
-    })
-  })
-  const firstLine = output.split('\n')[0]
+  const { stderr, stdout } = await run('xst', ['install', '--help'])
 
+  if (stderr) { return t.fail(stderr) }
+  t.ok(stdout, 'got output')
+  const firstLine = stdout.split('\n')[0]
   t.equal(firstLine, 'xst install [options] <packages..>', firstLine)
 })
 
@@ -86,6 +61,12 @@ test('single valid package', async function (t) {
     st.end()
   })
 
+  t.test('temporary collection was removed', async function (st) {
+    const { stderr, stdout } = await run('xst', ['ls', packageCollection], asAdmin)
+    if (stdout) { return st.fail(stdout) }
+
+    st.equal(stderr, `Collection "${packageCollection}" not found!\n`)
+  })
   t.teardown(removeTestApp)
 })
 
@@ -121,6 +102,12 @@ test('multiple valid packages', async function (t) {
     st.equal(lines[5], '✔︎ updated')
     st.end()
   })
+  t.test('temporary collection was removed', async function (st) {
+    const { stderr, stdout } = await run('xst', ['ls', packageCollection], asAdmin)
+    if (stdout) { return st.fail(stdout) }
+
+    st.equal(stderr, `Collection "${packageCollection}" not found!\n`)
+  })
 
   t.teardown(removeTestApp)
 })
@@ -133,6 +120,12 @@ test('multiple packages', async function (t) {
     }
     st.equal(stderr, 'Error: experr:EXPATH00 Missing descriptor from package: /db/pkgtmp/broken-test-app.xar\n')
     st.end()
+  })
+  t.test('temporary collection was removed', async function (st) {
+    const { stderr, stdout } = await run('xst', ['ls', packageCollection], asAdmin)
+    if (stdout) { return st.fail(stdout) }
+
+    st.equal(stderr, `Collection "${packageCollection}" not found!\n`)
   })
 
   t.test('nothing was installed', noTestApp)
@@ -151,33 +144,39 @@ test('multiple packages', async function (t) {
     st.equal(stderr, 'Error: experr:EXPATH00 Missing descriptor from package: /db/pkgtmp/broken-test-app.xar\n')
     st.end()
   })
+  t.test('temporary collection was removed', async function (st) {
+    const { stderr, stdout } = await run('xst', ['ls', packageCollection], asAdmin)
+    if (stdout) { return st.fail(stdout) }
+
+    st.equal(stderr, `Collection "${packageCollection}" not found!\n`)
+  })
 
   t.teardown(removeTestApp)
 })
 
 test('error', async function (t) {
-  try {
-    const res = await execCmd(install, ['i', 'asdf'])
-    t.notOk(res)
-  } catch (e) {
-    t.ok(e, e)
+  const { stderr, stdout } = await run('xst', ['i', 'asdf'], asAdmin)
+  if (stdout) {
+    t.fail(stdout)
+    return
   }
+  t.ok(stderr, stderr)
 })
 
 test('error file not found', async function (t) {
-  try {
-    const res = await execCmd(install, ['i', 'asdf.xar'])
-    t.fail(res)
-  } catch (e) {
-    t.ok(e, e)
+  const { stderr, stdout } = await run('xst', ['i', 'asdf'], asAdmin)
+  if (stdout) {
+    t.fail(stdout)
+    return
   }
+  t.ok(stderr, stderr)
 })
 
 test('error install as guest', async function (t) {
-  try {
-    const res = await execCmdAsGuest(install, ['i', 'asdf.xar'])
-    t.fail(res)
-  } catch (e) {
-    t.ok(e, e)
+  const { stderr, stdout } = await run('xst', ['i', 'spec/fixtures/test-app.xar'])
+  if (stdout) {
+    t.fail(stdout)
+    return
   }
+  t.ok(stderr, stderr)
 })
