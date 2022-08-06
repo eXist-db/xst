@@ -57,12 +57,11 @@ will output useful information how to use each of the commands.
 
 **Available Commands**
 
-Currently all command line examples from node-exist were ported over:
-
-- `list` list the contents of a collection in eXist-db
-- `upload` upload a files and folders to a collection in eXist-db
-- `install` upload and install a package into eXist-db
-- `execute` execute queries in an eXist-db
+- `list` list the contents of a collection
+- `upload` upload files and folders to a collection
+- `rm` remove collections and resources
+- `install` upload and install a package
+- `execute` query data, run a main module
 
 **Example**
 
@@ -165,4 +164,3 @@ That also works when running the tests (on a remote server maybe or a different 
 ```bash
 dotenv npm test
 ```
-
