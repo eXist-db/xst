@@ -43,7 +43,7 @@ function getQuery (file, query) {
   }
 
   // read query from standard input
-  if (query === '-') {
+  if (query === true) {
     return readFileSync(process.stdin.fd, 'utf-8')
   }
 

@@ -1,6 +1,8 @@
 import { test } from 'tape'
 import yargs from 'yargs'
 import * as exec from '../../commands/exec.js'
+import { runPipe } from '../test.js'
+
 const parser = yargs().scriptName('xst').command(exec).help().fail(false)
 
 const execCmd = async (cmd, args) => {
@@ -72,11 +74,16 @@ test('executes bound command', async function (t) {
 test('bind parse error', async function (t) {
   try {
     const res = await execCmd(exec, ['exec', '-b', '{a:1}', '$a+$a'])
-    // console.log("RESULT", res)
     t.notOk(res)
   } catch (e) {
     t.ok(e, e)
   }
+})
+
+test('read bind from stdin', async function (t) {
+  const { stdout, stderr } = await runPipe('echo', ['{"a":1}'], 'xst', ['exec', '-b', '-', '$a+$a'])
+  if (stderr) { return t.fail(stderr) }
+  t.equals('2\n', stdout)
 })
 
 test('cannot read bind from stdin', async function (t) {
@@ -118,4 +125,16 @@ test('read query file with query', async function (t) {
   } catch (e) {
     t.ok(e, e)
   }
+})
+
+test('read file from stdin', async function (t) {
+  const { stdout, stderr } = await runPipe('echo', ['./spec/fixtures/test.xq'], 'xst', ['exec', '-f', '-'])
+  if (stderr) { return t.fail(stderr) }
+  t.equals('2\n', stdout)
+})
+
+test('read query from stdin', async function (t) {
+  const { stdout, stderr } = await runPipe('echo', ['1+1'], 'xst', ['exec', '-'])
+  if (stderr) { return t.fail(stderr) }
+  t.equals('2\n', stdout)
 })
