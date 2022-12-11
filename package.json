@@ -35,15 +35,15 @@
   "dependencies": {
     "@existdb/node-exist": "^5.4.0",
     "bottleneck": "^2.19.5",
-    "dotenv": "^16.0.1",
-    "fast-glob": "^3.2.11",
-    "yargs": "^17.5.1"
+    "dotenv": "^16.0.3",
+    "fast-glob": "^3.2.12",
+    "yargs": "^17.6.2"
   },
   "devDependencies": {
-    "@semantic-release/github": "^8.0.5",
-    "@types/yargs": "^17.0.11",
-    "semantic-release": "^19.0.2",
+    "@semantic-release/github": "^8.0.7",
+    "@types/yargs": "^17.0.17",
+    "semantic-release": "^19.0.5",
     "standard": "^17.0.0",
-    "tape": "^5.5.3"
+    "tape": "^5.6.1"
   }
 }
