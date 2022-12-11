@@ -33,7 +33,7 @@
   "maintainers": [],
   "license": "MIT",
   "dependencies": {
-    "@existdb/node-exist": "^5.0.0",
+    "@existdb/node-exist": "^5.4.0",
     "bottleneck": "^2.19.5",
     "dotenv": "^16.0.1",
     "fast-glob": "^3.2.11",
