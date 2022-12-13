@@ -9,7 +9,7 @@ Built on top of [@existdb/node-exist](https://www.npmjs.com/package/@existdb/nod
 
 ## Installation
 
-With a version 14.18 or later of node installed, run
+Prerequisite: [nodeJS](https://nodejs.org/) version 14.18 or later
 
 `npm install --global @existdb/xst`
 
@@ -63,13 +63,13 @@ This will output a extended, colored information of all collections and resource
 Resources and collections the connecting user does not have access to will be omitted.
 
 ```bash
-xst ls /db/apps --long --recursive --color --glob '*.{xq,xqs,xquery,xqm,xql}'
+xst ls /db/apps --long --tree --color
 ```
 
 #### Find the largest JavaScript resource
 
 ```bash
-xst ls /db --long --recursive --color --glob '*.js' --sizesort
+xst ls /db/apps --long --recursive --color --glob '*.js' --sizesort
 ```
 
 #### Download a resource 
