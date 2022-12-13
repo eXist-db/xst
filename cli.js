@@ -59,6 +59,7 @@ const parser = yargs(hideBin(process.argv))
   .completion('completion', false)
   .command(commands)
   .demandCommand(1)
+  // .recommendCommands()
   .strict(false)
   .fail(false)
 

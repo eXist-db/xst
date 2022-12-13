@@ -22,17 +22,17 @@ async function noTestApp (t) {
 }
 
 test('shows help', async function (t) {
-  const { stderr, stdout } = await run('xst', ['install', '--help'])
+  const { stderr, stdout } = await run('xst', ['package', 'install', '--help'])
 
   if (stderr) { return t.fail(stderr) }
   t.ok(stdout, 'got output')
   const firstLine = stdout.split('\n')[0]
-  t.equal(firstLine, 'xst install [options] <packages..>', firstLine)
+  t.equal(firstLine, 'xst package install [options] <packages..>', firstLine)
 })
 
 test('single valid package', async function (t) {
   t.test('installs on first run', async function (st) {
-    const { stderr, stdout } = await run('xst', ['install', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -47,7 +47,7 @@ test('single valid package', async function (t) {
   })
 
   t.test('updates on second run', async function (st) {
-    const { stderr, stdout } = await run('xst', ['install', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -72,7 +72,7 @@ test('single valid package', async function (t) {
 
 test('single broken package', async function (t) {
   t.test(async function (st) {
-    const { stderr, stdout } = await run('xst', ['install', 'spec/fixtures/broken-test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/broken-test-app.xar'], asAdmin)
 
     const lines = stdout.split('\n')
     st.equal(lines[0], 'Install broken-test-app.xar on https://localhost:8443')
@@ -86,7 +86,7 @@ test('single broken package', async function (t) {
 
 test('multiple valid packages', async function (t) {
   t.test('twice the same package', async function (st) {
-    const { stderr, stdout } = await run('xst', ['install', 'spec/fixtures/test-app.xar', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stderr) {
       console.error(stderr)
       st.fail(stderr)
@@ -114,7 +114,7 @@ test('multiple valid packages', async function (t) {
 
 test('multiple packages', async function (t) {
   t.test('first is broken', async function (st) {
-    const { stderr, stdout } = await run('xst', ['install', 'spec/fixtures/broken-test-app.xar', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/broken-test-app.xar', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stdout) {
       st.equal(stdout, 'Install broken-test-app.xar on https://localhost:8443\n✔︎ uploaded\n')
     }
@@ -133,7 +133,7 @@ test('multiple packages', async function (t) {
 
 test('multiple packages', async function (t) {
   t.test('second is broken', async function (st) {
-    const { stderr, stdout } = await run('xst', ['install', 'spec/fixtures/test-app.xar', 'spec/fixtures/broken-test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar', 'spec/fixtures/broken-test-app.xar'], asAdmin)
 
     const lines = stdout.split('\n')
     st.equal(lines[0], 'Install test-app.xar on https://localhost:8443')
@@ -155,7 +155,7 @@ test('multiple packages', async function (t) {
 })
 
 test('error', async function (t) {
-  const { stderr, stdout } = await run('xst', ['i', 'asdf'], asAdmin)
+  const { stderr, stdout } = await run('xst', ['pkg', 'i', 'asdf'], asAdmin)
   if (stdout) {
     t.fail(stdout)
     return
@@ -164,7 +164,7 @@ test('error', async function (t) {
 })
 
 test('error file not found', async function (t) {
-  const { stderr, stdout } = await run('xst', ['i', 'asdf'], asAdmin)
+  const { stderr, stdout } = await run('xst', ['pkg', 'i', 'asdf'], asAdmin)
   if (stdout) {
     t.fail(stdout)
     return
@@ -173,7 +173,7 @@ test('error file not found', async function (t) {
 })
 
 test('error install as guest', async function (t) {
-  const { stderr, stdout } = await run('xst', ['i', 'spec/fixtures/test-app.xar'])
+  const { stderr, stdout } = await run('xst', ['pkg', 'i', 'spec/fixtures/test-app.xar'])
   if (stdout) {
     t.fail(stdout)
     return
