@@ -40,17 +40,81 @@ will output useful information how to use each of the commands.
 
 - `list` list the contents of a collection
 - `upload` upload files and folders to a collection
+- `get` download a collection or resource to the filesystem
 - `rm` remove collections and resources
-- `install` upload and install a package
-- `execute` query data, run a main module
+- `package` package related commands
+  - `install` upload and install a local XAR package 
+- `execute` the swiss army knife command that lets you query data or run a main module
 
-**Example**
+### Examples
+
+#### List collections
 
 ```bash
-xst install path/to/my-package.xar
+xst ls /db
 ```
 
-Installs a local XAR package into any database you have access to (with all its declared dependencies).
+#### List the entire contents of the apps collection
+
+This will output a extended, colored information of all collections and resources of `/db/apps` in a tree.
+Resources and collections the connecting user does not have access to will be omitted.
+
+```bash
+xst ls /db/apps --long --recursive --color --glob '*.{xq,xqs,xquery,xqm,xql}'
+```
+
+#### Find the largest JavaScript resource
+
+```bash
+xst ls /db --long --recursive --color --glob '*.js' --sizesort
+```
+
+#### Download a resource 
+
+This will download he controller of the dashboard to the current working directory.
+If the target is a collection a folder with the same name will be created at the 
+specifiec target and all of its contents will be downloaded recursively.
+
+```bash
+xst get /db/apps/dashboard/controller.xql .
+```
+
+#### Set the permission for a resource 
+
+This demonstrates how you can extend the current functionality by running arbitrary
+scripts. You need to connnect as a database administrator to be able to run the
+queries.
+
+```bash
+xst run 'sm:chmod(xs:anyURI($file), $permissions)' \
+  -b '{"file": "/db/apps/dashboard/controller.xql", "permissions": "rwxrwxr-x"}'
+```
+
+Reset the permissions back to their original state.
+
+```bash
+xst run 'sm:chmod(xs:anyURI($file), $permissions)' \
+  -b '{"file": "/db/apps/dashboard/controller.xql", "permissions": "rwxr-xr-x"}'
+```
+
+#### Executing a main module
+
+If you find yourself using the same query over and over again or it is a complex one
+you can save it to a file and use the `--file` parameter.
+
+```bash
+xst run --file my-query.xq
+```
+
+#### Install a local XAR package into an exist-db.
+
+This will also install all of its declared dependencies from the configured repository.
+
+```bash
+xst package install path/to/my-package.xar
+```
+
+NOTE: User that connects must be a database administrator.
 
 ## Configuration
 
