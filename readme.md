@@ -2,6 +2,9 @@
 
 Command line tool to interact with exist-db instances.
 
+[![Semantic Release](https://github.com/eXist-db/xst/actions/workflows/semantic-release.yml/badge.svg)](https://github.com/eXist-db/xst/actions/workflows/semantic-release.yml)
+[![CodeQL](https://github.com/eXist-db/xst/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/eXist-db/xst/actions/workflows/codeql-analysis.yml)
+
 Built on top of [@existdb/node-exist](https://www.npmjs.com/package/@existdb/node-exist).
 
 ## Installation
