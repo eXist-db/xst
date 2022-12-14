@@ -6,6 +6,7 @@ import { handleError } from './utility/errors.js'
 import { hideBin } from 'yargs/helpers'
 import { readConnection } from './utility/connection.js'
 import { configure } from './utility/configure.js'
+import { ct } from './utility/console.js'
 
 /**
  * if package was linked to global strip relative path from output
@@ -21,27 +22,26 @@ function getScriptName ($0) {
 
 function showCompletionHelp (scriptName) {
   console.log(`
-You can install completions for ZSH and BASH. For details have a look at the
-comments in the output of
-
+${ct('Install command completions for ZSH and BASH', 'FgWhite', 'Dim')}
   ${scriptName} completion`)
 }
 
 function showExamples (scriptName) {
   console.log(`
-Examples:
-  ${scriptName} ls --extended /db/apps
-  ${scriptName} install ./my-package.xar
+${ct('Examples:', 'FgWhite', 'Dim')}
   ${scriptName} run 'count(//p)'
+  ${scriptName} ls --tree --depth 1 /db/apps
+  ${scriptName} package install ./my-package.xar
 `)
 }
 
 function showLogo () {
-  console.log(`
- ╲ ╱  ╓───   ──┰──
-  ╳   ╰───╮    │ 
- ╱ ╲  ▂▁▁▁│    ┇
-`)
+  console.log(ct(`
+ ╲ ╱  ╓───  ──┰──
+  ╳   ╰───╮   │
+ ╱ ╲  ▂▁▁▁│   ┇
+`, 'FgYellow', 'Bright'))
+  console.log('A modern exist-db command line interface')
 }
 
 const parser = yargs(hideBin(process.argv))
@@ -49,7 +49,7 @@ const parser = yargs(hideBin(process.argv))
   .middleware(readConnection)
   .command('$0', 'interact with an exist-db instance', () => {}, async (argv) => {
     showLogo()
-    console.log(await parser.getHelp())
+    // console.log(await parser.getHelp())
     const scriptName = getScriptName(argv.$0)
     showCompletionHelp(scriptName)
     // append examples
