@@ -6,9 +6,9 @@ test('shows ascii logo', async function (t) {
   if (stderr) t.fail(stderr)
   const actualLines = stdout.split('\n')
 
-  t.equal(actualLines[1], ' ╲ ╱  ╓───   ──┰──', actualLines[1])
-  t.equal(actualLines[2], '  ╳   ╰───╮    │ ', actualLines[2])
-  t.equal(actualLines[3], ' ╱ ╲  ▂▁▁▁│    ┇', actualLines[3])
+  t.equal(actualLines[1], ' ╲ ╱  ╓───  ──┰──', actualLines[1])
+  t.equal(actualLines[2], '  ╳   ╰───╮   │', actualLines[2])
+  t.equal(actualLines[3], ' ╱ ╲  ▂▁▁▁│   ┇', actualLines[3])
   t.end()
 })
 
@@ -17,8 +17,7 @@ test('shows description', async function (t) {
   if (stderr) t.fail(stderr)
   const actualLines = stdout.split('\n')
 
-  t.equal(actualLines[5], 'xst', actualLines[5])
-  t.equal(actualLines[7], 'interact with an exist-db instance', actualLines[7])
+  t.equal(actualLines[5], 'A modern exist-db command line interface', actualLines[5])
 })
 
 test('calling xst with no arguments', async (t) => {
