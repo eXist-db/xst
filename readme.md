@@ -237,16 +237,15 @@ If you want to test or develop this package further follow the steps below
     npm link
     ```
 
-**Note:** With this ssetup `--version` will always output `0.0.0-development`.
+**Note:** With this setup `--version` will always output `0.0.0-development`.
 
 ## Testing
 
 Once you followed the above steps and linked a local clone of this repository 
+run the testsuite with
 
 ```bash
 npm test
 ```
-
-willrun the testsuite.
 
 **NOTE:** You will need to have an instance of existdb running (usually a local development instance).
