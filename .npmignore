@@ -3,3 +3,4 @@ nohup.out
 .github
 *.tgz
 .env*
+.releaserc
