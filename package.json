@@ -3,6 +3,9 @@
   "version": "0.0.0-development",
   "description": "Command line tool to interact with exist-db instances",
   "main": "cli.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "xst": "./cli.js"
   },
