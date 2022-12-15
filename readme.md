@@ -1,7 +1,8 @@
 # xst [ĭg-zĭst′]
 
-Command line tool to interact with exist-db instances.
+> A modern command line interface for exist-db
 
+[![version](https://img.shields.io/npm/v/@existdb/xst.svg)](https://www.npmjs.com/package/@existdb/xst)
 [![Semantic Release](https://github.com/eXist-db/xst/actions/workflows/semantic-release.yml/badge.svg)](https://github.com/eXist-db/xst/actions/workflows/semantic-release.yml)
 [![CodeQL](https://github.com/eXist-db/xst/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/eXist-db/xst/actions/workflows/codeql-analysis.yml)
 
@@ -27,17 +28,17 @@ You can verify your installation is working with
 xst --version
 ```
 
+Output commands and options
+
 ```bash
 xst --help
 ```
 
-will output all available commands and 
+You can use --help with any command to get additional information on how to use it.
 
 ```bash
 xst <command> --help
 ```
-
-will output useful information how to use each of the commands.
 
 **Available Commands**
 
@@ -59,12 +60,13 @@ xst ls /db
 
 #### List the entire contents of the apps collection
 
-This will output a extended, colored information of all collections and resources of `/db/apps` in a tree.
-Resources and collections the connecting user does not have access to will be omitted.
+This will output extended and colored information of all collections and resources of `/db/apps` in a tree.
 
 ```bash
 xst ls /db/apps --long --tree --color
 ```
+
+**NOTE:** Resources and collections the connecting user does not have access to will be omitted with --long.
 
 #### Find the largest JavaScript resource
 
@@ -154,6 +156,9 @@ EXISTDB_PASS=my super secret p455w0rd!
 EXISTDB_SERVER=http://localhost:8080
 ```
 
+**NOTE:** If the current working directory contains an .env file
+it will be loaded automatically unless the --config parameter is set.
+
 ### With Environment Variables
 
 Override any of the default connection parameters by setting environment 
@@ -170,47 +175,6 @@ parameters with their default values and a description.
 
 ```
 EXISTDB_SERVER=http://127.0.0.1:8080 xst ls /db/apps
-```
-
-### With dotenv
-
-dotenv(-cli) is a small script that allows you to read environment variables from a file in the filesystem.
-
-#### preparation
-
-- Install [dotenv-cli](https://www.npmjs.com/package/dotenv-cli) globally
-    ```bash
-    npm install -g dotenv-cli
-    ```
-
-- create .env file in a folder with the settings that you need
-    ```bash
-    EXISTDB_USER=admin
-    EXISTDB_PASS=my super secret p455w0rd!
-    EXISTDB_SERVER=http://localhost:8080
-    ```
-
-#### use
-
-prepend command line script with `dotenv` in the folder you created the .env file in
-
-**Examples**
-
-```bash
-dotenv xst ls /db/apps
-```
-
-**Note** in order to pass options to `xst` you will need to separate dotenv with `--` from the
-actual command.
-
-```bash
-dotenv -- xst ls --extended --color /db/apps
-```
-
-That also works when running the tests (on a remote server maybe or a different user)
-
-```bash
-dotenv npm test
 ```
 
 ## Development
