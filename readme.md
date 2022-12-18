@@ -76,13 +76,23 @@ xst ls /db/apps --long --recursive --color --glob '*.js' --sizesort
 
 #### Download a resource 
 
-This will download he controller of the dashboard to the current working directory.
-If the target is a collection a folder with the same name will be created at the 
-specifiec target and all of its contents will be downloaded recursively.
+This will download the controller of the dashboard to the current working directory.
 
 ```bash
 xst get /db/apps/dashboard/controller.xql .
 ```
+
+#### Download a collection
+
+If the target is a collection, a folder with the same name will be created at the 
+specified target and all of its contents will be downloaded.
+
+```bash
+xst get /db/apps/dashboard .
+```
+
+The above downloads the contents of the collection `/db/apps/dashboard` into the
+`dashboard` folder in the current working directory.
 
 #### Set the permission for a resource 
 
