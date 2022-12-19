@@ -42,6 +42,7 @@ xst <command> --help
 
 **Available Commands**
 
+- `info` show system information of the connected database
 - `list` list the contents of a collection
 - `upload` upload files and folders to a collection
 - `get` download a collection or resource to the filesystem
