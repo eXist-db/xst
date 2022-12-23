@@ -5,4 +5,15 @@ updates:
   schedule:
     interval: daily
     time: "03:00"
+  commit-message:
+      # Prefix all commit messages with "npm"
+      prefix: "chore"
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+    time: "04:00"
+  commit-message:
+      # Prefix all commit messages with "npm"
+      prefix: "chore"
   open-pull-requests-limit: 10
