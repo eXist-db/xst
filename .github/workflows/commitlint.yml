@@ -1,6 +1,11 @@
 name: Commit lint
+run-name: Linting ${{ github.event.pull_request.commits }} commits
 
-on: [pull_request]
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
 
 jobs:
   lint:
@@ -16,6 +21,5 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - run: echo '${{ github.event.pull_request.commits }} commits in this PR'
       - run: npm ci
       - run: npx commitlint --from=${{ github.event.pull_request.base.sha }}
