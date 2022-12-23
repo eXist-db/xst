@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 18
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-optional
       - name: Release
         run: npx semantic-release
         env:
