@@ -4,3 +4,4 @@ nohup.out
 *.tgz
 .env*
 .releaserc
+commitlint.config.cjs

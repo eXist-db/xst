@@ -1,0 +1,21 @@
+name: Commit lint
+
+on: [pull_request]
+
+jobs:
+  lint:
+    name: Lint commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: echo '${{ github.event.pull_request.commits }} commits in this PR'
+      - run: npm ci
+      - run: npx commitlint --from=${{ github.event.pull_request.base.sha }}

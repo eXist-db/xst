@@ -1,49 +1,29 @@
 name: Semantic Release
 
-on: [push, pull_request]
-
-# Tests cannot run on windows due to issues with the windows server 2019 images 
-# the github action runners are using not being able to run linux docker images
-# https://github.com/actions/virtual-environments/issues/1143
+on:
+  # the 1st condition
+  workflow_run:
+    workflows: ["test"]
+    branches: [main]
+    types:
+      - completed
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node-version: [14, 16, 18]
-        exist-version: [latest, release, 5.4.1, 4.10.0]
-    services:
-      # Label used to access the service container
-      exist:
-        image: existdb/existdb:${{ matrix.exist-version }}
-        ports:
-          - 8080:8080
-          - 8443:8443
-    steps:
-      - uses: actions/checkout@v2
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node-version }}
-      - run: npm ci
-      - run: npm link
-      - run: npm test
   release:
+    # the 2nd condition
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Release
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: 18
       - name: Install dependencies
         run: npm ci
       - name: Release
