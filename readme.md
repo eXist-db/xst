@@ -223,3 +223,35 @@ npm test
 ```
 
 **NOTE:** You will need to have an instance of existdb running (usually a local development instance).
+
+## Contributing
+
+We are happy to accept contributions from the community.
+Contributions can be just a typo in the readme or better documentation,
+as well as bugfixes and new features.
+For bugfixes and features it is best to open an issue, so that
+we can discuss your approach first. That way your PR will 
+be merged quickly.
+
+When committing to this project each commit message must conform
+to [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) as versioning and
+releases are automated using [semantic-release](https://semantic-release.gitbook.io/semantic-release/).
+
+### commitlint
+
+If you want to check your commits while developing you can add a pre-commit-hook with 
+[husky](https://typicode.github.io/husky/#/).
+
+1. activate husky for this project
+  ```bash
+  npx husky install
+  ```
+
+2. add commitlint check as the pre-commit-hook
+  ```bash
+  npx husky add .husky/commit-msg 'npx --no -- commitlint --edit ${1}'
+  ```
+
+This is not activated by default as it prevents you from doing work-in-progress commits.
+But keep in mind, any commit is linted when you open your PR so it might be easier
+to have this checked right from the start and not having to edit your history later. 
