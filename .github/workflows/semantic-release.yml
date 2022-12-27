@@ -1,16 +1,15 @@
 name: Semantic Release
 
 on:
-  # the 1st condition
   workflow_run:
-    workflows: ["test"]
+    workflows: [Test]
     branches: [main]
     types:
       - completed
 
 jobs:
   release:
-    # the 2nd condition
+    # check Test success
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     name: Release
     runs-on: ubuntu-latest
