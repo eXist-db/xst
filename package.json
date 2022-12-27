@@ -14,7 +14,8 @@
     "node": "^14.18 || ^16.13 || >=18"
   },
   "scripts": {
-    "test": "standard --fix && tape spec/tests/*.js"
+    "test": "standard && tape spec/tests/*.js",
+    "lint": "standard --fix"
   },
   "keywords": [
     "exist-db",
