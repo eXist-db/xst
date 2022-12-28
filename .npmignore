@@ -4,4 +4,5 @@ nohup.out
 *.tgz
 .env*
 .releaserc
+.husky/*
 commitlint.config.cjs

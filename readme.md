@@ -242,16 +242,19 @@ releases are automated using [semantic-release](https://semantic-release.gitbook
 If you want to check your commits while developing you can add a pre-commit-hook with 
 [husky](https://typicode.github.io/husky/#/).
 
-1. activate husky for this project
-  ```bash
-  npx husky install
-  ```
+Activate husky for this project
 
-2. add commitlint check as the pre-commit-hook
-  ```bash
-  npx husky add .husky/commit-msg 'npx --no -- commitlint --edit ${1}'
-  ```
+```bash
+npx husky install
+```
 
-This is not activated by default as it prevents you from doing work-in-progress commits.
-But keep in mind, any commit is linted when you open your PR so it might be easier
+This will add to git hooks
+
+- **pre-commit** `npm run lint` ensures any JS is formatted correctly and will prevent you from
+  committing when it encounters problems like unused variables and such.
+- **commit-msg** will run commitlint to ensure the commit message is following conventional commit
+  message format
+ 
+These are not activated by default as it prevents you from doing work-in-progress commits.
+But keep in mind, both checks will run when you open a PR, so it might be easier
 to have this checked right from the start and not having to edit your history later. 
