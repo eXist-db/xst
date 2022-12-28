@@ -1,0 +1,31 @@
+name: Test
+
+on: [push, pull_request]
+
+# Tests cannot run on windows due to issues with the windows server 2019 images 
+# the github action runners are using not being able to run linux docker images
+# https://github.com/actions/virtual-environments/issues/1143
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [14, 16, 18]
+        exist-version: [latest, release, 5.4.1, 4.10.0]
+    services:
+      exist:
+        image: existdb/existdb:${{ matrix.exist-version }}
+        ports:
+          - 8080:8080
+          - 8443:8443
+    steps:
+      - uses: actions/checkout@v3
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci --no-optional
+      - run: npm link
+      - run: npm test

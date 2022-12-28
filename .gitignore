@@ -4,6 +4,7 @@
 !.npmignore
 !.github
 !.releaserc
+!.husky
 !spec/fixtures/.*
 
 # dependencies
