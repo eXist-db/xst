@@ -41,6 +41,7 @@
     "bottleneck": "^2.19.5",
     "dotenv": "^16.0.3",
     "fast-glob": "^3.2.12",
+    "semver": "^7.3.8",
     "yargs": "^17.6.2"
   },
   "devDependencies": {
