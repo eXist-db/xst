@@ -1,5 +1,9 @@
 import { connect } from '@existdb/node-exist'
 import { ct } from '../../utility/console.js'
+import { multiSort } from '../../utility/sorter.js'
+import { padReducer } from '../../utility/padding.js'
+import { getDateFormatter } from '../../utility/colored-date.js'
+import { satisfiesDependency, formatVersion } from '../../utility/version.js'
 import { readXquery } from '../../utility/xq.js'
 
 /**
@@ -79,39 +83,12 @@ const LAST = '└── '
 // const EMPTY = '    '
 
 /**
- * Get maximum needed paddings for owner, group and size (in bytes)
- * @param {BlockPaddings} paddings
- * @param {ListResultItem} next
- * @returns {BlockPaddings} actual paddings
- */
-function padReducer (paddings, next) {
-  if (paddings.get('abbrev') < next.abbrev.length) {
-    paddings.set('abbrev', next.abbrev.length)
-  }
-  if (paddings.get('uri') < next.uri.length) {
-    paddings.set('uri', next.uri.length)
-  }
-  if (paddings.get('padVersion') < next.version.length) {
-    paddings.set('padVersion', next.version.length)
-  }
-  if (paddings.get('padAuthor') < next.authors[0].length) {
-    paddings.set('padAuthor', next.authors[0].length)
-  }
-  if (paddings.get('padLicense') < next.license.length) {
-    paddings.set('padLicense', next.license.length)
-  }
-  return paddings
-}
-
-/**
- * @typedef {Map<String, Number>} BlockPaddings
+ * @type {import('../../utility/padding.js').BlockPaddings}
  */
 const initialPaddings = new Map([
   ['abbrev', 0],
   ['uri', 0],
-  ['padVersion', 3],
-  ['padAuthor', 0],
-  ['padLicense', 0]
+  ['version', 3]
 ])
 
 /**
@@ -150,35 +127,33 @@ function getFilter (options) {
 /**
  * Display the Item identifier colored
  * @param {ListResultItem} pkg the item
- * @param {"abbrev"|"uri"} prop the identifier to show
+ * @param {(pkg:ListResultItem)=>string} pad padding function
  * @returns {String} the colored terminal output
  */
-function coloredDisplay (pkg, prop) {
+function coloredDisplay (pkg, pad) {
   return isLibrary(pkg)
-    ? ct(pkg[prop], 'FgBlue')
-    : ct(pkg[prop], 'FgCyan')
+    ? ct(pad(pkg), 'FgBlue')
+    : ct(pad(pkg), 'FgCyan')
 }
 
 /**
  * Display the item identifier
  * @param {ListResultItem} pkg the item
- * @param {"abbrev"|"uri"} prop the identifier to show
+ * @param {(pkg:ListResultItem)=>string} pad padding function
  * @returns {String} the terminal output
  */
-function display (pkg, prop) {
-  return pkg[prop]
+function display (pkg, pad) {
+  return pad(pkg)
 }
 
 /**
  * pad the given prop to the appropriate length
- * @param {ListResultItem} pkg the item
  * @param {BlockPaddings} paddings the paddings
  * @param {"abbrev"|"uri"} prop the prop to pad
- * @returns {ListResultItem} with padded prop
+ * @returns {(pkg:ListResultItem)=>string} with padded prop
  */
-function padProp (pkg, paddings, prop) {
-  pkg[prop] = pkg[prop].padEnd(paddings.get(prop))
-  return pkg
+function padProp (paddings, prop) {
+  return (pkg) => pkg[prop].padEnd(paddings.get(prop))
 }
 
 /**
@@ -189,10 +164,11 @@ function padProp (pkg, paddings, prop) {
  */
 function getAbbrevFormatter (options, paddings) {
   const prop = options.fullUri ? 'uri' : 'abbrev'
+  const pad = padProp(paddings, prop)
   if (options.color) {
-    return pkg => coloredDisplay(padProp(pkg, paddings, prop), prop)
+    return pkg => coloredDisplay(pkg, pad)
   }
-  return pkg => display(padProp(pkg, paddings, prop), prop)
+  return pkg => display(pkg, pad)
 }
 
 /**
@@ -202,7 +178,7 @@ function getAbbrevFormatter (options, paddings) {
  * @returns {BlockFormatter} format version block
  */
 function getVersionFormatter (options, paddings) {
-  return pkg => pkg.version.padEnd(paddings.get('padVersion'))
+  return pkg => pkg.version.padEnd(paddings.get('version'))
 }
 
 /**
@@ -250,10 +226,10 @@ function getProcessorFormatter (options) {
     }
   }
   return function (pkg) {
-    if (!pkg.processor.name) {
+    if (!pkg.processor.uri) {
       return 'Processor: any'
     }
-    return 'Processor: ' + processorName(pkg.processor.name) + ' ' + formatVersion(pkg.processor)
+    return 'Processor: ' + processorName(pkg.processor.uri) + ' ' + formatVersion(pkg.processor)
   }
 }
 
@@ -272,51 +248,35 @@ function getLabelFormatter (options, label, prop) {
 }
 
 /**
- * helper function to render version ranges and templates
- * @param {VersionedItem} versionedItem the versioned item
- * @returns {String} the formatted version
+ * convert URIs to corresponding abbrev
+ * @param {Map<String, ListResultItem>} uri2pkg the mapping
+ * @param {String} uri the package URI
+ * @returns {BlockFormatter} the formatter
  */
-function formatVersion (versionedItem) {
-  if (versionedItem.exact.length) {
-    return versionedItem.exact.join(',')
+function pkgAbbrev (uri2pkg) {
+  return (dep) => {
+    const pkg = uri2pkg.get(dep.uri)
+    return pkg ? pkg.abbrev : dep.uri
   }
-  if (versionedItem.template) {
-    const parts = versionedItem.template.split('.')
-    switch (parts.length) {
-      case 3: return versionedItem.template
-      case 2: return versionedItem.template + '.x'
-      default: return versionedItem.template + '.x.x'
-    }
-  }
-  if (versionedItem.min && versionedItem.max) {
-    return versionedItem.min + '-' + versionedItem.max
-  }
-  if (versionedItem.min) {
-    return '>=' + versionedItem.min
-  }
-  if (versionedItem.max) {
-    return '<=' + versionedItem.max
-  }
-  return '*'
 }
 
 /**
- * convert URIs to corresponding abbrev
- * @param {Map<String, String>} uri2abbrev the mapping
+ * get dependencies
+ * @param {Map<String, ListResultItem>} uri2pkg the mapping
  * @param {String} uri the package URI
- * @returns {String} the abbrev
+ * @returns {BlockFormatter} the formatter
  */
-function toAbbrev (uri2abbrev, uri) {
-  return uri2abbrev.get(uri)
-}
+// function pkgDependencies (uri2pkg) {
+//   return (pkg) => uri2pkg.get(pkg.uri).dependencies
+// }
 
 /**
  * return given URI unchanged (ID transform)
  * @param {String} uri the package URI
  * @returns {String} the package URI
  */
-function uri (uri) {
-  return uri
+function uriAccessor (pkg) {
+  return pkg.uri
 }
 
 /**
@@ -332,29 +292,37 @@ function isLast (index, array) {
 /**
  * format dependency list item
  * @param {Function} fmt uri formatter function
- * @param {Object} dependency dependency list item
+ * @param {VersionedItem} dependency dependency list item
  * @param {Number} index current items index
  * @param {Array} array list of all dependencies
  * @returns {String} terminal output
  */
-function formatDependency (fmt, dependency, index, array) {
+function formatDependency (fmt, uri2pkg, dependency, index, array) {
+  const pkg = uri2pkg.get(dependency.uri)
+  const satisfied = pkg && satisfiesDependency(pkg.version, dependency)
   return isLast(index, array) +
-    fmt(dependency.uri) + ' ' +
+    (satisfied ? '' : '! ') +
+    fmt(dependency) + ' ' +
     formatVersion(dependency)
 }
 
 /**
  * format and color dependency list item
  * @param {Function} fmt uri formatter function
- * @param {Object} dependency dependency list item
+ * @param {VersionedItem} dependency dependency list item
  * @param {Number} index current items index
  * @param {Array} array list of all dependencies
  * @returns {String} colored terminal output
  */
-function formatDependencyColored (fmt, dependency, index, array) {
+function formatDependencyColored (fmt, uri2pkg, dependency, index, array) {
+  const pkg = uri2pkg.get(dependency.uri)
+  const satisfied = pkg && satisfiesDependency(pkg.version, dependency)
+  const color = satisfied ? 'FgGreen' : 'FgRed'
+  const mod = satisfied ? 'Dim' : 'Bright'
   return isLast(index, array) +
-    fmt(dependency.uri) + ' ' +
-    ct(formatVersion(dependency), 'FgYellow')
+    (satisfied ? '' : ct('! ', color, mod)) +
+    fmt(dependency) + ' ' +
+    ct(formatVersion(dependency), color, mod)
 }
 
 /**
@@ -363,11 +331,12 @@ function formatDependencyColored (fmt, dependency, index, array) {
  * @param {ListResultItem} pkg the item
  * @returns {String} formatted dependencies
  */
-function formatDependencies (fmt, pkg) {
+function formatDependencies (fmt, uri2pkg, pkg) {
   if (!pkg.dependencies.length) {
     return LAST + '(no dependency)'
   }
-  return pkg.dependencies.map(formatDependency.bind(null, fmt)).join('\n')
+  const fmtDep = (dep, index, array) => formatDependency(fmt, uri2pkg, dep, index, array)
+  return pkg.dependencies.map(fmtDep).join('\n')
 }
 
 /**
@@ -376,11 +345,12 @@ function formatDependencies (fmt, pkg) {
  * @param {ListResultItem} pkg the item
  * @returns {String} formatted and colored dependencies
  */
-function formatDependenciesColored (fmt, pkg) {
+function formatDependenciesColored (fmt, uri2pkg, pkg) {
   if (!pkg.dependencies.length) {
     return LAST + ct('(no dependency)', 'FgWhite', 'Dim')
   }
-  return pkg.dependencies.map(formatDependencyColored.bind(null, fmt)).join('\n')
+  const fmtDep = (dep, index, array) => formatDependencyColored(fmt, uri2pkg, dep, index, array)
+  return pkg.dependencies.map(fmtDep).join('\n')
 }
 
 /**
@@ -390,14 +360,19 @@ function formatDependenciesColored (fmt, pkg) {
  * @returns {BlockFormatter} extended block formatter
  */
 function getDependenciesFormatter (list, options) {
-  let fmt = uri
+  let nameFmt = uriAccessor
+  const uri2pkg = new Map(list.map(pkg => [pkg.uri, pkg]))
   if (!options.fullUri) {
-    fmt = toAbbrev.bind(null, new Map(list.map(pkg => [pkg.uri, pkg.abbrev])))
+    nameFmt = pkgAbbrev(uri2pkg)
   }
   if (options.color) {
-    return formatDependenciesColored.bind(null, fmt)
+    return (pkg) => {
+      return formatDependenciesColored(nameFmt, uri2pkg, pkg)
+    }
   }
-  return formatDependencies.bind(null, fmt)
+  return (pkg) => {
+    return formatDependencies(nameFmt, uri2pkg, pkg)
+  }
 }
 
 /**
@@ -424,13 +399,11 @@ function gatherComponents (pkg) {
  * @returns {String} colored terminal output
  */
 function formatComponentsColored (pkg) {
-  if (!isLibrary(pkg)) { return null }
-
   const components = gatherComponents(pkg)
   if (components.length) {
     return coloredLabel('Components:\n') + components.map(a => '  ' + coloredLabel(a[0] + ':') + a[1]).join('\n')
   }
-  return coloredLabel('Components:') + ct('none', 'FgRed', 'Bright')
+  return coloredLabel('Components: ') + ct('none', (pkg.target ? 'FgYellow' : 'FgRed'), 'Bright')
 }
 
 /**
@@ -460,76 +433,6 @@ function getComponentsFormatter (options) {
   return formatComponents
 }
 
-const timeFormat = {
-  hour12: false,
-  hour: '2-digit',
-  minute: '2-digit'
-}
-const dateFormat = {
-  month: 'short'
-}
-
-const now = new Date()
-const currentYear = now.getFullYear()
-const nowMs = now.getTime()
-
-/**
- * format date to short representation
- * @param {Date} date
- * @returns {String} formatted date
- */
-function formatDateShort (date) {
-  const year = date.getFullYear()
-  const month = date.toLocaleDateString('iso', dateFormat)
-  const day = date.getDate().toString().padStart(3)
-  if (year < currentYear) {
-    return month + day + year.toString().padStart(6)
-  }
-  const time = date.toLocaleTimeString('iso', timeFormat).padStart(6)
-  return month + day + time
-}
-
-const quarterHour = 900000
-const hour = 3600000
-const day = 86400000
-const month = 2592000000
-const quarterYear = 7776000000
-const year = 31104000000
-const steps = [year, quarterYear, month, day, hour, quarterHour]
-const greens = [70, 34, 40, 114, 84, 156]
-
-/**
- * receive a color from the greens palette to color a date
- * relative to the current date
- * @param {Date} date the date to get the color for
- * @returns {Number} xterm256color
- */
-function colorForDate (date) {
-  const msSince = nowMs - date.getTime()
-  const index = steps.reduce((acc, next, step) => (msSince < next ? step : acc), 0)
-  return greens[index]
-}
-
-/**
- * get date formatting function
- * @param {ListOptions} options list rendering options
- * @returns {(item:ListResultItem) => String} date formatting function
- */
-function getDateFormatter (options) {
-  let formatter = formatDateShort
-  if (options.date === 'iso') {
-    formatter = (date) => date.toISOString()
-  }
-  if (options.color) {
-    return (item) => {
-      const date = new Date(item.date)
-      const formattedDate = formatter(date)
-      return ct(formattedDate, colorForDate(date))
-    }
-  }
-  return (item) => formatter(new Date(item.date))
-}
-
 /**
  * Get the item formatting function
  * @param {ListResultItem[]} list the list
@@ -541,7 +444,8 @@ function getItemFormatter (list, options) {
   if (!versions && !date && !extended && !dependencies) {
     const pkgFmt = color ? coloredDisplay : display
     const prop = fullUri ? 'uri' : 'abbrev'
-    return pkg => console.log(pkgFmt(pkg, prop))
+    const accessor = (pkg) => pkg[prop]
+    return pkg => console.log(pkgFmt(pkg, accessor))
   }
 
   const paddings = getPaddings(list)
@@ -551,7 +455,7 @@ function getItemFormatter (list, options) {
     blocks.push(getVersionFormatter(options, paddings))
   }
   if (date) {
-    blocks.push(getDateFormatter(options))
+    blocks.push(getDateFormatter(options, 'date'))
   }
 
   const extBlocks = []
@@ -652,16 +556,7 @@ function getSorter (options) {
     sorters.push(sortByTime)
   }
   sorters.push(sortByName)
-  return (a, b) => {
-    let v = 0
-    let i = 0
-    let sf = sorters[i]
-    while (v === 0 && sf) {
-      v = reverse ? sf(b, a) : sf(a, b)
-      sf = sorters[++i]
-    }
-    return v
-  }
+  return (a, b) => multiSort(a, b, sorters, reverse)
 }
 
 /**

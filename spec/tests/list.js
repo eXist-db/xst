@@ -269,8 +269,10 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/exec.js
 /db/list-test/tests/get.js
 /db/list-test/tests/info.js
-/db/list-test/tests/install.js
 /db/list-test/tests/list.js
+/db/list-test/tests/package
+/db/list-test/tests/package/install.js
+/db/list-test/tests/package/list.js
 /db/list-test/tests/rm.js
 /db/list-test/tests/upload.js
 `
@@ -292,6 +294,9 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/broken-test-app.xar
 /db/list-test/fixtures/test.xml
 /db/list-test/tests
+/db/list-test/tests/package
+/db/list-test/tests/package/list.js
+/db/list-test/tests/package/install.js
 /db/list-test/tests/info.js
 /db/list-test/tests/cli.js
 /db/list-test/tests/upload.js
@@ -299,7 +304,6 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/exec.js
 /db/list-test/tests/rm.js
 /db/list-test/tests/get.js
-/db/list-test/tests/install.js
 /db/list-test/tests/list.js
 /db/list-test/test.xq
 /db/list-test/b

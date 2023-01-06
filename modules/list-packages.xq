@@ -2,11 +2,12 @@ xquery version "3.1";
 
 declare namespace expath="http://expath.org/ns/pkg";
 declare namespace repo="http://exist-db.org/xquery/repo";
+declare namespace exist-pkg="http://exist-db.org/ns/expath-pkg";
 
 declare
 function local:get-package-meta(
     $package-uri as xs:string, $resource as xs:string
-) as document-node() {
+) as document-node()? {
     try {
         repo:get-resource($package-uri, $resource)
         => util:binary-to-string() 
@@ -36,6 +37,30 @@ function local:component($component as element()) as xs:string {
 declare
 function local:expath($package-uri as xs:string) as map(*) {
     let $expath := local:get-package-meta($package-uri, "expath-pkg.xml")
+    let $extra := local:get-package-meta($package-uri, "exist.xml")
+
+    let $jars :=
+        if (exists($extra))
+        then map { "jar": array { $extra//exist-pkg:jar/string() } }
+        else ()
+
+    let $components := 
+        map {
+            "xslt": array { for-each($expath//expath:xslt, local:component#1 ) },
+            "xquery": array {
+                for-each($expath//expath:xquery, local:component#1),
+                if (exists($extra))
+                then $extra//exist-pkg:java/exist-pkg:namespace/string()
+                else ()
+            },
+            "xproc": array { for-each($expath//expath:xproc, local:component#1 ) },
+            "xsd": array { for-each($expath//expath:xsd, local:component#1 ) },
+            "rng": array { for-each($expath//expath:rng, local:component#1 ) },
+            "schematron": array { for-each($expath//expath:schematron, local:component#1 ) },
+            "nvdl": array { for-each($expath//expath:nvdl, local:component#1 ) },
+            "resource": array { for-each($expath//expath:resource, local:component#1 ) }
+            (: ,"dtd": array { for-each($expath//expath:dtd, local:component#1 ) } :)
+        }
 
     return
         map {
@@ -48,17 +73,7 @@ function local:expath($package-uri as xs:string) as map(*) {
                 for-each($expath//expath:dependency[@package],
                     local:dependency#1)
             },
-            "components": map {
-                "xslt": array { for-each($expath//expath:xslt, local:component#1 ) },
-                "xquery": array { for-each($expath//expath:xquery, local:component#1 ) },
-                "xproc": array { for-each($expath//expath:xproc, local:component#1 ) },
-                "xsd": array { for-each($expath//expath:xsd, local:component#1 ) },
-                "rng": array { for-each($expath//expath:rng, local:component#1 ) },
-                "schematron": array { for-each($expath//expath:schematron, local:component#1 ) },
-                "nvdl": array { for-each($expath//expath:nvdl, local:component#1 ) },
-                "resource": array { for-each($expath//expath:resource, local:component#1 ) }
-                (: "dtd": array { for-each($expath//expath:dtd, local:component#1 ) } :)
-            }
+            "components": map:merge(($components, $jars))
             (: ,"expath": $expath :)
         }
 };
