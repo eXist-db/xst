@@ -14,7 +14,7 @@
     "node": "^14.18 || ^16.13 || >=18"
   },
   "scripts": {
-    "test": "standard && tape spec/tests/*.js",
+    "test": "standard && tape spec/tests/*.js spec/tests/**/*.js",
     "lint": "standard --fix"
   },
   "keywords": [
