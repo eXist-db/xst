@@ -3,10 +3,10 @@ import { satisfiesDependency, formatVersion, formatVersionFill } from '../../../
 
 test('with semver-max="5"', function (t) {
   const max5 = {
-    min: null,
-    max: '5',
-    template: null,
-    exact: []
+    semverMin: null,
+    semverMax: '5',
+    semver: null,
+    versions: []
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(max5)
@@ -44,6 +44,11 @@ test('with semver-max="5"', function (t) {
     st.ok(satisfied, 'should satisfy')
     st.end()
   })
+  t.test('6.0.0-SNAPSHOT', function (st) {
+    const satisfied = satisfiesDependency('6.0.0-SNAPSHOT', max5)
+    st.notOk(satisfied, 'should not satisfy')
+    st.end()
+  })
   t.test('6.0.0', function (st) {
     const satisfied = satisfiesDependency('6.0.0', max5)
     st.notOk(satisfied, 'should not satisfy')
@@ -53,10 +58,10 @@ test('with semver-max="5"', function (t) {
 
 test('with semver-max="5.2"', function (t) {
   const max52 = {
-    min: null,
-    max: '5.2',
-    template: null,
-    exact: []
+    semverMin: null,
+    semverMax: '5.2',
+    semver: null,
+    versions: []
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(max52)
@@ -103,10 +108,10 @@ test('with semver-max="5.2"', function (t) {
 
 test('with semver-max="5.2.1"', function (t) {
   const max521 = {
-    min: null,
-    max: '5.2.1',
-    template: null,
-    exact: []
+    semverMin: null,
+    semverMax: '5.2.1',
+    semver: null,
+    versions: []
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(max521)
@@ -143,10 +148,10 @@ test('with semver-max="5.2.1"', function (t) {
 
 test('with semver-min="5"', function (t) {
   const min5 = {
-    min: '5',
-    max: null,
-    template: null,
-    exact: []
+    semverMin: '5',
+    semverMax: null,
+    semver: null,
+    versions: []
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(min5)
@@ -162,6 +167,11 @@ test('with semver-min="5"', function (t) {
   t.test('4.0.0', function (st) {
     const satisfied = satisfiesDependency('4.0.0', min5)
     st.notOk(satisfied, 'should not satisfy')
+    st.end()
+  })
+  t.test('5.0.0-SNAPSHOT', function (st) {
+    const satisfied = satisfiesDependency('5.0.0-SNAPSHOT', min5)
+    st.ok(satisfied, 'should satisfy')
     st.end()
   })
   t.test('5.0.0', function (st) {
@@ -183,10 +193,10 @@ test('with semver-min="5"', function (t) {
 
 test('with semver-min="5.2"', function (t) {
   const min52 = {
-    min: '5.2',
-    max: null,
-    template: null,
-    exact: []
+    semverMin: '5.2',
+    semverMax: null,
+    semver: null,
+    versions: []
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(min52)
@@ -214,6 +224,11 @@ test('with semver-min="5.2"', function (t) {
     st.notOk(satisfied, 'should not satisfy')
     st.end()
   })
+  t.test('5.2.0-SNAPSHOT', function (st) {
+    const satisfied = satisfiesDependency('5.2.0-SNAPSHOT', min52)
+    st.ok(satisfied, 'should satisfy')
+    st.end()
+  })
   t.test('5.2.0', function (st) {
     const satisfied = satisfiesDependency('5.2.0', min52)
     st.ok(satisfied, 'should satisfy')
@@ -233,10 +248,10 @@ test('with semver-min="5.2"', function (t) {
 
 test('with semver-min="5.2.1"', function (t) {
   const min521 = {
-    min: '5.2.1',
-    max: null,
-    template: null,
-    exact: []
+    semverMin: '5.2.1',
+    semverMax: null,
+    semver: null,
+    versions: []
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(min521)
@@ -279,6 +294,11 @@ test('with semver-min="5.2.1"', function (t) {
     st.notOk(satisfied, 'should not satisfy')
     st.end()
   })
+  t.test('5.2.1-SNAPSHOT', function (st) {
+    const satisfied = satisfiesDependency('5.2.1-SNAPSHOT', min521)
+    st.notOk(satisfied, 'should not satisfy')
+    st.end()
+  })
   t.test('5.2.1', function (st) {
     const satisfied = satisfiesDependency('5.2.1', min521)
     st.ok(satisfied, 'should satisfy')
@@ -306,12 +326,31 @@ test('with semver-min="5.2.1"', function (t) {
   })
 })
 
+test('with semver-min="5.2.1-SNAPSHOT"', function (t) {
+  const min521 = {
+    semverMin: '5.2.1-SNAPSHOT',
+    semverMax: null,
+    semver: null,
+    versions: []
+  }
+  t.test('5.2.1-SNAPSHOT', function (st) {
+    const satisfied = satisfiesDependency('5.2.1-SNAPSHOT', min521)
+    st.ok(satisfied, 'should satisfy')
+    st.end()
+  })
+  t.test('5.2.1', function (st) {
+    const satisfied = satisfiesDependency('5.2.1', min521)
+    st.ok(satisfied, 'should satisfy')
+    st.end()
+  })
+})
+
 test('with semver-min="5.2" and semver-max="5.4.1"', function (t) {
   const range5 = {
-    min: '5.2',
-    max: '5.4.1',
-    template: null,
-    exact: []
+    semverMin: '5.2',
+    semverMax: '5.4.1',
+    semver: null,
+    versions: []
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(range5)
@@ -393,10 +432,10 @@ test('with semver-min="5.2" and semver-max="5.4.1"', function (t) {
 
 test('with semver="5.2.1"', function (t) {
   const template521 = {
-    max: null,
-    min: null,
-    template: '5.2.1',
-    exact: []
+    semverMax: null,
+    semverMin: null,
+    semver: '5.2.1',
+    versions: []
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(template521)
@@ -453,10 +492,10 @@ test('with semver="5.2.1"', function (t) {
 
 test('with versions="asdf 5.2.1"', function (t) {
   const exact = {
-    min: null,
-    max: null,
-    template: null,
-    exact: ['freeform', '5.2.1']
+    semverMin: null,
+    semverMax: null,
+    semver: null,
+    versions: ['freeform', '5.2.1']
   }
   t.test('renders', function (st) {
     const formatted = formatVersion(exact)
@@ -469,6 +508,11 @@ test('with versions="asdf 5.2.1"', function (t) {
     st.end()
   })
 
+  t.test('5.2.1-SNAPSHOT', function (st) {
+    const satisfied = satisfiesDependency('5.2.1-SNAPSHOT', exact)
+    st.notOk(satisfied, 'should not satisfy')
+    st.end()
+  })
   t.test('5.2.1', function (st) {
     const satisfied = satisfiesDependency('5.2.1', exact)
     st.ok(satisfied, 'should satisfy')

@@ -3,10 +3,10 @@ import { valid, satisfies } from 'semver'
 /**
  * @typedef {Object} VersionedItem
  * @prop {String} name package URI
- * @prop {String} min SemVer version
- * @prop {String} max SemVer version
- * @prop {String} template SemVer version template
- * @prop {String[]} exact list of versions
+ * @prop {String} semverMin SemVer max version
+ * @prop {String} semverMax SemVer min version
+ * @prop {String} semver SemVer version range
+ * @prop {String[]} versions array of exact versions
  */
 
 /**
@@ -16,20 +16,20 @@ import { valid, satisfies } from 'semver'
  */
 function doesNotDeclareVersion (versionedItem) {
   return (
-    versionedItem.exact.length === 0 &&
-        versionedItem.max === null &&
-        versionedItem.min === null &&
-        versionedItem.template === null
+    versionedItem.versions.length === 0 &&
+        versionedItem.semverMax === null &&
+        versionedItem.semverMin === null &&
+        versionedItem.semver === null
   )
 }
 
 /**
  * How many parts (major, minor, patch) are in the template?
- * @param {string} template version string with 0-2 dots
+ * @param {string} semver version string with 0-2 dots
  * @returns {1|2|3} parts in version string (max 3)
  */
-function inspect (template) {
-  const parts = template.split('.').length
+function inspect (semver) {
+  const parts = semver.split('.').length
   return Math.min(3, parts)
 }
 
@@ -40,35 +40,35 @@ function inspect (template) {
  */
 export function formatVersion (versionedItem) {
   if (doesNotDeclareVersion(versionedItem)) { return '*' }
-  if (versionedItem.template) {
-    switch (inspect(versionedItem.template)) {
-      case 3: return versionedItem.template
-      default: return '~' + versionedItem.template
+  if (versionedItem.semver) {
+    switch (inspect(versionedItem.semver)) {
+      case 3: return versionedItem.semver
+      default: return '~' + versionedItem.semver
     }
   }
-  if (versionedItem.min && versionedItem.max) {
-    return versionedItem.min + ' - ' + versionedItem.max
+  if (versionedItem.semverMin && versionedItem.semverMax) {
+    return versionedItem.semverMin + ' - ' + versionedItem.semverMax
   }
-  if (versionedItem.min) {
-    return '>=' + versionedItem.min
+  if (versionedItem.semverMin) {
+    return '>=' + versionedItem.semverMin
   }
-  if (versionedItem.max) {
-    return '<=' + versionedItem.max
+  if (versionedItem.semverMax) {
+    return '<=' + versionedItem.semverMax
   }
-  return versionedItem.exact.join(' || ')
+  return versionedItem.versions.join(' || ')
 }
 
 /**
  * alternative display of SemVer templates
  * "5" will display as "5.x.x" default is "~5"
- * @param {String} semverTemplate SemVer template string
+ * @param {String} semver SemVer version string
  * @returns {String} filled SemVer template string
  */
-function fill (semverTemplate) {
-  switch (inspect(semverTemplate)) {
-    case 3: return semverTemplate
-    case 2: return semverTemplate + '.x'
-    default: return semverTemplate + '.x.x'
+function fill (semver) {
+  switch (inspect(semver)) {
+    case 3: return semver
+    case 2: return semver + '.x'
+    default: return semver + '.x.x'
   }
 }
 
@@ -79,19 +79,19 @@ function fill (semverTemplate) {
  */
 export function formatVersionFill (versionedItem) {
   if (doesNotDeclareVersion(versionedItem)) { return '*' }
-  if (versionedItem.template) {
-    return fill(versionedItem.template)
+  if (versionedItem.semver) {
+    return fill(versionedItem.semver)
   }
-  if (versionedItem.min && versionedItem.max) {
-    return fill(versionedItem.min) + ' - ' + fill(versionedItem.max)
+  if (versionedItem.semverMin && versionedItem.semverMax) {
+    return fill(versionedItem.semverMin) + ' - ' + fill(versionedItem.semverMax)
   }
-  if (versionedItem.min) {
-    return '>=' + fill(versionedItem.min)
+  if (versionedItem.semverMin) {
+    return '>=' + fill(versionedItem.semverMin)
   }
-  if (versionedItem.max) {
-    return '<=' + fill(versionedItem.max)
+  if (versionedItem.semverMax) {
+    return '<=' + fill(versionedItem.semverMax)
   }
-  return versionedItem.exact.join(' || ')
+  return versionedItem.versions.join(' || ')
 }
 
 /**
@@ -108,9 +108,9 @@ export function satisfiesDependency (version, versionedItem) {
     return true
   }
   const semVer = valid(version)
-  if (!semVer && !versionedItem.exact) { return false }
-  if (!semVer || versionedItem.exact.length) {
-    return versionedItem.exact.includes(version)
+  if (!semVer && !versionedItem.versions) { return false }
+  if (!semVer || versionedItem.versions.length) {
+    return versionedItem.versions.includes(version)
   }
-  return satisfies(semVer, formatVersion(versionedItem))
+  return satisfies(semVer, formatVersion(versionedItem), { includePrerelease: true })
 }

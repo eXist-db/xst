@@ -21,11 +21,11 @@ function local:get-package-meta(
 declare
 function local:dependency ($dep as element(expath:dependency)?) as map(*) {
     map {
-        "uri": ($dep/(@package|@processor))[1]/string(),
-        "min": $dep/@semver-min/string(),
-        "max": $dep/@semver-max/string(),
-        "template": $dep/@semver/string(),
-        "exact": array { tokenize($dep/@versions, ' ') }
+        "name": ($dep/(@package|@processor))[1]/string(),
+        "semverMin": $dep/@semver-min/string(),
+        "semverMax": $dep/@semver-max/string(),
+        "semver": $dep/@semver/string(),
+        "versions": array { tokenize($dep/@versions, ' ') }
     }
 };
 
