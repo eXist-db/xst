@@ -9,7 +9,7 @@ async function prepare (t) {
   try {
     const phase1 = await run('xst', ['up', '-D', '-e', 'tests', testSourceFolder, testCollection], asAdmin)
     if (phase1.stderr) { throw Error(phase1.stderr) }
-    const ensureTestsOlder = await run('xst', ['up', testSourceFolder + '/tests', testCollection + '/tests'], asAdmin)
+    const ensureTestsOlder = await run('xst', ['up', '-e', 'package,utility', testSourceFolder + '/tests', testCollection + '/tests'], asAdmin)
     if (ensureTestsOlder.stderr) { throw Error(ensureTestsOlder.stderr) }
     await storeResource(testCollection, 'b', '"test"')
     await storeResource(testCollection, 'a.txt', '"test"')
@@ -32,7 +32,7 @@ async function storeResource (collection, fileName, content) {
 }
 
 async function cleanup (t) {
-  const { stderr, stdout } = await run('xst', ['run', `xmldb:remove("${testCollection}")`], asAdmin)
+  const { stderr, stdout } = await run('xst', ['rm', '-rf', testCollection], asAdmin)
   if (stderr) {
     t.fail(stderr)
   }
@@ -270,13 +270,8 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/get.js
 /db/list-test/tests/info.js
 /db/list-test/tests/list.js
-/db/list-test/tests/package
-/db/list-test/tests/package/install.js
-/db/list-test/tests/package/list.js
 /db/list-test/tests/rm.js
 /db/list-test/tests/upload.js
-/db/list-test/tests/utility
-/db/list-test/tests/utility/version.js
 `
     st.equal(expectedlines, stdout, stdout)
     st.end()
@@ -296,11 +291,6 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/broken-test-app.xar
 /db/list-test/fixtures/test.xml
 /db/list-test/tests
-/db/list-test/tests/package
-/db/list-test/tests/package/list.js
-/db/list-test/tests/package/install.js
-/db/list-test/tests/utility
-/db/list-test/tests/utility/version.js
 /db/list-test/tests/info.js
 /db/list-test/tests/cli.js
 /db/list-test/tests/upload.js

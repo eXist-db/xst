@@ -20,25 +20,6 @@ test('shows help', async function (t) {
   t.equal(firstLine, 'xst package list [options]', firstLine)
 })
 
-test('shows extended output', async function (t) {
-  const { stderr, stdout } = await run('xst', ['package', 'list', '--extended'])
-
-  if (stderr) { return t.fail(stderr) }
-  const lines = stdout.split('\n')
-  t.equal(lines[0], 'dashboard          ')
-  t.equal(lines[1], 'Title: Dashboard')
-  t.equal(lines[2], 'URI: http://exist-db.org/apps/dashboard')
-  t.equal(lines[3], 'Author: Joern Turner')
-  t.equal(lines[4], 'Description: Dashboard')
-  t.ok(lines[5].startsWith('Version: '), lines[5])
-  t.ok(lines[6].startsWith('Installed: '), lines[6])
-  t.ok(lines[7].startsWith('Processor: existdb'), lines[7])
-  t.equal(lines[8], 'Target: dashboard')
-  t.equal(lines[9], 'Type: application')
-  t.equal(lines[10], 'License: GNU-LGPL')
-  t.equal(lines[11], '')
-})
-
 test('shows version', async function (t) {
   const { stderr, stdout } = await run('xst', ['package', 'list', '--versions'])
 
@@ -125,6 +106,26 @@ test('with new package', async function (t) {
     if (stderr) { return t.fail(stderr) }
     const lines = stdout.split('\n')
     st.equal(lines.shift(), 'test-app', 'test-app is first')
+  })
+
+  t.test('shows extended output of test-app', async function (st) {
+    const { stderr, stdout } = await run('xst', ['package', 'list', '--extended', '--timesort'])
+
+    if (stderr) { return t.fail(stderr) }
+    const lines = stdout.split('\n')
+    st.ok(lines[0].startsWith('test-app'), lines[0])
+    st.equal(lines[1], 'Title: Test App')
+    st.equal(lines[2], 'URI: http://exist-db.org/apps/test-app')
+    st.equal(lines[3], 'Author: Somebody Important')
+    st.equal(lines[4], 'Description: A test application')
+    st.equal(lines[5], 'Website: http://exist-db.org/')
+    st.ok(lines[6].startsWith('Version: '), lines[6])
+    st.ok(lines[7].startsWith('Installed: '), lines[7])
+    st.equal(lines[8], 'Processor: any')
+    st.equal(lines[9], 'Target: test-app')
+    st.equal(lines[10], 'Type: application')
+    st.equal(lines[11], 'License: WTF')
+    st.equal(lines[12], '')
   })
 
   t.test('sorts by installation date (reversed)', async function (st) {
