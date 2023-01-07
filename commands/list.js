@@ -441,7 +441,7 @@ function getGroupFormatter (options, paddings) {
 
 /**
  * get item rendering function
- * @param {Object} options given options
+ * @param {ListOptions} options given options
  * @param {BlockFormatter[]} blocks block rendering functions
  * @returns {ItemRenderer|TreeItemRenderer} rendering function
  */
