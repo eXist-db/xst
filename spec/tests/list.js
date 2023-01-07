@@ -275,6 +275,8 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/package/list.js
 /db/list-test/tests/rm.js
 /db/list-test/tests/upload.js
+/db/list-test/tests/utility
+/db/list-test/tests/utility/version.js
 `
     st.equal(expectedlines, stdout, stdout)
     st.end()
@@ -297,6 +299,8 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/package
 /db/list-test/tests/package/list.js
 /db/list-test/tests/package/install.js
+/db/list-test/tests/utility
+/db/list-test/tests/utility/version.js
 /db/list-test/tests/info.js
 /db/list-test/tests/cli.js
 /db/list-test/tests/upload.js

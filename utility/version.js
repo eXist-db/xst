@@ -1,4 +1,4 @@
-import { coerce, valid, satisfies, gte, lte } from 'semver'
+import { coerce, valid, satisfies, gte } from 'semver'
 
 /**
  * @typedef {Object} VersionedItem
@@ -38,7 +38,7 @@ export function satisfiesDependency (version, versionedItem) {
   }
   const semVer = valid(version)
   if (!semVer && !versionedItem.exact) { return false }
-  if (!semVer) {
+  if (!semVer || versionedItem.exact.length) {
     return versionedItem.exact.includes(version)
   }
   if (versionedItem.max && versionedItem.min) {
@@ -48,11 +48,29 @@ export function satisfiesDependency (version, versionedItem) {
     return gte(semVer, coerce(versionedItem.min))
   }
   if (versionedItem.max) {
-    return lte(semVer, coerce(versionedItem.max))
+    switch (inspect(versionedItem.max)) {
+      case 3: return satisfies(semVer, '<=' + versionedItem.max)
+      case 2: return satisfies(semVer, '<=' + versionedItem.max)
+      default: return satisfies(semVer, '~' + versionedItem.max)
+    }
   }
-  const coerced = coerce(versionedItem.template, true)
-  return satisfies(semVer, coerced)
+  switch (inspect(versionedItem.template)) {
+    case 3: return satisfies(semVer, versionedItem.template)
+    default: return satisfies(semVer, '~' + versionedItem.max)
+  }
 }
+
+function inspect (template) {
+  return template.split('.').length
+}
+
+// function fill (template) {
+//   switch (inspect(template)) {
+//     case 3: return template
+//     case 2: return template + '.x'
+//     default: return template + '.x.x'
+//   }
+// }
 
 /**
  * helper function to render version ranges and templates
@@ -62,11 +80,9 @@ export function satisfiesDependency (version, versionedItem) {
 export function formatVersion (versionedItem) {
   if (doesNotDeclareVersion(versionedItem)) { return '*' }
   if (versionedItem.template) {
-    const parts = versionedItem.template.split('.')
-    switch (parts.length) {
-      case 3: return versionedItem.template
-      case 2: return versionedItem.template + '.x'
-      default: return versionedItem.template + '.x.x'
+    switch (inspect(versionedItem.template)) {
+      case 3: return '^' + versionedItem.template
+      default: return '~' + versionedItem.template
     }
   }
   if (versionedItem.min && versionedItem.max) {
@@ -76,7 +92,10 @@ export function formatVersion (versionedItem) {
     return '>=' + versionedItem.min
   }
   if (versionedItem.max) {
-    return '<=' + versionedItem.max
+    switch (inspect(versionedItem.max)) {
+      case 3: return '<=' + versionedItem.max
+      default: return '~' + versionedItem.max
+    }
   }
   return versionedItem.exact.join(' || ')
 }
