@@ -64,7 +64,7 @@ function local:expath($package-uri as xs:string) as map(*) {
 
     return
         map {
-            "uri": $expath//@name,
+            "name": $expath//@name,
             "abbrev": $expath//@abbrev/string(),
             "version": $expath//expath:package/@version/string(),
             "title": $expath//expath:title/text(),

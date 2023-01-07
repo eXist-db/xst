@@ -20,6 +20,14 @@ test('shows help', async function (t) {
   t.equal(firstLine, 'xst package list [options]', firstLine)
 })
 
+test('shows full name', async function (t) {
+  const { stderr, stdout } = await run('xst', ['package', 'list', '--full-name'])
+
+  if (stderr) { return t.fail(stderr) }
+  const lines = stdout.split('\n')
+  t.equal(lines[0], 'http://exist-db.org/apps/dashboard')
+})
+
 test('shows version', async function (t) {
   const { stderr, stdout } = await run('xst', ['package', 'list', '--versions'])
 
@@ -112,10 +120,11 @@ test('with new package', async function (t) {
     const { stderr, stdout } = await run('xst', ['package', 'list', '--extended', '--timesort'])
 
     if (stderr) { return t.fail(stderr) }
+    console.log(stdout)
     const lines = stdout.split('\n')
     st.ok(lines[0].startsWith('test-app'), lines[0])
     st.equal(lines[1], 'Title: Test App')
-    st.equal(lines[2], 'URI: http://exist-db.org/apps/test-app')
+    st.equal(lines[2], 'Name: http://exist-db.org/apps/test-app')
     st.equal(lines[3], 'Author: Somebody Important')
     st.equal(lines[4], 'Description: A test application')
     st.equal(lines[5], 'Website: http://exist-db.org/')

@@ -163,7 +163,7 @@ function padProp (paddings, prop) {
  * @returns {BlockFormatter} format main identifier
  */
 function getAbbrevFormatter (options, paddings) {
-  const prop = options.fullUri ? 'uri' : 'abbrev'
+  const prop = options.fullName ? 'name' : 'abbrev'
   const pad = padProp(paddings, prop)
   if (options.color) {
     return pkg => coloredDisplay(pkg, pad)
@@ -203,8 +203,8 @@ function getAuthorsFormatter (options) {
 }
 
 /**
- * shorten well-known processor URI
- * @param {String} name processor URI
+ * shorten well-known processor name
+ * @param {String} name processor name
  * @returns {String|"existdb"} maybe shortened name
  */
 function processorName (name) {
@@ -219,17 +219,17 @@ function processorName (name) {
 function getProcessorFormatter (options) {
   if (options.color) {
     return function (pkg) {
-      if (!pkg.processor.uri) {
+      if (!pkg.processor.name) {
         return coloredLabel('Processor: ') + 'any'
       }
-      return coloredLabel('Processor: ') + processorName(pkg.processor.uri) + ' ' + ct(formatVersion(pkg.processor), 'FgYellow')
+      return coloredLabel('Processor: ') + processorName(pkg.processor.name) + ' ' + ct(formatVersion(pkg.processor), 'FgYellow')
     }
   }
   return function (pkg) {
-    if (!pkg.processor.uri) {
+    if (!pkg.processor.name) {
       return 'Processor: any'
     }
-    return 'Processor: ' + processorName(pkg.processor.uri) + ' ' + formatVersion(pkg.processor)
+    return 'Processor: ' + processorName(pkg.processor.name) + ' ' + formatVersion(pkg.processor)
   }
 }
 
@@ -249,34 +249,32 @@ function getLabelFormatter (options, label, prop) {
 
 /**
  * convert URIs to corresponding abbrev
- * @param {Map<String, ListResultItem>} uri2pkg the mapping
- * @param {String} uri the package URI
+ * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @returns {BlockFormatter} the formatter
  */
-function pkgAbbrev (uri2pkg) {
+function pkgAbbrev (name2pkg) {
   return (dep) => {
-    const pkg = uri2pkg.get(dep.uri)
-    return pkg ? pkg.abbrev : dep.uri
+    const pkg = name2pkg.get(dep.name)
+    return pkg ? pkg.abbrev : dep.name
   }
 }
 
 /**
  * get dependencies
- * @param {Map<String, ListResultItem>} uri2pkg the mapping
- * @param {String} uri the package URI
+ * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @returns {BlockFormatter} the formatter
  */
-// function pkgDependencies (uri2pkg) {
-//   return (pkg) => uri2pkg.get(pkg.uri).dependencies
+// function pkgDependencies (name2pkg) {
+//   return (pkg) => name2pkg.get(pkg.name).dependencies
 // }
 
 /**
- * return given URI unchanged (ID transform)
- * @param {String} uri the package URI
- * @returns {String} the package URI
+ * return package name
+ * @param {ListResultItem} pkg the package
+ * @returns {String} the package name
  */
 function uriAccessor (pkg) {
-  return pkg.uri
+  return pkg.name
 }
 
 /**
@@ -292,13 +290,14 @@ function isLast (index, array) {
 /**
  * format dependency list item
  * @param {Function} fmt uri formatter function
+ * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @param {VersionedItem} dependency dependency list item
  * @param {Number} index current items index
  * @param {Array} array list of all dependencies
  * @returns {String} terminal output
  */
-function formatDependency (fmt, uri2pkg, dependency, index, array) {
-  const pkg = uri2pkg.get(dependency.uri)
+function formatDependency (fmt, name2pkg, dependency, index, array) {
+  const pkg = name2pkg.get(dependency.name)
   const satisfied = pkg && satisfiesDependency(pkg.version, dependency)
   return isLast(index, array) +
     (satisfied ? '' : '! ') +
@@ -309,13 +308,14 @@ function formatDependency (fmt, uri2pkg, dependency, index, array) {
 /**
  * format and color dependency list item
  * @param {Function} fmt uri formatter function
+ * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @param {VersionedItem} dependency dependency list item
  * @param {Number} index current items index
  * @param {Array} array list of all dependencies
  * @returns {String} colored terminal output
  */
-function formatDependencyColored (fmt, uri2pkg, dependency, index, array) {
-  const pkg = uri2pkg.get(dependency.uri)
+function formatDependencyColored (fmt, name2pkg, dependency, index, array) {
+  const pkg = name2pkg.get(dependency.name)
   const satisfied = pkg && satisfiesDependency(pkg.version, dependency)
   const color = satisfied ? 'FgGreen' : 'FgRed'
   const mod = satisfied ? 'Dim' : 'Bright'
@@ -328,28 +328,30 @@ function formatDependencyColored (fmt, uri2pkg, dependency, index, array) {
 /**
  * ouput list of formatted dependencies
  * @param {Function} fmt uri formatter function
+ * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @param {ListResultItem} pkg the item
  * @returns {String} formatted dependencies
  */
-function formatDependencies (fmt, uri2pkg, pkg) {
+function formatDependencies (fmt, name2pkg, pkg) {
   if (!pkg.dependencies.length) {
     return LAST + '(no dependency)'
   }
-  const fmtDep = (dep, index, array) => formatDependency(fmt, uri2pkg, dep, index, array)
+  const fmtDep = (dep, index, array) => formatDependency(fmt, name2pkg, dep, index, array)
   return pkg.dependencies.map(fmtDep).join('\n')
 }
 
 /**
  * ouput list of formatted and colored dependencies
  * @param {Function} fmt uri formatter function
+ * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @param {ListResultItem} pkg the item
  * @returns {String} formatted and colored dependencies
  */
-function formatDependenciesColored (fmt, uri2pkg, pkg) {
+function formatDependenciesColored (fmt, name2pkg, pkg) {
   if (!pkg.dependencies.length) {
     return LAST + ct('(no dependency)', 'FgWhite', 'Dim')
   }
-  const fmtDep = (dep, index, array) => formatDependencyColored(fmt, uri2pkg, dep, index, array)
+  const fmtDep = (dep, index, array) => formatDependencyColored(fmt, name2pkg, dep, index, array)
   return pkg.dependencies.map(fmtDep).join('\n')
 }
 
@@ -361,17 +363,17 @@ function formatDependenciesColored (fmt, uri2pkg, pkg) {
  */
 function getDependenciesFormatter (list, options) {
   let nameFmt = uriAccessor
-  const uri2pkg = new Map(list.map(pkg => [pkg.uri, pkg]))
+  const name2pkg = new Map(list.map(pkg => [pkg.name, pkg]))
   if (!options.fullUri) {
-    nameFmt = pkgAbbrev(uri2pkg)
+    nameFmt = pkgAbbrev(name2pkg)
   }
   if (options.color) {
     return (pkg) => {
-      return formatDependenciesColored(nameFmt, uri2pkg, pkg)
+      return formatDependenciesColored(nameFmt, name2pkg, pkg)
     }
   }
   return (pkg) => {
-    return formatDependencies(nameFmt, uri2pkg, pkg)
+    return formatDependencies(nameFmt, name2pkg, pkg)
   }
 }
 
@@ -440,10 +442,10 @@ function getComponentsFormatter (options) {
  * @returns {ItemFormatter} the formatter
  */
 function getItemFormatter (list, options) {
-  const { versions, date, extended, dependencies, color, fullUri } = options
+  const { versions, date, extended, dependencies, color, fullName } = options
   if (!versions && !date && !extended && !dependencies) {
     const pkgFmt = color ? coloredDisplay : display
-    const prop = fullUri ? 'uri' : 'abbrev'
+    const prop = fullName ? 'name' : 'abbrev'
     const accessor = (pkg) => pkg[prop]
     return pkg => console.log(pkgFmt(pkg, accessor))
   }
@@ -465,7 +467,7 @@ function getItemFormatter (list, options) {
 
   if (extended) {
     extBlocks.push(getLabelFormatter(options, 'Title', 'title'))
-    extBlocks.push(getLabelFormatter(options, 'URI', 'uri'))
+    extBlocks.push(getLabelFormatter(options, 'Name', 'name'))
     extBlocks.push(getAuthorsFormatter(options))
     extBlocks.push(getLabelFormatter(options, 'Description', 'description'))
     extBlocks.push(getLabelFormatter(options, 'Website', 'website'))
@@ -646,8 +648,8 @@ const options = {
     type: 'boolean',
     default: false
   },
-  fullUri: {
-    describe: 'Use full URIs for display',
+  'full-name': {
+    describe: 'Use full name for packages and dependencies',
     type: 'boolean',
     default: false
   },
