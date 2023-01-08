@@ -48,7 +48,8 @@ xst <command> --help
 - `get` download a collection or resource to the filesystem
 - `rm` remove collections and resources
 - `package` package related commands
-  - `install` upload and install a local XAR package 
+  - `install` upload and install a local XAR package
+  - `list` list installed packages
 - `execute` the swiss army knife command that lets you query data or run a main module
 
 ### Examples
@@ -131,6 +132,12 @@ xst package install path/to/my-package.xar
 ```
 
 NOTE: User that connects must be a database administrator.
+
+#### List all installed application packages with their dependencies
+
+```bash
+xst package list --applications --dependencies
+```
 
 ## Configuration
 
