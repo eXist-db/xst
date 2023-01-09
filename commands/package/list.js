@@ -13,18 +13,9 @@ import { readXquery } from '../../utility/xq.js'
  * @prop {Boolean} libraries only show collections
  * @prop {Boolean} applications only show collections
  * @prop {Boolean} dependencies only show collections
- * @prop {Boolean} fullUri use package URIs instead of abbreviations
+ * @prop {Boolean} fullName use package name instead of abbreviation
  * @prop {"short"|"iso"|false} date show installation date
  * @prop {Object} connectionOptions DB connection options
- */
-
-/**
- * @typedef {Object} VersionedItem
- * @prop {String} name package URI
- * @prop {String} min SemVer version
- * @prop {String} max SemVer version
- * @prop {String} template SemVer version template
- * @prop {String[]} exact list of versions
  */
 
 /**
@@ -37,24 +28,33 @@ import { readXquery } from '../../utility/xq.js'
  * @prop {String[]} schematron exported schematron schemas
  * @prop {String[]} nvdl exported NVDLs
  * @prop {String[]} resource exported resources
+ * @prop {String[]} jar jars that come with the package
+ */
+
+/**
+ * @typedef {import('../../utility/version').VersionedItem} VersionedItem
+ */
+
+/**
+ * @typedef {"application"|"library"} PackageType
  */
 
 /**
  * @typedef {Object} ListResultItem
- * @prop {String} date the iso dateTime string when the package was installed
- * @prop {VersionedItem} processor the declared XPath, XQuery, XSLT processor dependency
- * @prop {Components} components the declared package dependencies
- * @prop {String} website website of the package
+ * @prop {String} name the package name
  * @prop {String} abbrev abbreviated name of the package
+ * @prop {String} date the iso dateTime string when the package was installed
+ * @prop {PackageType} type the type of the item
+ * @prop {String} website website of the package
  * @prop {String} target the target collection
  * @prop {String} description one or two sentences explaining the purpose of the package
- * @prop {"application"|"library"} type the type of the item
- * @prop {String} uri the package URI
  * @prop {String[]} authors the authors of the package
  * @prop {String} version the installed package version (mostly SemVer)
  * @prop {String} title the title of the package
- * @prop {VersionedItem[]} dependencies the declared package dependencies
  * @prop {String} license the license of the package (free text)
+ * @prop {Components} components the declared package dependencies
+ * @prop {VersionedItem} processor the declared XPath, XQuery, XSLT processor dependency
+ * @prop {VersionedItem[]} dependencies the declared package dependencies
  */
 
 /**
@@ -87,7 +87,7 @@ const LAST = '└── '
  */
 const initialPaddings = new Map([
   ['abbrev', 0],
-  ['uri', 0],
+  ['name', 0],
   ['version', 3]
 ])
 
@@ -149,7 +149,7 @@ function display (pkg, pad) {
 /**
  * pad the given prop to the appropriate length
  * @param {BlockPaddings} paddings the paddings
- * @param {"abbrev"|"uri"} prop the prop to pad
+ * @param {"abbrev"|"name"} prop the prop to pad
  * @returns {(pkg:ListResultItem)=>string} with padded prop
  */
 function padProp (paddings, prop) {
@@ -248,7 +248,7 @@ function getLabelFormatter (options, label, prop) {
 }
 
 /**
- * convert URIs to corresponding abbrev
+ * convert names to corresponding abbreviaton
  * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @returns {BlockFormatter} the formatter
  */
@@ -273,7 +273,7 @@ function pkgAbbrev (name2pkg) {
  * @param {ListResultItem} pkg the package
  * @returns {String} the package name
  */
-function uriAccessor (pkg) {
+function nameAccessor (pkg) {
   return pkg.name
 }
 
@@ -289,7 +289,7 @@ function isLast (index, array) {
 
 /**
  * format dependency list item
- * @param {Function} fmt uri formatter function
+ * @param {Function} fmt name formatter function
  * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @param {VersionedItem} dependency dependency list item
  * @param {Number} index current items index
@@ -307,7 +307,7 @@ function formatDependency (fmt, name2pkg, dependency, index, array) {
 
 /**
  * format and color dependency list item
- * @param {Function} fmt uri formatter function
+ * @param {Function} fmt name formatter function
  * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @param {VersionedItem} dependency dependency list item
  * @param {Number} index current items index
@@ -327,7 +327,7 @@ function formatDependencyColored (fmt, name2pkg, dependency, index, array) {
 
 /**
  * ouput list of formatted dependencies
- * @param {Function} fmt uri formatter function
+ * @param {Function} fmt name formatter function
  * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @param {ListResultItem} pkg the item
  * @returns {String} formatted dependencies
@@ -342,7 +342,7 @@ function formatDependencies (fmt, name2pkg, pkg) {
 
 /**
  * ouput list of formatted and colored dependencies
- * @param {Function} fmt uri formatter function
+ * @param {Function} fmt name formatter function
  * @param {Map<String, ListResultItem>} name2pkg the mapping
  * @param {ListResultItem} pkg the item
  * @returns {String} formatted and colored dependencies
@@ -362,9 +362,9 @@ function formatDependenciesColored (fmt, name2pkg, pkg) {
  * @returns {BlockFormatter} extended block formatter
  */
 function getDependenciesFormatter (list, options) {
-  let nameFmt = uriAccessor
+  let nameFmt = nameAccessor
   const name2pkg = new Map(list.map(pkg => [pkg.name, pkg]))
-  if (!options.fullUri) {
+  if (!options.fullName) {
     nameFmt = pkgAbbrev(name2pkg)
   }
   if (options.color) {

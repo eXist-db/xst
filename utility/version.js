@@ -2,7 +2,7 @@ import { valid, satisfies } from 'semver'
 
 /**
  * @typedef {Object} VersionedItem
- * @prop {String} name package URI
+ * @prop {String} name package name
  * @prop {String} semverMin SemVer max version
  * @prop {String} semverMax SemVer min version
  * @prop {String} semver SemVer version range
