@@ -2,6 +2,7 @@ import { connect, getMimeType } from '@existdb/node-exist'
 import { ct } from '../utility/console.js'
 import { readXquery } from '../utility/xq.js'
 import { getDateFormatter } from '../utility/colored-date.js'
+import { multiSort } from '../utility/sorter.js'
 
 /**
  * @typedef { import("node-exist").NodeExist } NodeExist
@@ -45,7 +46,7 @@ import { getDateFormatter } from '../utility/colored-date.js'
  * @typedef {(item:ListResultItem, indent:String, last:Boolean, level:Number) => void} TreeItemRenderer
  */
 /**
- * @typedef {(itemA:ListResultItem, itemB:ListResultItem) => Number} ItemSorter
+ * @typedef { import('../utility/sorter.js').ItemSorter} ItemSorter
  */
 
 /**
@@ -478,16 +479,7 @@ function getSorter (options) {
     sorters.push(sortByType)
   }
   sorters.push(sortByName)
-  return (a, b) => {
-    let v = 0
-    let i = 0
-    let sf = sorters[i]
-    while (v === 0 && sf) {
-      v = reverse ? sf(b, a) : sf(a, b)
-      sf = sorters[++i]
-    }
-    return v
-  }
+  return (a, b) => multiSort(a, b, sorters, reverse)
 }
 
 // list
