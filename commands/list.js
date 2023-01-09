@@ -3,6 +3,7 @@ import { ct } from '../utility/console.js'
 import { readXquery } from '../utility/xq.js'
 import { getDateFormatter } from '../utility/colored-date.js'
 import { multiSort } from '../utility/sorter.js'
+import { recursivePadReducer } from '../utility/padding.js'
 
 /**
  * @typedef { import("node-exist").NodeExist } NodeExist
@@ -48,6 +49,12 @@ import { multiSort } from '../utility/sorter.js'
 /**
  * @typedef { import('../utility/sorter.js').ItemSorter} ItemSorter
  */
+/**
+ * @typedef { import('../utility/padding.js').BlockPaddings} BlockPaddings
+ */
+/**
+ * @typedef { import('../utility/padding.js').PaddingReduceer} PaddingReduceer
+ */
 
 /**
  * the xquery file to execute on the DB
@@ -64,35 +71,13 @@ const isCollection = item => item.type === 'collection'
 // paddings
 
 /**
- * @typedef {Map<String, Number>} BlockPaddings
+ * @type {BlockPaddings}
  */
 const initialPaddings = new Map([
-  ['padOwner', 0],
-  ['padGroup', 0],
-  ['padSize', 4]
+  ['owner', 0],
+  ['group', 0],
+  ['size', 4]
 ])
-
-/**
- * Get maximum needed paddings for owner, group and size (in bytes)
- * @param {BlockPaddings} paddings
- * @param {ListResultItem} next
- * @returns {Map} actual paddings
- */
-function padReducer (paddings, next) {
-  if (paddings.get('padGroup') < next.group.length) {
-    paddings.set('padGroup', next.group.length)
-  }
-  if (paddings.get('padOwner') < next.owner.length) {
-    paddings.set('padOwner', next.owner.length)
-  }
-  if (paddings.get('padSize') < next.size.toFixed(0).length) {
-    paddings.set('padSize', next.size.toFixed(0).length)
-  }
-  if (next.children && next.children.length) {
-    return next.children.reduce(padReducer, paddings)
-  }
-  return paddings
-}
 
 /**
  * get block paddings for list
@@ -100,7 +85,8 @@ function padReducer (paddings, next) {
  * @returns {BlockPaddings} block paddings for list
  */
 function getPaddings (list) {
-  return list.reduce(padReducer, initialPaddings)
+  const reducer = recursivePadReducer('children')
+  return list.reduce(reducer, initialPaddings)
 }
 
 // tree
@@ -285,7 +271,7 @@ function formatSizeHumanReadable (size) {
 function getSizeFormatter (options, paddings) {
   let formatter
   if (options.size === 'bytes') {
-    const padStart = paddings.get('padSize')
+    const padStart = paddings.get('size')
     formatter = (size) => size.toFixed(0).padStart(padStart)
   } else {
     formatter = formatSizeHumanReadable
@@ -348,7 +334,7 @@ function getModeFormatter (options) {
  * @returns {BlockFormatter} owner formatter
  */
 function getOwnerFormatter (options, paddings) {
-  const padStart = paddings.get('padOwner')
+  const padStart = paddings.get('owner')
   if (options.color) {
     return (item) => ct(item.owner.padStart(padStart), 'FgWhite')
   }
@@ -362,7 +348,7 @@ function getOwnerFormatter (options, paddings) {
  * @returns {BlockFormatter} group formatter
  */
 function getGroupFormatter (options, paddings) {
-  const padStart = paddings.get('padGroup')
+  const padStart = paddings.get('group')
   if (options.color) {
     return (item) => ct(item.group.padStart(padStart), 'FgWhite')
   }
