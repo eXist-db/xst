@@ -258,6 +258,7 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/binding.json
 /db/list-test/fixtures/broken-test-app.xar
 /db/list-test/fixtures/test-app.xar
+/db/list-test/fixtures/test-lib.xar
 /db/list-test/fixtures/test.xml
 /db/list-test/fixtures/test.xq
 /db/list-test/index.html
@@ -288,6 +289,7 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/.xstrc
 /db/list-test/fixtures/.existdb.json
 /db/list-test/fixtures/test-app.xar
+/db/list-test/fixtures/test-lib.xar
 /db/list-test/fixtures/broken-test-app.xar
 /db/list-test/fixtures/test.xml
 /db/list-test/tests

@@ -50,8 +50,9 @@ xst <command> --help
 |`remove [options] <paths..>`|Remove collections or resources|`rm` `delete` `del`|
 |`execute [<query>] [options]`|Execute a query string or file|`run` `exec`|
 |`list [options] <collection>`|List collection contents|`ls`|
-|`package install [options] <packages..>`|Install XAR packages|`pkg i`|
 |`package list [options]`|List installed packages|`pkg ls`|
+|`package install [options] <packages..>`|Install XAR packages|`pkg i`|
+|`package uninstall [options] <packages..>`|Remove XAR packages|`pkg uninstall`|
 
 ### Examples
 
