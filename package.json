@@ -14,7 +14,7 @@
     "node": "^14.18 || ^16.13 || >=18"
   },
   "scripts": {
-    "test": "standard && tape spec/tests/*.js",
+    "test": "standard && tape spec/tests/*.js spec/tests/**/*.js",
     "lint": "standard --fix"
   },
   "keywords": [
@@ -41,6 +41,7 @@
     "bottleneck": "^2.19.5",
     "dotenv": "^16.0.3",
     "fast-glob": "^3.2.12",
+    "semver": "^7.3.8",
     "yargs": "^17.6.2"
   },
   "devDependencies": {

@@ -1,6 +1,9 @@
 import { connect, getMimeType } from '@existdb/node-exist'
 import { ct } from '../utility/console.js'
 import { readXquery } from '../utility/xq.js'
+import { getDateFormatter } from '../utility/colored-date.js'
+import { multiSort } from '../utility/sorter.js'
+import { recursivePadReducer } from '../utility/padding.js'
 
 /**
  * @typedef { import("node-exist").NodeExist } NodeExist
@@ -44,7 +47,13 @@ import { readXquery } from '../utility/xq.js'
  * @typedef {(item:ListResultItem, indent:String, last:Boolean, level:Number) => void} TreeItemRenderer
  */
 /**
- * @typedef {(itemA:ListResultItem, itemB:ListResultItem) => Number} ItemSorter
+ * @typedef { import('../utility/sorter.js').ItemSorter} ItemSorter
+ */
+/**
+ * @typedef { import('../utility/padding.js').BlockPaddings} BlockPaddings
+ */
+/**
+ * @typedef { import('../utility/padding.js').PaddingReduceer} PaddingReduceer
  */
 
 /**
@@ -62,35 +71,13 @@ const isCollection = item => item.type === 'collection'
 // paddings
 
 /**
- * @typedef {Map<String, Number>} BlockPaddings
+ * @type {BlockPaddings}
  */
 const initialPaddings = new Map([
-  ['padOwner', 0],
-  ['padGroup', 0],
-  ['padSize', 4]
+  ['owner', 0],
+  ['group', 0],
+  ['size', 4]
 ])
-
-/**
- * Get maximum needed paddings for owner, group and size (in bytes)
- * @param {BlockPaddings} paddings
- * @param {ListResultItem} next
- * @returns {Map} actual paddings
- */
-function padReducer (paddings, next) {
-  if (paddings.get('padGroup') < next.group.length) {
-    paddings.set('padGroup', next.group.length)
-  }
-  if (paddings.get('padOwner') < next.owner.length) {
-    paddings.set('padOwner', next.owner.length)
-  }
-  if (paddings.get('padSize') < next.size.toFixed(0).length) {
-    paddings.set('padSize', next.size.toFixed(0).length)
-  }
-  if (next.children && next.children.length) {
-    return next.children.reduce(padReducer, paddings)
-  }
-  return paddings
-}
 
 /**
  * get block paddings for list
@@ -98,79 +85,8 @@ function padReducer (paddings, next) {
  * @returns {BlockPaddings} block paddings for list
  */
 function getPaddings (list) {
-  return list.reduce(padReducer, initialPaddings)
-}
-
-// time
-
-const timeFormat = {
-  hour12: false,
-  hour: '2-digit',
-  minute: '2-digit'
-}
-const dateFormat = {
-  month: 'short'
-}
-
-const now = new Date()
-const currentYear = now.getFullYear()
-const nowMs = now.getTime()
-
-/**
- * format date to short representation
- * @param {Date} date
- * @returns {String} formatted date
- */
-function formatDateShort (date) {
-  const year = date.getFullYear()
-  const month = date.toLocaleDateString('iso', dateFormat)
-  const day = date.getDate().toString().padStart(3)
-  if (year < currentYear) {
-    return month + day + year.toString().padStart(6)
-  }
-  const time = date.toLocaleTimeString('iso', timeFormat).padStart(6)
-  return month + day + time
-}
-
-const quarterHour = 900000
-const hour = 3600000
-const day = 86400000
-const month = 2592000000
-const quarterYear = 7776000000
-const year = 31104000000
-const steps = [year, quarterYear, month, day, hour, quarterHour]
-const greens = [70, 34, 40, 114, 84, 156]
-
-/**
- * receive a color from the greens palette to color a date
- * relative to the current date
- * @param {Date} date the date to get the color for
- * @returns {Number} xterm256color
- */
-function colorForDate (date) {
-  const msSince = nowMs - date.getTime()
-  const index = steps.reduce((acc, next, step) => (msSince < next ? step : acc), 0)
-  return greens[index]
-}
-
-/**
- * get date formatting function
- * @param {ListOptions} options list rendering options
- * @returns {(item:ListResultItem) => String} date formatting function
- */
-function getDateFormatter (options) {
-  let formatter = formatDateShort
-  if (options.date === 'iso') {
-    formatter = (date) => date.toISOString()
-  }
-  if (options.color) {
-    return (item) => {
-      const date = new Date(item.modified)
-      const formattedDate = formatter(date)
-      return ct(formattedDate, colorForDate(date))
-    }
-  }
-  return (item) => formatter(new Date(item.modified))
+  const reducer = recursivePadReducer('children')
+  return list.reduce(reducer, initialPaddings)
 }
 
 // tree
@@ -355,7 +271,7 @@ function formatSizeHumanReadable (size) {
 function getSizeFormatter (options, paddings) {
   let formatter
   if (options.size === 'bytes') {
-    const padStart = paddings.get('padSize')
+    const padStart = paddings.get('size')
     formatter = (size) => size.toFixed(0).padStart(padStart)
   } else {
     formatter = formatSizeHumanReadable
@@ -418,7 +334,7 @@ function getModeFormatter (options) {
  * @returns {BlockFormatter} owner formatter
  */
 function getOwnerFormatter (options, paddings) {
-  const padStart = paddings.get('padOwner')
+  const padStart = paddings.get('owner')
   if (options.color) {
     return (item) => ct(item.owner.padStart(padStart), 'FgWhite')
   }
@@ -432,7 +348,7 @@ function getOwnerFormatter (options, paddings) {
  * @returns {BlockFormatter} group formatter
  */
 function getGroupFormatter (options, paddings) {
-  const padStart = paddings.get('padGroup')
+  const padStart = paddings.get('group')
   if (options.color) {
     return (item) => ct(item.group.padStart(padStart), 'FgWhite')
   }
@@ -441,7 +357,7 @@ function getGroupFormatter (options, paddings) {
 
 /**
  * get item rendering function
- * @param {Object} options given options
+ * @param {ListOptions} options given options
  * @param {BlockFormatter[]} blocks block rendering functions
  * @returns {ItemRenderer|TreeItemRenderer} rendering function
  */
@@ -549,16 +465,7 @@ function getSorter (options) {
     sorters.push(sortByType)
   }
   sorters.push(sortByName)
-  return (a, b) => {
-    let v = 0
-    let i = 0
-    let sf = sorters[i]
-    while (v === 0 && sf) {
-      v = reverse ? sf(b, a) : sf(a, b)
-      sf = sorters[++i]
-    }
-    return v
-  }
+  return (a, b) => multiSort(a, b, sorters, reverse)
 }
 
 // list
@@ -663,7 +570,7 @@ async function ls (db, collection, options) {
     blocks.push(getOwnerFormatter(options, paddings))
     blocks.push(getGroupFormatter(options, paddings))
     blocks.push(getSizeFormatter(options, paddings))
-    blocks.push(getDateFormatter(options, paddings))
+    blocks.push(getDateFormatter(options, 'modified'))
   }
 
   if (tree) {

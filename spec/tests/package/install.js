@@ -1,5 +1,5 @@
 import { test } from 'tape'
-import { run, asAdmin } from '../test.js'
+import { run, asAdmin } from '../../test.js'
 
 const packageCollection = '/db/pkgtmp'
 const pkgUri = 'http://exist-db.org/apps/test-app'

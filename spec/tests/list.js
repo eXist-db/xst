@@ -9,7 +9,7 @@ async function prepare (t) {
   try {
     const phase1 = await run('xst', ['up', '-D', '-e', 'tests', testSourceFolder, testCollection], asAdmin)
     if (phase1.stderr) { throw Error(phase1.stderr) }
-    const ensureTestsOlder = await run('xst', ['up', testSourceFolder + '/tests', testCollection + '/tests'], asAdmin)
+    const ensureTestsOlder = await run('xst', ['up', '-e', 'package,utility', testSourceFolder + '/tests', testCollection + '/tests'], asAdmin)
     if (ensureTestsOlder.stderr) { throw Error(ensureTestsOlder.stderr) }
     await storeResource(testCollection, 'b', '"test"')
     await storeResource(testCollection, 'a.txt', '"test"')
@@ -32,7 +32,7 @@ async function storeResource (collection, fileName, content) {
 }
 
 async function cleanup (t) {
-  const { stderr, stdout } = await run('xst', ['run', `xmldb:remove("${testCollection}")`], asAdmin)
+  const { stderr, stdout } = await run('xst', ['rm', '-rf', testCollection], asAdmin)
   if (stderr) {
     t.fail(stderr)
   }
@@ -269,7 +269,6 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/exec.js
 /db/list-test/tests/get.js
 /db/list-test/tests/info.js
-/db/list-test/tests/install.js
 /db/list-test/tests/list.js
 /db/list-test/tests/rm.js
 /db/list-test/tests/upload.js
@@ -299,7 +298,6 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/exec.js
 /db/list-test/tests/rm.js
 /db/list-test/tests/get.js
-/db/list-test/tests/install.js
 /db/list-test/tests/list.js
 /db/list-test/test.xq
 /db/list-test/b
