@@ -6,6 +6,8 @@ import { multiSort } from '../utility/sorter.js'
 import { recursivePadReducer } from '../utility/padding.js'
 import { getSizeFormatter } from '../utility/size.js'
 import { getGlobMatcher } from '../utility/glob.js'
+import { getTreeFormatter, getNextIndent } from '../utility/tree.js'
+
 /**
  * @typedef { import("node-exist").NodeExist } NodeExist
  */
@@ -39,13 +41,13 @@ import { getGlobMatcher } from '../utility/glob.js'
  */
 
 /**
- * @typedef {(item:ListResultItem) => String} BlockFormatter
- */
-/**
  * @typedef {(item:ListResultItem) => void} ItemRenderer
  */
 /**
- * @typedef {(item:ListResultItem, indent:String, last:Boolean, level:Number) => void} TreeItemRenderer
+ * @typedef {import('../utility/tree.js').TreeItemRenderer<T>} TreeItemRenderer<T>
+ */
+/**
+ * @typedef {import('../utility/tree.js').BlockFormatter<T>} BlockFormatter<T>
  */
 /**
  * @typedef { import('../utility/sorter.js').ItemSorter} ItemSorter
@@ -90,50 +92,6 @@ function getPaddings (list) {
   return list.reduce(reducer, initialPaddings)
 }
 
-// tree
-
-const FILL = '│   '
-const ITEM = '├── '
-const LAST = '└── '
-const EMPTY = '    '
-
-function getNextIndent (indent, last) {
-  if (last) {
-    return indent + EMPTY
-  }
-  return indent + FILL
-}
-
-/**
- * get part for current position in tree
- * @param {String} indent current indent
- * @param {Boolean} last is this the last element in this branch
- * @param {Boolean} root is this the root element of this tree
- * @returns {String} tree part
- */
-function getTreeForItem (indent, last, root) {
-  if (root) {
-    return ''
-  }
-  if (last) {
-    return indent + LAST
-  }
-  return indent + ITEM
-}
-
-/**
- * get tree formatter
- * @param {Object} options
- * @returns {(item:ListResultItem, indent:String, last:Boolean, level:Number)=>String}
- */
-function getTreeFormatter (options) {
-  const formatName = getNameFormatter(options)
-
-  return function (item, indent, last, level) {
-    return getTreeForItem(indent, last, level === 0) + formatName(item)
-  }
-}
-
 // name
 
 /**
@@ -158,8 +116,8 @@ function formatNameColored (item, display) {
 
 /**
  * get name formatting function for options
- * @param {Object} options options object
- * @returns {BlockFormatter} formatter
+ * @param {ListOptions} options options object
+ * @returns {BlockFormatter<ListResultItem>} formatter
  */
 function getNameFormatter (options) {
   if (options.recursive && !options.long) {
@@ -250,7 +208,7 @@ function formatModeColor (item) {
 /**
  * get mode formatting function
  * @param {ListOptions} options
- * @returns {BlockFormatter} mode formatter
+ * @returns {BlockFormatter<ListResultItem>} mode formatter
  */
 function getModeFormatter (options) {
   if (options.color) {
@@ -263,7 +221,7 @@ function getModeFormatter (options) {
  * pad prop with spaces to length at the end
  * @param {String} prop property to pad
  * @param {BlockPaddings} paddings block paddings
- * @returns {BlockFormatter} padEnd prop to length
+ * @returns {BlockFormatter<ListResultItem>} padEnd prop to length
  */
 function padEnd (prop, paddings) {
   const length = paddings.get(prop)
@@ -274,7 +232,7 @@ function padEnd (prop, paddings) {
  * get owner formatting function
  * @param {ListOptions} options list rendering options
  * @param {BlockPaddings} paddings block paddings
- * @returns {BlockFormatter} owner formatter
+ * @returns {BlockFormatter<ListResultItem>} owner formatter
  */
 function getOwnerFormatter (options, paddings) {
   const padOwner = padEnd('owner', paddings)
@@ -288,7 +246,7 @@ function getOwnerFormatter (options, paddings) {
  * get group formatting function
  * @param {ListOptions} options list rendering options
  * @param {BlockPaddings} paddings block paddings
- * @returns {BlockFormatter} group formatter
+ * @returns {BlockFormatter<ListResultItem>} group formatter
  */
 function getGroupFormatter (options, paddings) {
   const padGroup = padEnd('group', paddings)
@@ -301,8 +259,8 @@ function getGroupFormatter (options, paddings) {
 /**
  * get item rendering function
  * @param {ListOptions} options given options
- * @param {BlockFormatter[]} blocks block rendering functions
- * @returns {ItemRenderer|TreeItemRenderer} rendering function
+ * @param {BlockFormatter<ListResultItem>[]} blocks block rendering functions
+ * @returns {ItemRenderer|TreeItemRenderer<ListResultItem>} rendering function
  */
 function getItemRenderer (options, blocks) {
   if (options.tree) {
@@ -416,7 +374,7 @@ function getSorter (options) {
 /**
  * get list rendering function
  * @param {ListOptions} options list rendering options
- * @param {ItemRenderer|TreeItemRenderer} renderItem item rendering function
+ * @param {ItemRenderer|TreeItemRenderer<ListResultItem>} renderItem item rendering function
  * @param {ItemSorter} sortItemList sorting function
  * @returns {function} list rendering function
  */
@@ -516,21 +474,23 @@ async function ls (db, collection, options) {
     blocks.push(getDateFormatter(options, 'modified'))
   }
 
+  const nameFmt = getNameFormatter(options)
   if (tree) {
-    blocks.push(getTreeFormatter(options))
+    blocks.push(getTreeFormatter(nameFmt))
   } else {
-    blocks.push(getNameFormatter(options))
+    blocks.push(nameFmt)
   }
 
   const sortItemList = getSorter(options)
   const renderItem = getItemRenderer(options, blocks)
   const renderList = getListRenderer(options, renderItem, sortItemList)
 
-  if (tree) {
-    renderItem(json, '', false, 0)
-  }
   if (recursive) {
     return renderList(json, false)
+  }
+
+  if (tree) {
+    renderItem(json, '', false, 0)
   }
   renderList(list)
 }

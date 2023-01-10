@@ -119,7 +119,7 @@ test('with fixtures uploaded', async (t) => {
     st.end()
   })
 
-  t.test(`calling 'xst list ${testCollection} --tree --depth 2 --glob ".env"'`, async (st) => {
+  t.test(`calling 'xst list ${testCollection} --tree --depth 2 --glob .env'`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '--tree', '--depth', '2', '--glob', '.env'])
     if (stderr) st.fail(stderr)
     const expectedlines = [
@@ -129,7 +129,7 @@ test('with fixtures uploaded', async (t) => {
     ]
     const actualLines = stdout.split('\n')
     st.plan(expectedlines.length)
-    expectedlines.forEach((line, index) => st.ok(actualLines[index] === line, actualLines[index]))
+    expectedlines.forEach((line, index) => st.equal(actualLines[index], line, actualLines[index]))
     st.end()
   })
 
