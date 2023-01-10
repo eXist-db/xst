@@ -4,6 +4,7 @@ import { readXquery } from '../utility/xq.js'
 import { getDateFormatter } from '../utility/colored-date.js'
 import { multiSort } from '../utility/sorter.js'
 import { recursivePadReducer } from '../utility/padding.js'
+import { getSizeFormatter } from '../utility/size.js'
 
 /**
  * @typedef { import("node-exist").NodeExist } NodeExist
@@ -28,7 +29,7 @@ import { recursivePadReducer } from '../utility/padding.js'
  * @prop {Boolean} color color output or not
  * @prop {Boolean} long show more info per entry in list
  * @prop {boolean} collectionsOnly only show collections
- * @prop {"human"|"bytes"} size size in bytes
+ * @prop {"human"|"bytes"} size size format
  * @prop {"short"|"iso"} date format for dates
  * @prop {Boolean} recursive traverse the tree
  * @prop {Boolean} tree show output as a tree
@@ -236,50 +237,6 @@ function getPathRenderer (options) {
     return renderPath
   }
   return noOp
-}
-
-// size
-
-const FORMAT_SIZE_BASE = 1024
-const FORMAT_SIZE_PAD = 7
-
-/**
- * convert raw bytes to humand readable size string
- * @param {Number} size bytes
- * @returns {String} human readable size
- */
-function formatSizeHumanReadable (size) {
-  if (size === 0) {
-    return '0 B '.padStart(FORMAT_SIZE_PAD)
-  }
-  const power = Math.floor(Math.log(size) / Math.log(FORMAT_SIZE_BASE))
-  const _s = size / Math.pow(FORMAT_SIZE_BASE, power)
-  const _p = Math.floor(Math.log(_s) / Math.log(10))
-  const digits = _p < 2 ? 1 : 0
-  const humanReadableSize = _s.toFixed(digits) + ' ' +
-    ['B ', 'KB', 'MB', 'GB', 'TB'][power]
-
-  return humanReadableSize.padStart(FORMAT_SIZE_PAD)
-}
-
-/**
- * get size formatting function
- * @param {ListOptions} options
- * @param {BlockPaddings} paddings
- * @returns {BlockFormatter} formatting function
- */
-function getSizeFormatter (options, paddings) {
-  let formatter
-  if (options.size === 'bytes') {
-    const padStart = paddings.get('size')
-    formatter = (size) => size.toFixed(0).padStart(padStart)
-  } else {
-    formatter = formatSizeHumanReadable
-  }
-  if (options.color) {
-    return (item) => ct(formatter(item.size), 'FgYellow', 'Bright')
-  }
-  return (item) => formatter(item.size)
 }
 
 // mode
