@@ -1,0 +1,33 @@
+name: Bug Report
+description: File a bug report
+labels: ["bug", "triage"]
+assignees:
+  - line-o
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+      value: "A bug happened!"
+    validations:
+      required: true
+  - type: textarea
+    id: sys-info
+    attributes:
+      label: System Information
+      description: Paste the output of `xst info` here using the same configuration as before (`--config <config-file>`).
+      render: sh
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant shell output
+      description: Please copy and paste the command and output here. This will be automatically formatted into code, so no need for backticks.
+      render: sh
