@@ -1,0 +1,28 @@
+name: Feature Request
+description: Propose an enhancement
+labels: ["enhancement"]
+assignees:
+  - line-o
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to tell us how to improve xst!
+  - type: textarea
+    id: idea
+    attributes:
+      label: Enhancement
+      description: What would make xst better?
+      placeholder: My suggestion
+      value: "More Emojis, please!"
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Alternatives
+      description: Also tell us, what other solutions you considered.
+      placeholder: Alternative suggestion
+      value: "More colors could work, too."
+    validations:
+      required: false
