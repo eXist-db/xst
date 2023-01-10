@@ -328,17 +328,28 @@ function getModeFormatter (options) {
 }
 
 /**
+ * pad prop with spaces to length at the end
+ * @param {String} prop property to pad
+ * @param {BlockPaddings} paddings block paddings
+ * @returns {BlockFormatter} padEnd prop to length
+ */
+function padEnd (prop, paddings) {
+  const length = paddings.get(prop)
+  return item => item[prop].padEnd(length)
+}
+
+/**
  * get owner formatting function
  * @param {ListOptions} options list rendering options
  * @param {BlockPaddings} paddings block paddings
  * @returns {BlockFormatter} owner formatter
  */
 function getOwnerFormatter (options, paddings) {
-  const padStart = paddings.get('owner')
+  const padOwner = padEnd('owner', paddings)
   if (options.color) {
-    return (item) => ct(item.owner.padStart(padStart), 'FgWhite')
+    return (item) => ct(padOwner(item), 'FgWhite')
   }
-  return (item) => item.owner.padStart(padStart)
+  return padOwner
 }
 
 /**
@@ -348,11 +359,11 @@ function getOwnerFormatter (options, paddings) {
  * @returns {BlockFormatter} group formatter
  */
 function getGroupFormatter (options, paddings) {
-  const padStart = paddings.get('group')
+  const padGroup = padEnd('group', paddings)
   if (options.color) {
-    return (item) => ct(item.group.padStart(padStart), 'FgWhite')
+    return (item) => ct(padGroup(item), 'FgWhite')
   }
-  return (item) => item.group.padStart(padStart)
+  return padGroup
 }
 
 /**
