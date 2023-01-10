@@ -6,6 +6,21 @@
  */
 
 /**
+ * measure length of atomic value
+ * @param {Number|String} value
+ * @returns {Number} length of value
+ */
+function measure (value) {
+  if (typeof value === 'number') {
+    return value.toFixed(0).length
+  }
+  if (typeof value === 'string') {
+    return value.length
+  }
+  throw TypeError('Cannot measure value length. Unsupported type: ' + typeof value)
+}
+
+/**
  * Get maximum needed paddings for properties
  * Only properties that are part of initial paddings keys
  * will be checked
@@ -15,8 +30,9 @@
  */
 export function padReducer (paddings, next) {
   for (const key of paddings.keys()) {
-    if (paddings.get(key) < next[key].length) {
-      paddings.set(key, next[key].length)
+    const length = measure(next[key])
+    if (paddings.get(key) < length) {
+      paddings.set(key, length)
     }
   }
   return paddings
@@ -33,6 +49,7 @@ export function padReducer (paddings, next) {
 export function recursivePadReducer (treeProperty) {
   const descendantAccessor = (item) => item[treeProperty]
   /**
+   * named function to allow recursion
    * @param {BlockPaddings} paddings
    * @param {Object} next next item to check
    * @returns {BlockPaddings} actual paddings
