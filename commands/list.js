@@ -200,7 +200,7 @@ function getNameFormatter (options) {
 
 // path
 
-function noOp () {}
+const noOp = () => {}
 
 /**
  * render path colored
