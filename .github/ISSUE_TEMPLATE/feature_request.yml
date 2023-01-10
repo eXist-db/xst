@@ -18,7 +18,7 @@ body:
     validations:
       required: true
   - type: textarea
-    id: idea
+    id: alternatives
     attributes:
       label: Alternatives
       description: Also tell us, what other solutions you considered.
