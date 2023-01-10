@@ -3,13 +3,12 @@
         "basic_auth": {
             "user": "admin",
             "pass": ""
-    	},
+        },
         "rejectUnauthorized": false,
         "host": "localhost",
         "port": 8443,
         "secure": true
     },
     "extensionsort": true,
-    "color": true,
-    "insert-final-newline": true
+    "color": true
 }
