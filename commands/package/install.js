@@ -52,7 +52,7 @@ async function install (db, localFilePath) {
 }
 
 export const command = ['install [options] <packages..>', 'i']
-export const describe = 'Install XAR package'
+export const describe = 'Install XAR packages'
 
 export async function handler (argv) {
   if (argv.help) {

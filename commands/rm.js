@@ -86,7 +86,7 @@ async function rm (db, paths, options) {
 }
 
 export const command = ['remove [options] <paths..>', 'rm', 'delete', 'del']
-export const describe = 'remove collections and resources'
+export const describe = 'Remove collections or resources'
 
 const options = {
   // g: {

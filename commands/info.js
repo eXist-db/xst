@@ -25,7 +25,7 @@ async function info (db, options) {
 }
 
 export const command = ['info']
-export const describe = 'gather information on connected the instance'
+export const describe = 'Gather system information'
 
 /**
  * handle info command

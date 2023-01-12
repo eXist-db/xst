@@ -7,7 +7,7 @@ const commands = [
 ]
 
 export const command = ['package <command>', 'pkg']
-export const describe = 'do something with packages'
+export const describe = 'Work with packages'
 export async function handler (argv) {
   if (argv.help) {
     return 0

@@ -267,7 +267,7 @@ async function downloadCollectionOrResource (db, source, target, options) {
 }
 
 export const command = ['get [options] <source> <target>', 'download', 'fetch']
-export const describe = 'Download a collection or resources from exist-db'
+export const describe = 'Download a collection or resource'
 
 export function builder (yargs) {
   yargs
@@ -292,7 +292,7 @@ export function builder (yargs) {
     .option('N', {
       group: 'serialization',
       alias: 'insert-final-newline',
-      describe: 'Force a final newline at the end of an XMLResource',
+      describe: 'Force a final newline at the end of an XMLResource (requires eXist >=6.1.0)',
       ...xmlBooleanSetting
     })
     .option('v', {
