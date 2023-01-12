@@ -42,22 +42,23 @@ xst <command> --help
 
 **Available Commands**
 
-- `info` show system information of the connected database
-- `list` list the contents of a collection
-- `upload` upload files and folders to a collection
-- `get` download a collection or resource to the filesystem
-- `rm` remove collections and resources
-- `package` package related commands
-  - `install` upload and install a local XAR package
-  - `list` list installed packages
-- `execute` the swiss army knife command that lets you query data or run a main module
+|command|description|aliases|
+|--|--|--|
+|`info`|Gather system information| |
+|`get [options] <source> <target>`|Download a collection or resource|`download` `fetch`|
+|`upload [options] <source> <target>`|Upload files and directories|`up`|
+|`remove [options] <paths..>`|Remove collections or resources|`rm` `delete` `del`|
+|`execute [<query>] [options]`|Execute a query string or file|`run` `exec`|
+|`list [options] <collection>`|List collection contents|`ls`|
+|`package install [options] <packages..>`|Install XAR packages|`pkg i`|
+|`package list [options]`|List installed packages|`pkg ls`|
 
 ### Examples
 
 #### List collections
 
 ```bash
-xst ls /db
+xst list /db
 ```
 
 #### List the entire contents of the apps collection
@@ -65,7 +66,7 @@ xst ls /db
 This will output extended and colored information of all collections and resources of `/db/apps` in a tree.
 
 ```bash
-xst ls /db/apps --long --tree --color
+xst list /db/apps --long --tree --color
 ```
 
 **NOTE:** Resources and collections the connecting user does not have access to will be omitted with --long.
@@ -73,7 +74,7 @@ xst ls /db/apps --long --tree --color
 #### Find the largest JavaScript resource
 
 ```bash
-xst ls /db/apps --long --recursive --color --glob '*.js' --sizesort
+xst list /db/apps --long --recursive --color --glob '*.js' --sizesort
 ```
 
 #### Download a resource 
@@ -103,14 +104,14 @@ scripts. You need to connnect as a database administrator to be able to run the
 queries.
 
 ```bash
-xst run 'sm:chmod(xs:anyURI($file), $permissions)' \
+xst execute 'sm:chmod(xs:anyURI($file), $permissions)' \
   -b '{"file": "/db/apps/dashboard/controller.xql", "permissions": "rwxrwxr-x"}'
 ```
 
 Reset the permissions back to their original state.
 
 ```bash
-xst run 'sm:chmod(xs:anyURI($file), $permissions)' \
+xst execute 'sm:chmod(xs:anyURI($file), $permissions)' \
   -b '{"file": "/db/apps/dashboard/controller.xql", "permissions": "rwxr-xr-x"}'
 ```
 
@@ -120,7 +121,7 @@ If you find yourself using the same query over and over again or it is a complex
 you can save it to a file and use the `--file` parameter.
 
 ```bash
-xst run --file my-query.xq
+xst execute --file my-query.xq
 ```
 
 #### Install a local XAR package into an exist-db.
