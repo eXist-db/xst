@@ -77,7 +77,7 @@ async function execute (db, query, variables) {
 }
 
 export const command = ['execute [<query>] [options]', 'run', 'exec']
-export const describe = 'execute a query in an exist-db instance'
+export const describe = 'Execute a query string or file'
 
 export async function builder (yargs) {
   yargs

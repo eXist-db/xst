@@ -212,7 +212,7 @@ async function uploadFileOrFolder (db, source, target, options) {
 }
 
 export const command = ['upload [options] <source> <target>', 'up']
-export const describe = 'Upload files and directories to a target collection in exist-db'
+export const describe = 'Upload files and directories'
 
 export function builder (yargs) {
   yargs

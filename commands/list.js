@@ -496,7 +496,7 @@ async function ls (db, collection, options) {
 }
 
 export const command = ['list [options] <collection>', 'ls']
-export const describe = 'List connection contents'
+export const describe = 'List collection contents'
 
 const options = {
   G: {

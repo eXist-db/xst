@@ -7,11 +7,11 @@ import * as rm from './rm.js'
 import * as upload from './upload.js'
 
 export const commands = [
-  exec,
-  get,
   info,
-  list,
-  pkg,
+  get,
+  upload,
   rm,
-  upload
+  exec,
+  list,
+  pkg
 ]

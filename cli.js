@@ -45,11 +45,10 @@ function showLogo () {
 }
 
 const parser = yargs(hideBin(process.argv))
-  .config('config', 'configuration to use', configure)
+  .config('config', 'Read configuration file', configure)
   .middleware(readConnection)
-  .command('$0', 'interact with an exist-db instance', () => {}, async (argv) => {
+  .command('$0 [<command>]', 'Interact with an eXist-db', () => {}, async (argv) => {
     showLogo()
-    // console.log(await parser.getHelp())
     const scriptName = getScriptName(argv.$0)
     showCompletionHelp(scriptName)
     // append examples
