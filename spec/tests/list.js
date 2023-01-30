@@ -115,7 +115,8 @@ test('with fixtures uploaded', async (t) => {
     st.ok(stdout, 'got output')
     const actualLines = stdout.split('\n')
     st.equal(actualLines[0], testCollection + ':', 'parent collection headline')
-    st.ok(/\.[rwx-]{9} \w+ \w+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 12]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[1]), actualLines[1])
+    //      .rw-r--r-- admin dba  4.0 B  Jan 30 11:23 a.txt
+    st.ok(/\.[rwx-]{9} \w+ \w+ [ .\d]{3}\d (B |KB|MB|GB) \w{3} [ 123]\d [0-2]\d:[0-5]\d .*?$/.test(actualLines[1]), actualLines[1])
     st.end()
   })
 
