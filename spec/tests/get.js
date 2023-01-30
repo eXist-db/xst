@@ -18,7 +18,6 @@ async function removeRemoteCollection (t) {
 async function tearDown (t) {
   await removeLocalDownload()
   await removeRemoteCollection()
-  t.end()
 }
 
 const expectedDirectoryListing = [
@@ -35,6 +34,7 @@ const expectedDirectoryListing = [
 ]
 
 async function prepare (t) {
+  t.plan(1)
   const query = [
     `xmldb:create-collection("/db", "${testCollectionName}")`,
     `xmldb:create-collection("${testCollection}", "empty-subcollection")`,
@@ -50,9 +50,9 @@ async function prepare (t) {
     storeResourceQuery(testCollection, 'index.html', '<html><body>1</body></html>'),
     storeResourceQuery(testCollection, 'test.xq', '"1"')
   ].join(',')
-  const { stderr } = await run('xst', ['run', query], asAdmin)
+  const { stderr, stdout } = await run('xst', ['run', query], asAdmin)
   if (stderr) { return t.fail(stderr) }
-  t.end()
+  t.true(stdout)
 }
 
 function storeResourceQuery (collection, fileName, content) {
@@ -69,19 +69,18 @@ test("calling 'xst get --help'", async (t) => {
 
 // reliable tests using fixed set
 test('with test collection', async (t) => {
-  await prepare(t)
+  t.test(prepare)
 
   t.test(`can get ${testCollection} as admin`, async (st) => {
     const { stderr, stdout } = await run('xst', ['get', testCollection, '.'], asAdmin)
     if (stderr) { return st.fail(stderr) }
+    st.plan(3)
 
     st.notOk(stdout, 'no output')
     st.deepEqual(readdirSync(testCollectionName), expectedDirectoryListing, 'all files were downloaded')
     st.deepEqual(readdirSync(testCollectionName + '/subcollection'), ['b'], 'subcollection contents were downloaded')
 
     await removeLocalDownload()
-
-    st.end()
   })
 
   t.test(`cannot get ${testCollection} as guest`, async (st) => {
@@ -98,10 +97,15 @@ test('with test collection', async (t) => {
     st.end()
   })
 
-  t.test(`'get --verbose ${testCollection}' as admin`, async (st) => {
+  t.test(`'xst get --verbose ${testCollection}' as admin`, async (st) => {
     const { stderr, stdout } = await run('xst', ['get', '--verbose', testCollection, '.'], asAdmin)
-    if (stderr) { return st.fail(stderr) }
+    if (stderr) {
+      st.fail(stderr)
+      return t.end()
+    }
     const lines = stdout.split('\n')
+
+    st.plan(8)
 
     st.ok(lines[0].startsWith('Downloading: /db/get-test to '))
     // Server: https://localhost:8443 (v6.1.0-SNAPSHOT)
@@ -116,21 +120,22 @@ test('with test collection', async (t) => {
     st.deepEqual(readdirSync(testCollectionName + '/subcollection'), ['b'], 'subcollection contents were downloaded')
 
     await removeLocalDownload()
-
-    st.end()
   })
 
   const additionalTestDirectory = 'test'
 
-  t.test(`'get ${testCollection}/empty-subcollection ${additionalTestDirectory}' as admin`, async (st) => {
+  t.test(`'xst get ${testCollection}/empty-subcollection ${additionalTestDirectory}' as admin`, async (st) => {
     await run('mkdir', [additionalTestDirectory])
     const { stderr, stdout } = await run('xst', ['get', testCollection + '/empty-subcollection', additionalTestDirectory], asAdmin)
-    if (stderr) { return st.fail(stderr) }
+    if (stderr) {
+      st.fail(stderr)
+      return st.end()
+    }
+    st.plan(2)
     st.notOk(stdout, 'no output')
 
     st.deepEqual(readdirSync(additionalTestDirectory), ['empty-subcollection'], `empty subcollection was created in ${additionalTestDirectory} folder`)
     await run('rm', ['-rf', additionalTestDirectory])
-    st.end()
   })
 
   t.teardown(tearDown)
