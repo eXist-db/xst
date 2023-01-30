@@ -1,9 +1,11 @@
 import * as install from './install.js'
 import * as list from './list.js'
+import * as uninstall from './uninstall.js'
 
 const commands = [
+  list,
   install,
-  list
+  uninstall
 ]
 
 export const command = ['package <command>', 'pkg']

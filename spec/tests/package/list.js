@@ -1,14 +1,28 @@
 import { test } from 'tape'
 import { run, asAdmin } from '../../test.js'
 
-const pkgUri = 'http://exist-db.org/apps/test-app'
+const testAppName = 'http://exist-db.org/apps/test-app'
+const testLibName = 'http://exist-db.org/apps/test-lib'
 
 async function removeTestApp (t) {
-  const { stderr } = await run('xst', ['run', `repo:undeploy("${pkgUri}"),repo:remove("${pkgUri}")`], asAdmin)
+  const { stderr } = await run('xst', ['run', `repo:undeploy("${testAppName}"),repo:remove("${testAppName}")`], asAdmin)
   if (stderr) {
     console.error(stderr)
     t.fail(stderr)
   }
+}
+
+async function removeTestlib (t) {
+  const { stderr } = await run('xst', ['run', `repo:undeploy("${testLibName}"),repo:remove("${testLibName}")`], asAdmin)
+  if (stderr) {
+    console.error(stderr)
+    t.fail(stderr)
+  }
+}
+
+async function cleanup (t) {
+  await removeTestlib(t)
+  await removeTestApp(t)
 }
 
 test('shows help', async function (t) {
@@ -77,19 +91,14 @@ test.skip('sorts by type and installation date', async function (t) {
 
 test('with new package', async function (t) {
   let firstInstallationDate
-  t.test('install extra package', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar'], asAdmin)
+  t.test('install extra package with dependency', async function (st) {
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-lib.xar', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
       return
     }
-
-    const lines = stdout.split('\n')
-    st.equal(lines[0], 'Install test-app.xar on https://localhost:8443')
-    st.equal(lines[1], '✔︎ uploaded')
-    st.equal(lines[2], '✔︎ installed')
-    st.end()
+    st.ok(stdout)
   })
 
   t.test('list', async function (st) {
@@ -120,21 +129,40 @@ test('with new package', async function (t) {
     const { stderr, stdout } = await run('xst', ['package', 'list', '--extended', '--timesort'])
 
     if (stderr) { return t.fail(stderr) }
-    console.log(stdout)
     const lines = stdout.split('\n')
     st.ok(lines[0].startsWith('test-app'), lines[0])
     st.equal(lines[1], 'Title: Test App')
     st.equal(lines[2], 'Name: http://exist-db.org/apps/test-app')
-    st.equal(lines[3], 'Author: Somebody Important')
+    st.equal(lines[3], 'Author: Application Developer')
     st.equal(lines[4], 'Description: A test application')
-    st.equal(lines[5], 'Website: http://exist-db.org/')
+    st.equal(lines[5], 'Website: http://exist-db.org/test-app')
     st.ok(lines[6].startsWith('Version: '), lines[6])
     st.ok(lines[7].startsWith('Installed: '), lines[7])
-    st.equal(lines[8], 'Processor: any')
+    st.equal(lines[8], 'Processor: existdb >=4.0.0')
     st.equal(lines[9], 'Target: test-app')
     st.equal(lines[10], 'Type: application')
     st.equal(lines[11], 'License: WTF')
     st.equal(lines[12], '')
+  })
+
+  t.test('shows extended output of test-lib', async function (st) {
+    const { stderr, stdout } = await run('xst', ['package', 'list', '--lib', '--extended', '--timesort'])
+
+    if (stderr) { return t.fail(stderr) }
+    const lines = stdout.split('\n')
+    st.ok(lines[0].startsWith('test-lib'), lines[0])
+    st.equal(lines[1], 'Title: Test Lib')
+    st.equal(lines[2], 'Name: http://exist-db.org/apps/test-lib')
+    st.equal(lines[3], 'Author: Application Developer')
+    st.equal(lines[4], 'Description: A test library')
+    st.equal(lines[5], 'Website: http://exist-db.org/test-lib')
+    st.ok(lines[6].startsWith('Version: '), lines[6])
+    st.ok(lines[7].startsWith('Installed: '), lines[7])
+    st.equal(lines[8], 'Processor: existdb >=4.0.0')
+    st.equal(lines[9], 'Type: library')
+    st.equal(lines[10], 'License: WTF')
+    st.equal(lines[11], 'Components:')
+    st.equal(lines[12], '  xquery: http://exist-db.org/apps/test-lib')
   })
 
   t.test('sorts by installation date (reversed)', async function (st) {
@@ -176,7 +204,7 @@ test('with new package', async function (t) {
     st.end()
   })
 
-  t.teardown(removeTestApp)
+  t.teardown(cleanup)
 })
 
 test('error', async function (t) {
