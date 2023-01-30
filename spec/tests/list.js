@@ -46,8 +46,8 @@ test("calling 'xst ls -l /db/system'", async (t) => {
   const lines = stdout.split('\n')
 
   t.equal(lines.length, 3, 'only a subset of entries is shown')
-  t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 12]\d [0-2]\d:[0-5]\d config/.test(lines[0]))
-  t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 12]\d [0-2]\d:[0-5]\d repo/.test(lines[1]))
+  t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 123]\d [0-2]\d:[0-5]\d config/.test(lines[0]))
+  t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 123]\d [0-2]\d:[0-5]\d repo/.test(lines[1]))
   t.end()
 })
 
@@ -56,7 +56,7 @@ test("calling 'xst ls -l /db/system' as admin", async (t) => {
   if (stderr) t.fail(stderr)
   const lines = stdout.split('\n')
   t.ok(lines.length > 3, 'all items are listed')
-  t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 12]\d [0-2]\d:[0-5]\d config/.test(lines[0]))
+  t.ok(/crwxr-xr-x SYSTEM dba {4}0 B {2}\w{3} [ 123]\d [0-2]\d:[0-5]\d config/.test(lines[0]))
   t.end()
 })
 
