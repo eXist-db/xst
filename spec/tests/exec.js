@@ -1,83 +1,48 @@
 import { test } from 'tape'
-import yargs from 'yargs'
-import * as exec from '../../commands/exec.js'
-import { runPipe } from '../test.js'
+import { run, runPipe } from '../test.js'
 
-const parser = yargs().scriptName('xst').command(exec).help().fail(false)
+test("calling 'xst execute --help'", async (t) => {
+  const { stderr, stdout } = await run('xst', ['execute', '--help'])
+  if (stderr) { return t.fail(stderr) }
 
-const execCmd = async (cmd, args) => {
-  return await yargs()
-    .scriptName('xst')
-    .command(cmd)
-    .fail(false)
-    .parse(args)
-}
-
-test('shows help', async function (t) {
-  // Run the command module with --help as argument
-  const output = await new Promise((resolve, reject) => {
-    parser.parse(['execute', '--help'], (err, argv, output) => {
-      if (err) { return reject(err) }
-      resolve(output)
-    })
-  })
-  const firstLine = output.split('\n')[0]
+  const firstLine = stdout.split('\n')[0]
 
   t.equal(firstLine, 'xst execute [<query>] [options]', firstLine)
+  t.end()
 })
 
-test('executes command', async function (t) {
-  const argv = await new Promise((resolve, reject) => {
-    parser.parse(['execute', '1+1'], (err, argv, output) => {
-      if (err) { return reject(err) }
-      resolve(argv)
-    })
-  })
+test('executes command', async (t) => {
+  const { stderr, stdout } = await run('xst', ['execute', '1+1'])
+  if (stderr) { return t.fail(stderr) }
 
-  t.equal(argv.query, '1+1')
+  t.equal(stdout, '2\n')
 })
 
 test('executes command with alias \'exec\'', async function (t) {
-  const argv = await new Promise((resolve, reject) => {
-    parser.parse(['exec', '1+1'], (err, argv, output) => {
-      if (err) { return reject(err) }
-      resolve(argv)
-    })
-  })
+  const { stderr, stdout } = await run('xst', ['exec', '1+1'])
+  if (stderr) { return t.fail(stderr) }
 
-  t.equal(argv.query, '1+1')
+  t.equal(stdout, '2\n')
 })
 
 test('executes command with alias \'run\'', async function (t) {
-  const argv = await new Promise((resolve, reject) => {
-    parser.parse(['run', '1+1'], (err, argv, output) => {
-      if (err) { return reject(err) }
-      resolve(argv)
-    })
-  })
+  const { stderr, stdout } = await run('xst', ['run', '1+1'])
+  if (stderr) { return t.fail(stderr) }
 
-  t.equal(argv.query, '1+1')
+  t.equal(stdout, '2\n')
 })
 
 test('executes bound command', async function (t) {
-  const argv = await new Promise((resolve, reject) => {
-    parser.parse(['exec', '-b', '{"a":1}', '$a+$a'], (err, argv, output) => {
-      if (err) { return reject(err) }
-      resolve(argv)
-    })
-  })
-  t.plan(2)
-  t.equal(argv.query, '$a+$a')
-  t.equal(argv.bind.a, 1)
+  const { stderr, stdout } = await run('xst', ['execute', '-b', '{"a":1}', '$a+$a'])
+  if (stderr) { return t.fail(stderr) }
+
+  t.equal(stdout, '2\n')
 })
 
 test('bind parse error', async function (t) {
-  try {
-    const res = await execCmd(exec, ['exec', '-b', '{a:1}', '$a+$a'])
-    t.notOk(res)
-  } catch (e) {
-    t.ok(e, e)
-  }
+  const { stderr, stdout } = await run('xst', ['execute', '-b', '{a:1}', '$a+$a'])
+  t.notOk(stdout)
+  t.ok(stderr, stderr)
 })
 
 test('read bind from stdin', async function (t) {
@@ -87,44 +52,27 @@ test('read bind from stdin', async function (t) {
 })
 
 test('cannot read bind from stdin', async function (t) {
-  try {
-    const res = await execCmd(exec, ['exec', '-b', '-', '$a+$a'])
-    t.fail(res)
-  } catch (e) {
-    t.ok(e, e)
-  }
+  const { stderr, stdout } = await run('xst', ['execute', '-b', '-', '$a+$a'])
+  if (stdout) { return t.fail(stdout) }
+  t.ok(stderr, stderr)
 })
 
 test('cannot read query file from stdin', async function (t) {
-  try {
-    const res = await execCmd(exec, ['exec', '-f', '-'])
-    t.fail(res)
-  } catch (e) {
-    t.ok(e, e)
-  }
+  const { stderr, stdout } = await run('xst', ['execute', '-f', '-'])
+  if (stdout) { return t.fail(stdout) }
+  t.ok(stderr, stderr)
 })
 
 test('read query file', async function (t) {
-  try {
-    const argv = await new Promise((resolve, reject) => {
-      parser.parse(['exec', '-f', './spec/fixtures/test.xq'], (err, argv, output) => {
-        if (err) { return reject(err) }
-        resolve(argv)
-      })
-    })
-    t.equals(argv.f, 'spec/fixtures/test.xq', 'should be normalized')
-  } catch (e) {
-    t.notOk(e, e)
-  }
+  const { stderr, stdout } = await run('xst', ['execute', '-f', './spec/fixtures/test.xq'])
+  if (stderr) { return t.fail(stderr) }
+  t.ok(stdout, stdout)
 })
 
 test('read query file with query', async function (t) {
-  try {
-    const argv = await parser.parse(['exec', '-f', 'spec/fixtures/test.xq', '1+1'])
-    t.fail(argv, 'Should not return a result')
-  } catch (e) {
-    t.ok(e, e)
-  }
+  const { stderr, stdout } = await run('xst', ['execute', '-f', './spec/fixtures/test.xq', '1+1'])
+  if (stdout) { return t.fail(stdout) }
+  t.ok(stderr, stderr)
 })
 
 test('read file from stdin', async function (t) {
