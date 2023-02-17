@@ -64,14 +64,10 @@ const parser = yargs(hideBin(process.argv))
 
 parser.wrap(parser.terminalWidth())
 
-async function run () {
-  return await parser.parse()
+try {
+  await parser.parse()
+} catch (error) {
+  handleError(error)
+  parser.getHelp()
+  process.exit(1)
 }
-
-run()
-  .then(argv => {})
-  .catch((error) => {
-    handleError(error)
-    parser.getHelp()
-    process.exit(1)
-  })
