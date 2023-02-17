@@ -1,5 +1,5 @@
+import chalk from 'chalk'
 import { connect } from '@existdb/node-exist'
-import { ct } from '../../utility/console.js'
 import { multiSort } from '../../utility/sorter.js'
 import { padReducer } from '../../utility/padding.js'
 import { getDateFormatter } from '../../utility/colored-date.js'
@@ -132,8 +132,8 @@ function getFilter (options) {
  */
 function coloredDisplay (pkg, pad) {
   return isLibrary(pkg)
-    ? ct(pad(pkg), 'FgBlue')
-    : ct(pad(pkg), 'FgCyan')
+    ? chalk.blue(pad(pkg))
+    : chalk.cyan(pad(pkg))
 }
 
 /**
@@ -165,10 +165,7 @@ function padProp (paddings, prop) {
 function getAbbrevFormatter (options, paddings) {
   const prop = options.fullName ? 'name' : 'abbrev'
   const pad = padProp(paddings, prop)
-  if (options.color) {
-    return pkg => coloredDisplay(pkg, pad)
-  }
-  return pkg => display(pkg, pad)
+  return pkg => coloredDisplay(pkg, pad)
 }
 
 /**
@@ -187,7 +184,7 @@ function getVersionFormatter (options, paddings) {
  * @returns {String} colored terminal output
  */
 function coloredLabel (label) {
-  return ct(label, 'FgGreen', 'Dim')
+  return chalk.green.dim(label)
 }
 
 /**
@@ -196,10 +193,7 @@ function coloredLabel (label) {
  * @returns {BlockFormatter} author formatter
  */
 function getAuthorsFormatter (options) {
-  if (options.color) {
-    return pkg => coloredLabel(`Author${pkg.authors.length > 1 ? 's' : ''}: `) + pkg.authors.join(' ')
-  }
-  return pkg => `Author${pkg.authors.length > 1 ? 's' : ''}: ` + pkg.authors.join(' ')
+  return pkg => coloredLabel(`Author${pkg.authors.length > 1 ? 's' : ''}: `) + pkg.authors.join(' ')
 }
 
 /**
@@ -217,19 +211,12 @@ function processorName (name) {
  * @returns {BlockFormatter} the formatter
  */
 function getProcessorFormatter (options) {
-  if (options.color) {
-    return function (pkg) {
-      if (!pkg.processor.name) {
-        return coloredLabel('Processor: ') + 'any'
-      }
-      return coloredLabel('Processor: ') + processorName(pkg.processor.name) + ' ' + ct(formatVersion(pkg.processor), 'FgYellow')
-    }
-  }
   return function (pkg) {
     if (!pkg.processor.name) {
-      return 'Processor: any'
+      return coloredLabel('Processor: ') + 'any'
     }
-    return 'Processor: ' + processorName(pkg.processor.name) + ' ' + formatVersion(pkg.processor)
+    return coloredLabel('Processor: ') + processorName(pkg.processor.name) + ' ' +
+        chalk.yellow(formatVersion(pkg.processor))
   }
 }
 
@@ -241,10 +228,7 @@ function getProcessorFormatter (options) {
  * @returns {BlockFormatter} the formatter
  */
 function getLabelFormatter (options, label, prop) {
-  if (options.color) {
-    return pkg => (pkg[prop] ? coloredLabel(label + ': ') + pkg[prop] : null)
-  }
-  return pkg => (pkg[prop] ? label + ': ' + pkg[prop] : null)
+  return pkg => (pkg[prop] ? coloredLabel(label + ': ') + pkg[prop] : null)
 }
 
 /**
@@ -288,24 +272,6 @@ function isLast (index, array) {
 }
 
 /**
- * format dependency list item
- * @param {Function} fmt name formatter function
- * @param {Map<String, ListResultItem>} name2pkg the mapping
- * @param {VersionedItem} dependency dependency list item
- * @param {Number} index current items index
- * @param {Array} array list of all dependencies
- * @returns {String} terminal output
- */
-function formatDependency (fmt, name2pkg, dependency, index, array) {
-  const pkg = name2pkg.get(dependency.name)
-  const satisfied = pkg && satisfiesDependency(pkg.version, dependency)
-  return isLast(index, array) +
-    (satisfied ? '' : '! ') +
-    fmt(dependency) + ' ' +
-    formatVersion(dependency)
-}
-
-/**
  * format and color dependency list item
  * @param {Function} fmt name formatter function
  * @param {Map<String, ListResultItem>} name2pkg the mapping
@@ -317,27 +283,11 @@ function formatDependency (fmt, name2pkg, dependency, index, array) {
 function formatDependencyColored (fmt, name2pkg, dependency, index, array) {
   const pkg = name2pkg.get(dependency.name)
   const satisfied = pkg && satisfiesDependency(pkg.version, dependency)
-  const color = satisfied ? 'FgGreen' : 'FgRed'
-  const mod = satisfied ? 'Dim' : 'Bright'
+  const color = satisfied ? chalk.green.dim : chalk.redBright
   return isLast(index, array) +
-    (satisfied ? '' : ct('! ', color, mod)) +
+    (satisfied ? '' : color('! ')) +
     fmt(dependency) + ' ' +
-    ct(formatVersion(dependency), color, mod)
-}
-
-/**
- * ouput list of formatted dependencies
- * @param {Function} fmt name formatter function
- * @param {Map<String, ListResultItem>} name2pkg the mapping
- * @param {ListResultItem} pkg the item
- * @returns {String} formatted dependencies
- */
-function formatDependencies (fmt, name2pkg, pkg) {
-  if (!pkg.dependencies.length) {
-    return LAST + '(no dependency)'
-  }
-  const fmtDep = (dep, index, array) => formatDependency(fmt, name2pkg, dep, index, array)
-  return pkg.dependencies.map(fmtDep).join('\n')
+    color(formatVersion(dependency))
 }
 
 /**
@@ -349,7 +299,7 @@ function formatDependencies (fmt, name2pkg, pkg) {
  */
 function formatDependenciesColored (fmt, name2pkg, pkg) {
   if (!pkg.dependencies.length) {
-    return LAST + ct('(no dependency)', 'FgWhite', 'Dim')
+    return LAST + chalk.white.dim('(no dependency)')
   }
   const fmtDep = (dep, index, array) => formatDependencyColored(fmt, name2pkg, dep, index, array)
   return pkg.dependencies.map(fmtDep).join('\n')
@@ -367,14 +317,7 @@ function getDependenciesFormatter (list, options) {
   if (!options.fullName) {
     nameFmt = pkgAbbrev(name2pkg)
   }
-  if (options.color) {
-    return (pkg) => {
-      return formatDependenciesColored(nameFmt, name2pkg, pkg)
-    }
-  }
-  return (pkg) => {
-    return formatDependencies(nameFmt, name2pkg, pkg)
-  }
+  return (pkg) => formatDependenciesColored(nameFmt, name2pkg, pkg)
 }
 
 /**
@@ -405,22 +348,8 @@ function formatComponentsColored (pkg) {
   if (components.length) {
     return coloredLabel('Components:\n') + components.map(a => '  ' + coloredLabel(a[0] + ':') + a[1]).join('\n')
   }
-  return coloredLabel('Components: ') + ct('none', (pkg.target ? 'FgYellow' : 'FgRed'), 'Bright')
-}
-
-/**
- * component block formatter
- * @param {ListResultItem} pkg the item
- * @returns {String} terminal output
- */
-function formatComponents (pkg) {
-  if (!isLibrary(pkg)) { return null }
-
-  const components = gatherComponents(pkg)
-  if (components.length) {
-    return 'Components:\n' + components.map(a => '  ' + a[0] + ':' + a[1]).join('\n')
-  }
-  return 'Components: none'
+  const color = pkg.target ? chalk.yellowBright : chalk.redBright
+  return coloredLabel('Components: ') + color('none')
 }
 
 /**
@@ -429,10 +358,7 @@ function formatComponents (pkg) {
  * @returns {BlockFormatter} the component block formatter
  */
 function getComponentsFormatter (options) {
-  if (options.color) {
-    return formatComponentsColored
-  }
-  return formatComponents
+  return formatComponentsColored
 }
 
 /**
@@ -592,12 +518,6 @@ export const command = ['list [options]', 'ls']
 export const describe = 'List installed packages'
 
 const options = {
-  G: {
-    alias: 'color',
-    describe: 'Color the output',
-    default: false,
-    type: 'boolean'
-  },
   V: {
     alias: 'versions',
     describe: 'Display installed version',

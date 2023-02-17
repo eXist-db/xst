@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 
 import yargs from 'yargs'
+import chalk from 'chalk'
 import { commands } from './commands/index.js'
 import { handleError } from './utility/errors.js'
 import { hideBin } from 'yargs/helpers'
 import { readConnection } from './utility/connection.js'
 import { configure } from './utility/configure.js'
-import { ct } from './utility/console.js'
+
+const dimWhite = chalk.white.dim
+const brightYellow = chalk.yellowBright
 
 /**
  * if package was linked to global strip relative path from output
@@ -22,25 +25,25 @@ function getScriptName ($0) {
 
 function showCompletionHelp (scriptName) {
   console.log(`
-${ct('Install command completions for ZSH and BASH', 'FgWhite', 'Dim')}
+${dimWhite('Install command completions for ZSH and BASH')}
   ${scriptName} completion`)
 }
 
 function showExamples (scriptName) {
   console.log(`
-${ct('Examples:', 'FgWhite', 'Dim')}
+${dimWhite('Examples:')}
   ${scriptName} run 'count(//p)'
-  ${scriptName} ls --tree --depth 1 /db/apps
+  ${scriptName} list --tree --depth 1 /db/apps
   ${scriptName} package install ./my-package.xar
 `)
 }
 
 function showLogo () {
-  console.log(ct(`
+  console.log(brightYellow(`
  ╲ ╱  ╓───  ──┰──
   ╳   ╰───╮   │
  ╱ ╲  ▂▁▁▁│   ┇
-`, 'FgYellow', 'Bright'))
+`))
   console.log('A modern exist-db command line interface')
 }
 

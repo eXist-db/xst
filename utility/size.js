@@ -1,4 +1,4 @@
-import { ct } from './console.js'
+import chalk from 'chalk'
 
 /**
  * @typedef {(item:ListResultItem) => String} BlockFormatter
@@ -55,10 +55,7 @@ export function getSizeFormatter (options, paddings) {
     ? byteFormatter(paddings)
     : formatSizeHumanReadable
 
-  if (options.color) {
-    return (item) => ct(formatter(item.size), 'FgYellow', 'Bright')
-  }
-  return (item) => formatter(item.size)
+  return (item) => chalk.yellowBright(formatter(item.size))
 }
 
 /**

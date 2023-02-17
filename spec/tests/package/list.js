@@ -142,7 +142,7 @@ test('with new package', async function (t) {
     st.equal(lines[9], 'Target: test-app')
     st.equal(lines[10], 'Type: application')
     st.equal(lines[11], 'License: WTF')
-    st.equal(lines[12], '')
+    st.equal(lines[12], 'Components: none')
   })
 
   t.test('shows extended output of test-lib', async function (st) {

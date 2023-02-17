@@ -1,6 +1,6 @@
+import chalk from 'chalk'
 import { connect } from '@existdb/node-exist'
 import { readXquery } from '../../utility/xq.js'
-import { ct } from '../../utility/console.js'
 
 const query = readXquery('uninstall.xq')
 
@@ -10,7 +10,7 @@ async function getUserInfo (db) {
 }
 
 async function uninstall (nameOrAbbrev, db, options) {
-  const { force, raw, color } = options
+  const { force, raw } = options
   const { pages } = await db.queries.readAll(query, { variables: { 'name-or-abbrev': nameOrAbbrev, force } })
   const rawResult = pages.toString()
   const result = JSON.parse(rawResult)
@@ -23,12 +23,12 @@ async function uninstall (nameOrAbbrev, db, options) {
     return success
   }
   if (result.error) {
-    const errorIndicator = color ? ct('✘', 'FgRed') : '✘'
+    const errorIndicator = chalk.red('✘')
     const extra = result.error.value ? `: ${result.error.value.join(', ')}` : ''
     console.error(`${errorIndicator} ${result.error.description}${extra}`)
     return success
   }
-  const successIndicator = color ? ct('✔︎', 'FgGreen') : '✔︎'
+  const successIndicator = chalk.green('✔︎')
   console.log(`${successIndicator} ${result.name} uninstalled`)
   return success
 }
@@ -37,12 +37,6 @@ export const command = ['uninstall [options] <packages..>', 'remove']
 export const describe = 'Uninstall packages'
 
 const options = {
-  G: {
-    alias: 'color',
-    describe: 'Color the output',
-    default: false,
-    type: 'boolean'
-  },
   f: {
     alias: 'force',
     describe: 'Force uninstall without dependency check',

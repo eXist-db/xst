@@ -1,6 +1,6 @@
+import chalk from 'chalk'
 import { test } from 'tape'
-import { run, asAdmin } from '../test.js'
-import { ct } from '../../utility/console.js'
+import { run, asAdmin, forceColor } from '../test.js'
 
 const testCollection = '/db/list-test'
 const testSourceFolder = 'spec'
@@ -165,16 +165,15 @@ test('with fixtures uploaded', async (t) => {
   })
 
   // color
-  t.test(`calling 'xst ls --color ${testCollection}'`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['list', '--color', testCollection])
+  t.test(`calling 'xst ls ${testCollection}' with colors`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', testCollection], forceColor)
 
     if (stderr) { t.fail(stderr) }
     const lines = stdout.split('\n')
-
-    st.ok(lines.includes(ct('index.html', 'FgWhite')), 'html file shown in white')
-    st.ok(lines.includes(ct('a22.xml', 'FgGreen')), 'xml file shown in green')
-    st.ok(lines.includes(ct('test.xq', 'FgCyan')), 'xquery file shown in cyan')
-    st.ok(lines.includes(ct('fixtures', 'FgBlue', 'Bright')), 'collection shown in bright blue')
+    st.ok(lines.includes(chalk.greenBright('index.html')), 'html file shown in bright green')
+    st.ok(lines.includes(chalk.greenBright('a22.xml')), 'xml file shown in bright green')
+    st.ok(lines.includes(chalk.cyanBright('test.xq')), 'xquery file shown in bright cyan')
+    st.ok(lines.includes(chalk.blueBright('fixtures')), 'collection shown in bright blue')
     st.end()
   })
 

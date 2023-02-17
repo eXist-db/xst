@@ -1,5 +1,5 @@
+import chalk from 'chalk'
 import { connect, getMimeType } from '@existdb/node-exist'
-import { ct } from '../utility/console.js'
 import { readXquery } from '../utility/xq.js'
 import { getDateFormatter } from '../utility/colored-date.js'
 import { multiSort } from '../utility/sorter.js'
@@ -104,14 +104,33 @@ function formatNameColored (item, display) {
   if (item.type === 'resource') {
     const mimetype = getMimeType(item.name)
     switch (mimetype) {
-      case 'text/html': return ct(display, 'FgWhite')
-      case 'application/xml': return ct(display, 'FgGreen')
-      case 'application/xquery': return ct(display, 'FgCyan')
-      case 'application/vnd.xara': return ct(display, 'FgRed')
-      default: return display
+      // queryable data
+      case 'text/html':
+      case 'application/xml':
+      case 'image/svg+xml':
+      case 'application/json': return chalk.greenBright(display)
+      // executables
+      case 'application/xquery': return chalk.cyanBright(display)
+      case 'application/java-archive':
+      case 'application/vnd.xara': return chalk.red.dim(display)
+      // binary webstuff
+      case 'font/ttf':
+      case 'font/woff':
+      case 'font/woff2':
+      case 'application/vnd.ms-fontobject':
+      case 'image/png':
+      case 'image/jpeg':
+      case 'image/gif':
+      case 'image/vnd.microsoft.icon': return chalk.cyan.dim(display)
+      case 'application/javascript':
+      case 'text/css': return chalk.cyan(display)
+      case 'text/plain':
+      case 'text/markdown':
+      case null: return chalk.white.dim(display)
+      default: return chalk.white(mimetype + display)
     }
   }
-  return ct(display, 'FgBlue', 'Bright')
+  return chalk.blueBright(display)
 }
 
 /**
@@ -121,15 +140,9 @@ function formatNameColored (item, display) {
  */
 function getNameFormatter (options) {
   if (options.recursive && !options.long) {
-    if (options.color) {
-      return item => formatNameColored(item, item.path)
-    }
-    return item => item.path
+    return item => formatNameColored(item, item.path)
   }
-  if (options.color) {
-    return item => formatNameColored(item, item.name)
-  }
-  return item => item.name
+  return item => formatNameColored(item, item.name)
 }
 
 // path
@@ -143,18 +156,8 @@ const noOp = () => {}
  * @returns {void}
  */
 function renderColoredPath (item, separator) {
-  const coloredPath = ct(item.path + ':', 'FgWhite', 'Dim')
+  const coloredPath = chalk.white.dim(item.path + ':')
   console.log(separator + coloredPath)
-}
-
-/**
- * render path
- * @param {ListResultItem} item
- * @param {String} separator
- * @returns {void}
- */
-function renderPath (item, separator) {
-  console.log(separator + item.path + ':')
 }
 
 /**
@@ -164,10 +167,7 @@ function renderPath (item, separator) {
  */
 function getPathRenderer (options) {
   if (options.recursive && options.long) {
-    if (options.color) {
-      return renderColoredPath
-    }
-    return renderPath
+    return renderColoredPath
   }
   return noOp
 }
@@ -193,12 +193,12 @@ function formatModeColor (item) {
     .split('')
     .map(mode => {
       switch (mode) {
-        case 'c': return ct(mode, 'FgBlue', 'Bright')
-        case 'r': return ct(mode, 'FgGreen')
-        case 'w': return ct(mode, 'FgYellow')
-        case 'x': return ct(mode, 'FgRed')
-        case 's': return ct(mode, 'FgCyan')
-        case 'S': return ct(mode, 'FgCyan', 'Bright')
+        case 'c': return chalk.blueBright(mode)
+        case 'r': return chalk.green(mode)
+        case 'w': return chalk.yellow(mode)
+        case 'x': return chalk.red(mode)
+        case 's': return chalk.cyan(mode)
+        case 'S': return chalk.cyanBright(mode)
         default: return mode
       }
     })
@@ -211,10 +211,7 @@ function formatModeColor (item) {
  * @returns {BlockFormatter<ListResultItem>} mode formatter
  */
 function getModeFormatter (options) {
-  if (options.color) {
-    return formatModeColor
-  }
-  return withCollectionIndicator
+  return formatModeColor
 }
 
 /**
@@ -236,10 +233,7 @@ function padEnd (prop, paddings) {
  */
 function getOwnerFormatter (options, paddings) {
   const padOwner = padEnd('owner', paddings)
-  if (options.color) {
-    return (item) => ct(padOwner(item), 'FgWhite')
-  }
-  return padOwner
+  return (item) => chalk.white(padOwner(item))
 }
 
 /**
@@ -250,10 +244,7 @@ function getOwnerFormatter (options, paddings) {
  */
 function getGroupFormatter (options, paddings) {
   const padGroup = padEnd('group', paddings)
-  if (options.color) {
-    return (item) => ct(padGroup(item), 'FgWhite')
-  }
-  return padGroup
+  return (item) => chalk.white(padGroup(item))
 }
 
 /**
@@ -451,7 +442,8 @@ async function ls (db, collection, options) {
       'collections-only': options['collections-only']
     }
   })
-  const json = JSON.parse(result.pages.toString())
+  const raw = result.pages.toString()
+  const json = JSON.parse(raw)
   if (json.error) {
     if (options.debug) {
       console.error(json.error)
@@ -460,6 +452,9 @@ async function ls (db, collection, options) {
   }
   if (options.debug) {
     console.log(json)
+  }
+  if (options.raw) {
+    return console.log(raw)
   }
 
   const list = json.children
@@ -499,12 +494,6 @@ export const command = ['list [options] <collection>', 'ls']
 export const describe = 'List collection contents'
 
 const options = {
-  G: {
-    alias: 'color',
-    describe: 'Color the output',
-    default: false,
-    type: 'boolean'
-  },
   l: {
     alias: 'long',
     describe: 'Display more information for each item',
