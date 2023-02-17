@@ -39,6 +39,7 @@
   "dependencies": {
     "@existdb/node-exist": "^5.4.0",
     "bottleneck": "^2.19.5",
+    "chalk": "^5.2.0",
     "dotenv": "^16.0.3",
     "fast-glob": "^3.2.12",
     "semver": "^7.3.8",

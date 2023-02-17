@@ -1,4 +1,4 @@
-import { ct } from './console.js'
+import chalk from 'chalk'
 
 const timeFormat = {
   hour12: false,
@@ -60,12 +60,9 @@ export function getDateFormatter (options, prop) {
   if (options.date === 'iso') {
     formatter = (date) => date.toISOString()
   }
-  if (options.color) {
-    return (item) => {
-      const date = new Date(item[prop])
-      const formattedDate = formatter(date)
-      return ct(formattedDate, colorForDate(date))
-    }
+  return (item) => {
+    const date = new Date(item[prop])
+    const formattedDate = formatter(date)
+    return chalk.ansi256(colorForDate(date))(formattedDate)
   }
-  return (item) => formatter(new Date(item[prop]))
 }
