@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S node --dns-result-order ipv4first
 
 import yargs from 'yargs'
 import { commands } from './commands/index.js'
