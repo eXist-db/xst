@@ -40,4 +40,6 @@ export async function runPipe (cmd1, args1, cmd2, args2, options) {
 }
 
 export const asAdmin = { env: { ...process.env, EXISTDB_USER: 'admin', EXISTDB_PASS: '' } }
-export const forceColor = { env: { ...process.env, FORCE_COLOR: '2' } }
+export function forceColorLevel (level) {
+  return { env: { ...process.env, FORCE_COLOR: level } }
+}
