@@ -292,9 +292,9 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/broken-test-app.xar
 /db/list-test/fixtures/test.xml
 /db/list-test/tests
-/db/list-test/tests/info.js
 /db/list-test/tests/cli.js
 /db/list-test/tests/upload.js
+/db/list-test/tests/info.js
 /db/list-test/tests/configuration.js
 /db/list-test/tests/exec.js
 /db/list-test/tests/rm.js
