@@ -1,4 +1,3 @@
-// import open from 'open-editor'
 import { resolve, basename } from 'node:path'
 import {
   writeFileSync, readFileSync,
@@ -8,7 +7,7 @@ import {
 import * as readline from 'node:readline'
 
 import chalk from 'chalk'
-import execa from 'execa'
+import { execa } from 'execa'
 import { getEditor } from 'env-editor'
 import { connect } from '@existdb/node-exist'
 
