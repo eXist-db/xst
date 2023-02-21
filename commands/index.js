@@ -1,3 +1,4 @@
+import * as edit from './edit.js'
 import * as exec from './exec.js'
 import * as get from './get.js'
 import * as info from './info.js'
@@ -11,6 +12,7 @@ export const commands = [
   get,
   upload,
   rm,
+  edit,
   exec,
   list,
   pkg
