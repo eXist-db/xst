@@ -48,6 +48,7 @@ xst <command> --help
 |`get [options] <source> <target>`|Download a collection or resource|`download` `fetch`|
 |`upload [options] <source> <target>`|Upload files and directories|`up`|
 |`remove [options] <paths..>`|Remove collections or resources|`rm` `delete` `del`|
+|`edit [options] <resource>`|Edit a resource in a local editor| |
 |`execute [<query>] [options]`|Execute a query string or file|`run` `exec`|
 |`list [options] <collection>`|List collection contents|`ls`|
 |`package list [options]`|List installed packages|`pkg ls`|

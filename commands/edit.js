@@ -132,7 +132,7 @@ function coerceEditor (id) {
 }
 
 export const command = ['edit <resource>']
-export const describe = 'Edit a resource in an editor'
+export const describe = 'Edit a resource in a local editor'
 
 export function builder (yargs) {
   yargs
