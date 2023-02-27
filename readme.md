@@ -2,10 +2,19 @@
 
 > A modern command line interface for exist-db
 
-[![version](https://img.shields.io/npm/v/@existdb/xst.svg)](https://www.npmjs.com/package/@existdb/xst)
+[![version][version-image]][version-url]
+[![Conventional Commits][ccommits-image]][ccommits-url]
+[![javascript style guide][standard-image]][standard-url]
+
 [![Semantic Release](https://github.com/eXist-db/xst/actions/workflows/semantic-release.yml/badge.svg)](https://github.com/eXist-db/xst/actions/workflows/semantic-release.yml)
 [![CodeQL](https://github.com/eXist-db/xst/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/eXist-db/xst/actions/workflows/codeql-analysis.yml)
 
+[version-image]: https://img.shields.io/npm/v/@existdb/xst.svg?style=flat
+[version-url]: https://www.npmjs.com/package/@existdb/xst
+[ccommits-image]: https://img.shields.io/badge/Conventional%20Commits-1.0.0-blue?logo=conventionalcommits&logoColor=white
+[ccommits-url]: https://conventionalcommits.org
+[standard-image]: https://img.shields.io/badge/code_style-standard-blue.svg
+[standard-url]: https://standardjs.com
 Built on top of [@existdb/node-exist](https://www.npmjs.com/package/@existdb/node-exist).
 
 ## Installation
