@@ -50,7 +50,7 @@
   "devDependencies": {
     "@commitlint/cli": "^17.3.0",
     "@commitlint/config-conventional": "^17.3.0",
-    "@semantic-release/github": "^8.0.7",
+    "@semantic-release/github": "^9.0.4",
     "@types/yargs": "^17.0.17",
     "conventional-changelog-conventionalcommits": "^5.0.0",
     "semantic-release": "^21.0.0",
