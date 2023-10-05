@@ -433,15 +433,17 @@ function getListRenderer (options, renderItem, sortItemList) {
  */
 async function ls (db, collection, options) {
   const { glob, long, tree, recursive, depth } = options
-  const result = await db.queries.readAll(query, {
-    variables: {
-      collection,
-      glob,
-      depth,
-      recursive: tree || recursive,
-      'collections-only': options['collections-only']
-    }
-  })
+  const variables = {
+    collection,
+    glob,
+    depth,
+    recursive: Boolean(tree || recursive),
+    'collections-only': options['collections-only']
+  }
+  if (options.debug) {
+    console.log(variables)
+  }
+  const result = await db.queries.readAll(query, { variables })
   const raw = result.pages.toString()
   const json = JSON.parse(raw)
   if (json.error) {

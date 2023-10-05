@@ -124,7 +124,7 @@ declare function local:get-children ($collection as xs:string, $current-level as
 };
 
 declare function local:list ($collection as xs:string, $options as map(*)) as map(*) {
-    let $normalized-collection := replace($collection, "^(.*?)/?$", "$1")
+    let $normalized-collection := replace($collection, "^(.+?)/?$", "$1")
     let $parent-collection := replace($normalized-collection, "(/[^/]+)$", "")
     let $collection-name := replace($normalized-collection, "^(.*?/)([^/]+)$", "$2")
     return
