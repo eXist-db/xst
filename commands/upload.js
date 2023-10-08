@@ -211,11 +211,19 @@ async function uploadFileOrFolder (db, source, target, options) {
   return 0
 }
 
-export const command = ['upload [options] <source> <target>', 'up']
+export const command = ['upload <source> <target>', 'up']
 export const describe = 'Upload files and directories'
 
 export function builder (yargs) {
   yargs
+    .positional('target', {
+      type: 'string',
+      normalize: false
+    })
+    .positional('source', {
+      type: 'string',
+      normalize: true
+    })
     .option('i', {
       alias: 'include',
       describe: 'Include only files matching one or more of include patterns (comma separated)',
@@ -264,12 +272,19 @@ export function builder (yargs) {
       type: 'boolean'
     })
     .nargs({ i: 1, e: 1 })
+    // .demandCommand(0)
+    // .strict(true)
 }
 
 export async function handler (argv) {
   if (argv.help) {
     return 0
   }
+
+  if (argv._.length > 1) {
+    throw Error('More than two positional arguments provided.\nDid you use a globbing character, like * or ? for the source argument?\nUse --include and/or --exclude instead.')
+  }
+
   const { threads, mintime, source, target } = argv
 
   if (typeof mintime !== 'number' || mintime < 0) {
