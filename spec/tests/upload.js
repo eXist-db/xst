@@ -22,6 +22,13 @@ test('upload dotfile', async (t) => {
   t.end()
 })
 
+test('error on upload with more than two positional arguments', async (t) => {
+  const { stderr, stdout } = await run('xst', ['up', 'spec/fixtures/test-app.xar', 'spec/fixtures/test-lib.xar', '/db/tmp'], asAdmin)
+  t.notOk(stdout, stdout)
+  t.equal(stderr, 'More than two positional arguments provided.\nDid you use a globbing character, like * or ? for the source argument?\nUse --include and/or --exclude instead.\n')
+  t.end()
+})
+
 test.skip("calling 'xst up modules/test.xq /db/foo' as guest", async (t) => {
   const { stderr, stdout } = await run('xst', ['up', 'modules', '/db/foo'])
   if (stdout) t.fail(stdout)
