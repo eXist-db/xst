@@ -1,4 +1,3 @@
-
 /**
  * @typedef {(itemA:ListResultItem, itemB:ListResultItem) => Number} ItemSorter
  */
