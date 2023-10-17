@@ -204,6 +204,23 @@ test('with new package', async function (t) {
     st.end()
   })
 
+  t.test('raw output includes commit info', async function (st) {
+    const { stderr, stdout } = await run('xst', ['package', 'list', '--raw'], asAdmin)
+    if (stderr) {
+      st.fail(stderr)
+      st.end()
+      return
+    }
+    const json = JSON.parse(stdout)
+    const filtered = json.packages.filter(p => p.abbrev === 'test-app')
+    st.equal(filtered.length, 1)
+    const packageInfo = filtered.pop()
+    st.ok(packageInfo.commit)
+    st.equal(packageInfo.commit.id, 'e039b2e12f9882375701c7cfd58f5ee32fd7bbd4')
+    st.equal(packageInfo.commit.time, '1674564361')
+    st.end()
+  })
+
   t.teardown(cleanup)
 })
 
@@ -211,7 +228,9 @@ test('error', async function (t) {
   const { stderr, stdout } = await run('xst', ['pkg', 'ls', '-a', '-l'], asAdmin)
   if (stdout) {
     t.fail(stdout)
+    t.end()
     return
   }
-  t.ok(stderr, stderr)
+  t.equal(stderr, 'Arguments a and l are mutually exclusive\n')
+  t.end()
 })

@@ -84,6 +84,7 @@ function local:repo($package-uri as xs:string) as map(*) {
 
     return
         map {
+            "commit": local:commit-info($repo/repo:meta),
             "website": $repo//repo:website/text(),
             "description": $repo//repo:description/text(),
             "license": $repo//repo:license/text(),
@@ -92,6 +93,16 @@ function local:repo($package-uri as xs:string) as map(*) {
             "target": $repo//repo:target/text()
             (: ,"repo": $repo :)
         }
+};
+
+declare
+function local:commit-info ($meta as element(repo:meta)) as map(*)? {
+    if (exists($meta/@commit-id)) then (
+        map {
+            "id": $meta/@commit-id/string(),
+            "time": $meta/@commit-time/string()
+        }
+    ) else ()
 };
 
 declare
