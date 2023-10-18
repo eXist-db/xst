@@ -41,7 +41,7 @@ test('shows help', async function (t) {
   if (stderr) { return t.fail(stderr) }
   t.ok(stdout, 'got output')
   const firstLine = stdout.split('\n')[0]
-  t.equal(firstLine, 'xst package install [options] <packages..>', firstLine)
+  t.equal(firstLine, 'xst package install <packages..>', firstLine)
 })
 
 test('fails when dependency is not met', async function (t) {
@@ -150,6 +150,29 @@ test('multiple valid packages', async function (t) {
     if (stdout) { return st.fail(stdout) }
 
     st.equal(stderr, `Collection "${packageCollection}" not found!\n`)
+  })
+
+  t.teardown(cleanup)
+})
+
+test('using rest for upload', async function (t) {
+  t.test('installs lib first', async function (st) {
+    const { stderr, stdout } = await run('xst', ['package', 'install', '--rest', 'spec/fixtures/test-lib.xar'], asAdmin)
+    if (stderr) {
+      // console.error(stderr)
+      st.fail(stderr)
+      return st.end()
+    }
+    st.ok(stdout)
+  })
+  t.test('installs app', async function (st) {
+    const { stderr, stdout } = await run('xst', ['package', 'install', '--rest', 'spec/fixtures/test-app.xar'], asAdmin)
+    if (stderr) {
+      // console.error(stderr)
+      st.fail(stderr)
+      return st.end()
+    }
+    st.ok(stdout)
   })
 
   t.teardown(cleanup)

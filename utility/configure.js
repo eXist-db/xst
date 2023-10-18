@@ -56,6 +56,7 @@ function compileConnectionOptions (server, user, pass) {
     connectionOptions.secure = protocol === 'https:'
     connectionOptions.host = hostname
     connectionOptions.port = port
+    connectionOptions.protocol = protocol
   }
 
   return { connectionOptions }
