@@ -7,7 +7,7 @@
         "rejectUnauthorized": false,
         "host": "localhost",
         "port": 8443,
-        "secure": true
+        "protocol": "https:"
     },
     "extensionsort": true,
     "color": true
