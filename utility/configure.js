@@ -53,7 +53,6 @@ function compileConnectionOptions (server, user, pass) {
       throw new Error('Unknown protocol: "' + protocol + '"!')
     }
 
-    connectionOptions.secure = protocol === 'https:'
     connectionOptions.host = hostname
     connectionOptions.port = port
     connectionOptions.protocol = protocol

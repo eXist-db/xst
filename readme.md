@@ -170,9 +170,12 @@ xst ls /db/apps --config spec/fixtures/.xstrc
 
 #### .xstrc
 
-A JSON formatted file where you can set not only connection options but also other settings like
-`color`.
-Have a look at the [example .xstrc](spec/fixtures/.xstrc).
+A JSON formatted file where you can set connection options as well as other preferred settings like
+`color` or `timesort`. Have a look at the [example .xstrc](spec/fixtures/.xstrc).
+
+**NOTE:** The boolean option "secure" is deprecated. To switch between encrypted and unencrypted
+connections use "protocol" instead. "secure" will continue to work for both XMLRPC and REST until
+version 2.
 
 #### .existdb.json
 
