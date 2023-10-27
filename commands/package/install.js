@@ -108,8 +108,13 @@ export async function handler (argv) {
     if (rest) {
       upload = boundUpload
     } else {
-      const test = await restClient.get('db')
-      upload = test.statusCode === 200 ? boundUpload : db.app.upload
+      try {
+        await restClient.get('db')
+        upload = boundUpload
+      } catch (e) {
+        console.log('Falling back to XMLRPC API')
+        upload = db.app.upload
+      }
     }
   }
 
