@@ -7,7 +7,7 @@ const testSourceFolder = 'spec'
 
 async function prepare (t) {
   try {
-    const phase1 = await run('xst', ['up', '-D', '-e', 'tests', testSourceFolder, testCollection], asAdmin)
+    const phase1 = await run('xst', ['up', '-D', '-e', 'tests', '-e', 'norest', testSourceFolder, testCollection], asAdmin)
     if (phase1.stderr) { throw Error(phase1.stderr) }
     const ensureTestsOlder = await run('xst', ['up', '-e', 'package,utility', testSourceFolder + '/tests', testCollection + '/tests'], asAdmin)
     if (ensureTestsOlder.stderr) { throw Error(ensureTestsOlder.stderr) }
@@ -181,7 +181,7 @@ test('with fixtures uploaded', async (t) => {
     if (stderr) { return st.fail(stderr) }
     const expectedlines = 'a.txt\na1.txt\na11.json\na20.txt\na22.xml\nb\nfixtures\nindex.html\ntest.js\ntest.xq\ntests\n'
 
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 
@@ -190,7 +190,7 @@ test('with fixtures uploaded', async (t) => {
     if (stderr) { return st.fail(stderr) }
     const expectedlines = 'tests\ntest.xq\ntest.js\nindex.html\nfixtures\nb\na22.xml\na20.txt\na11.json\na1.txt\na.txt\n'
 
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 
@@ -199,7 +199,7 @@ test('with fixtures uploaded', async (t) => {
     if (stderr) { return st.fail(stderr) }
     const expectedlines = 'b\nfixtures\ntests\nindex.html\ntest.js\na11.json\na.txt\na1.txt\na20.txt\na22.xml\ntest.xq\n'
 
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 
@@ -208,7 +208,7 @@ test('with fixtures uploaded', async (t) => {
     if (stderr) { return st.fail(stderr) }
     const expectedlines = 'a22.xml\nindex.html\ntest.js\na11.json\na.txt\na1.txt\na20.txt\nb\ntest.xq\nfixtures\ntests\n'
 
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 
@@ -217,7 +217,7 @@ test('with fixtures uploaded', async (t) => {
     if (stderr) { return t.fail(stderr) }
     const expectedlines = 'tests\nfixtures\ntest.xq\nb\na20.txt\na1.txt\na.txt\na11.json\ntest.js\nindex.html\na22.xml\n'
 
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 
@@ -227,7 +227,7 @@ test('with fixtures uploaded', async (t) => {
 
     const expectedlines = 'test.xq\nindex.html\na22.xml\na20.txt\na11.json\na1.txt\na.txt\nb\ntests\ntest.js\nfixtures\n'
 
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 
@@ -236,7 +236,7 @@ test('with fixtures uploaded', async (t) => {
     if (stderr) { return st.fail(stderr) }
     const expectedlines = 'fixtures\ntests\ntest.xq\nb\na.txt\na1.txt\na20.txt\na11.json\ntest.js\na22.xml\nindex.html\n'
 
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 
@@ -260,6 +260,7 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/test-lib.xar
 /db/list-test/fixtures/test.xml
 /db/list-test/fixtures/test.xq
+/db/list-test/fixtures/web-no-rest.xml
 /db/list-test/index.html
 /db/list-test/test.js
 /db/list-test/test.xq
@@ -273,7 +274,7 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/rm.js
 /db/list-test/tests/upload.js
 `
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 
@@ -291,6 +292,7 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/test-lib.xar
 /db/list-test/fixtures/broken-test-app.xar
 /db/list-test/fixtures/test.xml
+/db/list-test/fixtures/web-no-rest.xml
 /db/list-test/tests
 /db/list-test/tests/cli.js
 /db/list-test/tests/info.js
@@ -310,7 +312,7 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/a22.xml
 /db/list-test/index.html
 `
-    st.equal(expectedlines, stdout, stdout)
+    st.equal(stdout, expectedlines, stdout)
     st.end()
   })
 

@@ -1,0 +1,41 @@
+name: Test - No REST
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # pull image 
+      - run: docker pull existdb/existdb:release
+      # create docker container
+      # --volume $(pwd)/empty:/exist/autodeploy:ro
+      - name: create eXist-db Container
+        run: docker create --name exist --publish 8080:8080 --publish 8443:8443 existdb/existdb:release
+      # - name: Start eXist-db Container
+      #   run: docker start exist
+      # - name: Wait for eXist-db Startup
+      #   run: timeout 90 sh -c 'until nc -z $0 $1; do sleep 3; done' localhost 8080
+      # get web.xml (use prepared web.xml instead)
+      # - run: docker cp exist:exist/etc/webapp/WEB-INF/web.xml ./web.xml
+      # modify web.xml
+      # - run: cat web.xml | \
+          # tr '\n' '\r' | \
+          # sed -E 's/(<param-name>hidden<\/param-name>\r[[:space:]]+<param-value>)false(<\/param-value>)/\1true\2/' | \
+          # tr '\r' '\n' > modified-web.xml
+      - name: Copy modified web.xml
+        run: docker cp ./spec/fixtures/web-no-rest.xml exist:exist/etc/webapp/WEB-INF/web.xml
+      - name: Restart eXist-db Container
+        # run: docker stop exist && docker wait; docker start exist
+        run: docker start exist
+      - name: Wait for eXist-db Startup
+        run: timeout 90 sh -c 'until nc -z $0 $1; do sleep 3; done' localhost 8080
+      - name: Use Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+      - run: npm ci --no-optional
+      - run: npm link
+      - run: npm run test:norest
+
