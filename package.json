@@ -15,6 +15,7 @@
   },
   "scripts": {
     "test": "standard && tape \"spec/tests/**/*.js\"",
+    "test:norest": "tape \"spec/norest/**/*.js\"",
     "lint": "standard --fix"
   },
   "keywords": [
