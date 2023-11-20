@@ -9,7 +9,7 @@ import { getGlobMatcher } from '../utility/glob.js'
 import { getTreeFormatter, getNextIndent } from '../utility/tree.js'
 
 /**
- * @typedef { import("node-exist").NodeExist } NodeExist
+ * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
  */
 
 /**
@@ -426,7 +426,7 @@ function getListRenderer (options, renderItem, sortItemList) {
 
 /**
  * list elements in exist db and output to stdout
- * @param {import("@existdb/node-exist").NodeExist} db database client
+ * @param {NodeExist} db database client
  * @param {String} collection path to collection in db
  * @param {ListOptions} options command line options
  * @returns {void}

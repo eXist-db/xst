@@ -2,7 +2,7 @@ import { connect } from '@existdb/node-exist'
 import { readXquery } from '../utility/xq.js'
 
 /**
- * @typedef { import("node-exist").NodeExist } NodeExist
+ * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
  */
 
 /**
@@ -48,7 +48,7 @@ function normalizePath (path) {
 
 /**
  * remove collections and resources in exist db
- * @param {import("@existdb/node-exist").NodeExist} db database client
+ * @param {NodeExist} db database client
  * @param {[String]} paths path to collection in db
  * @param {RemoveOptions} options command line options
  * @returns {void}

@@ -3,7 +3,7 @@ import { writeFileSync, statSync, existsSync, mkdirSync } from 'node:fs'
 import { connect } from '@existdb/node-exist'
 
 /**
- * @typedef { import("node-exist").NodeExist } NodeExist
+ * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
  */
 
 /**
@@ -114,7 +114,7 @@ async function downloadResource (db, options, resource, directory, collection, r
 
 /**
  * download a collection from an existdb instance
- * @param {NodeExist.BoundModules} db NodeExist client
+ * @param {NodeExist} db NodeExist client
  * @param {boolean} verbose
  * @param {String} collection
  * @param {String} baseCollection
@@ -149,7 +149,7 @@ async function downloadCollection (db, options, collection, baseCollection, dire
 }
 
 /**
- * Handle errors uploading a resource or creating a collection
+ * Handle errors downloading a resource or collection
  * @param {Error} e
  * @param {String} path
  */
@@ -165,7 +165,7 @@ function handleError (e, path) {
 /**
  * query db, output to standard out
  *
- * @param {NodeExist.BoundModules} db NodeExist client
+ * @param {NodeExist} db NodeExist client
  * @param {string} path db path
  * @returns {Number}
  */
@@ -181,7 +181,7 @@ async function getPathInfo (db, path) {
 
 /**
  *
- * @param {NodeExist.BoundModules} db NodeExist client
+ * @param {NodeExist} db NodeExist client
  * @param {String} source db path
  * @param {String} target local folder
  * @param {GetOptions} options options
