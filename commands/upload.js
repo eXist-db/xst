@@ -1,8 +1,27 @@
-import { connect, getMimeType } from '@existdb/node-exist'
 import { statSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import Bottleneck from 'bottleneck'
 import fg from 'fast-glob'
+import chalk from 'chalk'
+import { connect, getMimeType } from '@existdb/node-exist'
+
+import { logFailure, logSuccess } from '../utility/message.js'
+import { formatErrorMessage, isNetworkError } from '../utility/errors.js'
+import { getServerUrl, getUserInfo } from '../utility/connection.js'
+
+/**
+ * @typedef { import("../utility/account.js").AccountInfo } AccountInfo
+ */
+
+/**
+ * @typedef {0|1|2|9} ExitCode
+ */
+
+/**
+ * @typedef {Object} CollectionCreateResult
+ * @prop {Boolean} exists the collection exists
+ * @prop {Boolean} created the collection was created
+ */
 
 const stringList = {
   type: 'string',
@@ -13,24 +32,20 @@ const stringList = {
       : values.reduce((values, value) => values.concat(value.split(',').map((value) => value.trim())), [])
 }
 
-async function getUserInfo (db) {
-  const { user } = db.client.options.basic_auth
-  return await db.users.getUserInfo(user)
-}
-
 /**
  * Upload a single resource into an existdb instance
  * @param {String} path
  * @param {String} root
  * @param {String} baseCollection
+ * @returns {Promise<Boolean>} upload success
  */
-async function uploadResource (db, verbose, path, root, baseCollection) {
+async function uploadResource (db, verbose, path, root, baseCollection, targetName) {
   try {
     const localFilePath = resolve(root, path)
-    const remoteFilePath = baseCollection + '/' + path
+    const remoteFilename = targetName || path
+    const remoteFilePath = baseCollection + '/' + remoteFilename
     const fileContents = readFileSync(localFilePath)
     const fileHandle = await db.documents.upload(fileContents)
-
     const options = {}
     if (!getMimeType(path)) {
       console.log('fallback mimetype for', path)
@@ -38,11 +53,11 @@ async function uploadResource (db, verbose, path, root, baseCollection) {
     }
     await db.documents.parseLocal(fileHandle, remoteFilePath, options)
     if (verbose) {
-      console.log(`✔︎ ${path} uploaded`)
+      logSuccess(`${chalk.white(path)} uploaded`)
     }
     return true
   } catch (e) {
-    handleError(e, path)
+    if (verbose) { handleError(e, path) }
     return false
   }
 }
@@ -51,6 +66,7 @@ async function uploadResource (db, verbose, path, root, baseCollection) {
  * Create a collection in an existdb instance
  * @param {String} collection
  * @param {String} baseCollection
+ * @returns {Promise<CollectionCreateResult>} upload success
  */
 async function createCollection (db, verbose, collection, baseCollection) {
   const absCollection = baseCollection +
@@ -58,36 +74,41 @@ async function createCollection (db, verbose, collection, baseCollection) {
     collection
 
   try {
+    if (await db.collections.existsAndCanOpen(absCollection)) {
+      if (verbose) {
+        logSuccess(`${chalk.white(absCollection)} exists`)
+      }
+      return { exists: true, created: false }
+    }
     await db.collections.create(absCollection)
     if (verbose) {
-      console.log(`✔︎ ${absCollection} created`)
+      logSuccess(`${chalk.white(absCollection)} created`)
     }
-    return true
+    return { exists: true, created: true }
   } catch (e) {
-    handleError(e, absCollection)
-    return false
+    if (verbose) { handleError(e, absCollection) }
+    return { exists: false, created: false }
   }
 }
 
 /**
  * Handle errors uploading a resource or creating a collection
- * @param {Error} e
+ * @param {Error} error
  * @param {String} path
  */
-function handleError (e, path) {
-  const message = e.faultString ? e.faultString : e.message
-  console.error(`✘ ${path} could not be created! Reason: ${message}`)
-  if (e.code === 'ECONNRESET' || e.code === 'ECONNREFUSED') {
-    throw e
+function handleError (error, path) {
+  logFailure(`${chalk.white(path)} ${formatErrorMessage(error)}`)
+  if (isNetworkError(error)) {
+    throw error
   }
 }
 
 /**
- *
- * @param {String} source
- * @param {String} target
+ * Upload a single file or an entire directory tree to a db into a target collection
+ * @param {String} source filesustem path
+ * @param {String} target target collection
  * @param {{pattern: [String], threads: Number, mintime: Number}} options
- * @returns
+ * @returns {Promise<ExitCode>} exit code
  */
 async function uploadFileOrFolder (db, source, target, options) {
   // read parameters
@@ -97,15 +118,17 @@ async function uploadFileOrFolder (db, source, target, options) {
   const rootStat = statSync(source)
 
   if (options.verbose) {
-    console.log('Uploading:', source, 'to', target)
-    console.log('Server:', (db.client.isSecure ? 'https' : 'http') + '://' + db.client.options.host + ':' + db.client.options.port)
-    console.log('User:', db.client.options.basic_auth.user)
-    if (options.include.length > 1 || options.include[0] !== '**') {
-      console.log('Include:\n', ...options.include, '\n')
+    console.log(`Uploading ${chalk.white(resolve(source))}`)
+    console.log(`To ${chalk.white(target)}`)
+    console.log(`On ${chalk.white(getServerUrl(db))}`)
+    console.log(`As ${chalk.white(db.client.options.basic_auth.user)}`)
+    if (options.include.length) {
+      console.log(`Include ${chalk.green(options.include)}`)
     }
     if (options.exclude.length) {
-      console.log('Exclude:\n', ...options.exclude, '\n')
+      console.log(`Exclude ${chalk.yellow(options.exclude)}`)
     }
+    console.log('')
   }
 
   if (rootStat.isFile()) {
@@ -120,12 +143,18 @@ async function uploadFileOrFolder (db, source, target, options) {
       return 0
     }
     // ensure target collection exists
-    const collectionSuccess = await createCollection(db, options.verbose, '', target)
+    const targetExistsAndCanOpen = await db.collections.existsAndCanOpen(target)
+    if (!targetExistsAndCanOpen) {
+      console.error(`Target ${target} must be an existing collection.`)
+      return 1
+    }
     const uploadSuccess = await uploadResource(db, options.verbose, name, dir, target)
-    if (collectionSuccess && uploadSuccess) {
-      console.log(`uploaded ${source} in ${Date.now() - start}ms`)
+    if (uploadSuccess) {
+      const time = Date.now() - start
+      console.log(`Uploaded ${chalk.white(resolve(source))} to ${chalk.white(target)} in ${chalk.yellow(time + 'ms')}`)
       return 0
     }
+    console.error(`Upload of ${resolve(source)} failed.`)
     return 1
   }
 
@@ -133,12 +162,11 @@ async function uploadFileOrFolder (db, source, target, options) {
   const collectionGlob = Object.assign({ onlyDirectories: true }, globbingOptions)
   const resourceGlob = Object.assign({ onlyFile: true }, globbingOptions)
 
-  // console.log(options.include)
   const collections = await fg(options.include, collectionGlob)
   const resources = await fg(options.include, resourceGlob)
 
   if (resources.length === 0 && collections.length === 0) {
-    console.error('nothing matched')
+    console.error(chalk.yellow('Nothing matched'))
     return 9
   }
 
@@ -166,15 +194,18 @@ async function uploadFileOrFolder (db, source, target, options) {
 
   if (options.dryRun) {
     if (options.applyXconf && xConf.length) {
-      console.log('\nIndex configurations:\n')
+      console.log('Index configurations:')
       console.log(xConf.join('\n'))
+      console.log('')
     }
     if (collections.length) {
-      console.log('\nCollections:\n')
+      console.log('Collections:')
       console.log(collections.join('\n'))
+      console.log('')
     }
-    console.log('\nResources:\n')
+    console.log('Resources:')
     console.log(resources.join('\n'))
+    console.log('')
     return 0
   }
 
@@ -190,23 +221,35 @@ async function uploadFileOrFolder (db, source, target, options) {
   const uploadResourceThrottled = limiter.wrap(uploadResource.bind(null, db, options.verbose))
 
   // create all collections upfront
-  await Promise.all(collections.map(c => createCollectionThrottled(c, target)))
+  const collectionsUploadResults = await Promise.all(
+    collections.map(
+      c => createCollectionThrottled(c, target)))
 
   // requires user to be a member of DBA
   // apply collection configurations
   if (options.applyXconf) {
-    const promises = []
     for (const cpath of confCols.keys()) {
       createCollectionThrottled(cpath, '/db/system/config')
     }
-    await Promise.all(promises)
-    await Promise.all(xConf.map(conf => uploadResourceThrottled(conf, root, '/db/system/config' + target)))
+    await Promise.all(
+      xConf.map(
+        conf => uploadResourceThrottled(conf, root, '/db/system/config' + target)))
   }
 
-  await Promise.all(resources.map(r => uploadResourceThrottled(r, root, target)))
+  const resourceUploadResults = await Promise.all(
+    resources.map(
+      resourcePath => uploadResourceThrottled(resourcePath, root, target)))
 
+  const createdCollections = collectionsUploadResults.filter(r => r.created).length
+  const uploadedResources = resourceUploadResults.filter(r => r).length
   const time = Date.now() - start
-  console.log(`created ${collections.length} collections and uploaded ${resources.length} resources in ${time}ms`)
+  console.log(`Created ${chalk.white(createdCollections + ' collections')} and uploaded ${chalk.white(uploadedResources + ' resources')} in ${chalk.yellow(time + 'ms')}`)
+
+  if (collectionsUploadResults.filter(r => !r.exists).length ||
+    resourceUploadResults.filter(r => !r).length) {
+    console.error(chalk.redBright('Upload finished with errors!'))
+    return 2
+  }
 
   return 0
 }
@@ -306,10 +349,11 @@ export async function handler (argv) {
     throw Error('To apply collection configurations you must be member of the dba group.')
   }
 
-  const existsAndCanOpenCollection = await db.collections.existsAndCanOpen(target)
-  if (argv.verbose) {
-    console.log('target exists:', existsAndCanOpenCollection)
+  try {
+    const code = await uploadFileOrFolder(db, source, target, argv)
+    process.exit(code)
+  } catch (e) {
+    handleError(e, target)
+    // process.exit(1)
   }
-
-  return await uploadFileOrFolder(db, source, target, argv)
 }
