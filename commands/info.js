@@ -2,7 +2,13 @@ import { connect } from '@existdb/node-exist'
 import { readXquery } from '../utility/xq.js'
 
 /**
- * @typedef { import("node-exist").NodeExist } NodeExist
+ * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
+ */
+
+/**
+ * @typedef {Object} InfoOptions
+ * @prop {boolean} raw output raw JSON reponse
+ * @prop {boolean} debug output detailed error
  */
 
 /**
@@ -10,6 +16,12 @@ import { readXquery } from '../utility/xq.js'
  */
 const query = readXquery('info.xq')
 
+/**
+ * gather system information on the database instance
+ * @param {NodeExist} db database client
+ * @param {InfoOptions} options command line options
+ * @returns {0|1} exit code
+ */
 async function info (db, options) {
   const result = await db.queries.readAll(query, {})
   const raw = result.pages.toString()
