@@ -6,3 +6,4 @@ nohup.out
 .releaserc
 .husky/*
 commitlint.config.cjs
+coverage
