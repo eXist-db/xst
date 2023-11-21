@@ -273,6 +273,28 @@ npm test
 
 **NOTE:** You will need to have an instance of existdb running (usually a local development instance).
 
+### Coverage
+
+If you want to get test code coverage information run 
+
+```bash
+npm run coverage
+```
+
+**NOTE:** You will need to have an instance of existdb running (usually a local development instance).
+
+### No REST
+
+Additional tests in `spec/norest/**/*.js` ensure that everything keeps working even
+on instances where the REST API is disabled. You can run those with
+
+```bash
+npm run test:norest
+```
+
+**NOTE:** Keep in mind they will only run successfully against an instance that actually has REST disabled.
+The [Test - No REST](.github/workflows/test-no-rest.yml) GitHub Action makes use of this.
+
 ## Contributing
 
 We are happy to accept contributions from the community.
