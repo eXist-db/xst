@@ -1,0 +1,30 @@
+name: Coverage
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: pull image 
+        run: docker pull existdb/existdb:release
+      - name: create eXist-db Container
+        run: |
+          docker create --rm --name exist \
+              --publish 8080:8080 --publish 8443:8443 \
+              existdb/existdb:release
+      - name: Start eXist-db Container
+        run: docker start exist
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-optional
+      - run: npm link
+      - name: Wait for container to be healthy
+        run: timeout 60s sh -c 'until docker ps | grep exist | grep -q healthy; do echo "Not ready yet."; sleep 2; done; echo "$(docker ps | grep exist)"'
+      - name: Run tests with coverage
+        run: npm run coverage | npx tap-dot
+      - name: Report coverage
+        run: npx c8 report -x spec --color
