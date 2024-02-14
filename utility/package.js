@@ -8,7 +8,6 @@ export const expathPackageMeta = 'expath-pkg.xml'
 async function putPackage (db, restClient, content, fileName) {
   const dbPath = db.app.packageCollection + '/' + fileName
   const res = await restClient.put(content, dbPath)
-  console.log(res.body)
   return { success: res.statusCode === 201, error: res.body }
 }
 

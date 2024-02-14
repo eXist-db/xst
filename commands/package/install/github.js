@@ -1,13 +1,14 @@
 import { connect } from '@existdb/node-exist'
 import { got } from 'got'
-import { valid, gt } from 'semver'
+import { gt } from 'semver'
 // import { basename } from 'node:path'
 
 import { isDBAdmin, getServerUrl } from '../../../utility/connection.js'
 import { uploadMethod, removeTemporaryCollection, getInstalledVersion } from '../../../utility/package.js'
 
 async function getRelease (api, owner, repo, release, assetFilter) {
-  const path = `repos/${owner}/${repo}/releases/${release}`
+  const tag = release === 'latest' ? release : 'tags/' + release
+  const path = `repos/${owner}/${repo}/releases/${tag}`
   const { assets, name } = await got.get(path, { prefixUrl: api }).json()
   const f = assets.filter(assetFilter)
   if (!f.length) {
@@ -24,9 +25,6 @@ async function getRelease (api, owner, repo, release, assetFilter) {
 }
 
 async function install (db, upload, xarName, contents, registry) {
-  // const xarName = basename(localFilePath)
-  // const contents = readFileSync(localFilePath)
-
   const uploadResult = await upload(contents, xarName)
   if (!uploadResult.success) {
     throw new Error(uploadResult.error)
@@ -141,9 +139,9 @@ export async function handler (argv) {
     //   console.debug('installed:', valid(installedVersion))
     // }
 
-    if (valid(foundVersion) === null) {
-      throw Error('Package does not have a valid semver "' + foundVersion + '"')
-    }
+    // if (valid(foundVersion) === null) {
+    //   throw Error('Package does not have a valid semver "' + foundVersion + '"')
+    // }
 
     const doUpdate = (installedVersion === null || force || gt(foundVersion, installedVersion))
 
