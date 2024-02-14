@@ -13,6 +13,8 @@
  * @prop {{id:number, name:string, realmId: string}} defaultGroup this user's default group info
  */
 
+export const AdminGroup = 'dba'
+
 /**
  * get the user account information for a specific user
  * @param {NodeExist} db client connection
