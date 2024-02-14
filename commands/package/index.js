@@ -1,4 +1,4 @@
-import * as install from './install.js'
+import * as install from './install/index.js'
 import * as list from './list.js'
 import * as uninstall from './uninstall.js'
 

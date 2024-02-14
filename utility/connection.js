@@ -10,7 +10,7 @@
  *     must be set for EXISTDB_USER to take effect
  */
 import { readOptionsFromEnv } from '@existdb/node-exist'
-import { getAccountInfo } from '../utility/account.js'
+import { getAccountInfo, AdminGroup } from '../utility/account.js'
 
 /**
  * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
@@ -55,4 +55,12 @@ export function getServerUrl (db) {
 export async function getUserInfo (db) {
   const { user } = db.client.options.basic_auth
   return await getAccountInfo(db, user)
+}
+
+export async function isDBAdmin (db) {
+  const accountInfo = await getUserInfo(db)
+  const isAdmin = accountInfo.groups.includes(AdminGroup)
+  if (!isAdmin) {
+    throw Error(`Package installation failed. User "${accountInfo.name}" is not a member of the "${AdminGroup}" group.`)
+  }
 }
