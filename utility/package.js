@@ -1,3 +1,4 @@
+import { unzipSync, strFromU8 } from 'fflate'
 import { getRestClient } from '@existdb/node-exist'
 import { readXquery } from './xq.js'
 
@@ -39,4 +40,20 @@ export async function getInstalledVersion (db, nameOrAbbrev) {
   const { pages } = await db.queries.readAll(queryVersion, { variables: { 'name-or-abbrev': nameOrAbbrev } })
   const rawResult = pages.toString()
   return JSON.parse(rawResult).version
+}
+
+export function extractPackageMeta (contents) {
+  const decompressed = unzipSync(contents, {
+    filter (file) {
+      return file.name === expathPackageMeta
+    }
+  })
+  if (!decompressed[expathPackageMeta]) {
+    throw Error(`${expathPackageMeta} is missing in package`)
+  }
+  const packageMeta = strFromU8(decompressed[expathPackageMeta])
+  const version = packageMeta.match(/version="(?<version>.*?)"/).groups.version
+  const abbrev = packageMeta.match(/abbrev="(?<abbrev>.*?)"/).groups.abbrev
+  const name = packageMeta.match(/name="(?<name>.*?)"/).groups.name
+  return { version, abbrev, name }
 }
