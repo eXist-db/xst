@@ -31,7 +31,7 @@ function local:find($name-or-abbrev) as document-node()? {
 
     return
         if ($name-or-abbrev = $list)
-        then $expaths[index-of($name-or-abbrev, $list)]
+        then $expaths[index-of($list, $name-or-abbrev)]
         else filter($expaths, local:find-by-abbrev($name-or-abbrev, ?))
 };
 

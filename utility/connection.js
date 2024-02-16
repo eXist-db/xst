@@ -57,10 +57,11 @@ export async function getUserInfo (db) {
   return await getAccountInfo(db, user)
 }
 
-export async function isDBAdmin (db) {
-  const accountInfo = await getUserInfo(db)
-  const isAdmin = accountInfo.groups.includes(AdminGroup)
-  if (!isAdmin) {
-    throw Error(`Package installation failed. User "${accountInfo.name}" is not a member of the "${AdminGroup}" group.`)
-  }
+/**
+ * check whether a user account has administrator privileges
+ * @param {AccountInfo} accountInfo
+ * @returns {Boolean}
+ */
+export function isDBAdmin (accountInfo) {
+  return accountInfo.groups.includes(AdminGroup)
 }
