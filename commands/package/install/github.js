@@ -60,11 +60,6 @@ const options = {
     describe: 'force upload over XML-RPC API',
     boolean: true
   },
-  f: {
-    alias: 'force',
-    describe: 'Force installation, skip version check',
-    boolean: true
-  },
   v: {
     alias: 'verbose',
     describe: 'Display more information',
@@ -82,11 +77,6 @@ const options = {
   },
   repo: {
     describe: 'The name of the repository, if it differs from abbrev',
-    string: true
-  },
-  registry: {
-    describe: 'Where to resolve dependencies from, if they are not already installed',
-    default: 'https://exist-db.org/exist/apps/public-repo/',
     string: true
   },
   api: {

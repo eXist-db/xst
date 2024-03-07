@@ -71,11 +71,6 @@ const options = {
     describe: 'force upload over XML-RPC API',
     boolean: true
   },
-  f: {
-    alias: 'force',
-    describe: 'force installation, skip version check',
-    boolean: true
-  },
   v: {
     alias: 'verbose',
     describe: 'Display more information',
@@ -122,6 +117,8 @@ export async function handler (argv) {
 
   // cleanup
   await removeTemporaryCollection(db)
+
+  results.forEach(r => console.error(r.error))
 
   const [showForceHint, errors] = results.reduce((prev, next) => [
     prev[0] || Boolean(next.needsForce),
