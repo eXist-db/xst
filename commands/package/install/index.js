@@ -26,7 +26,7 @@ const options = {
     alias: 'force',
     describe: 'Force installation, skip version check',
     default: false,
-    boolean: true,
+    boolean: true
   }
 }
 
