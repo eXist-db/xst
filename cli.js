@@ -9,7 +9,6 @@ import { readConnection } from './utility/connection.js'
 import { configure } from './utility/configure.js'
 
 const dimWhite = chalk.white.dim
-const brightYellow = chalk.yellowBright
 
 /**
  * if package was linked to global strip relative path from output
@@ -39,31 +38,36 @@ ${dimWhite('Examples:')}
 }
 
 function showLogo () {
-  console.log(brightYellow(`
+  console.log(chalk.yellow`
  ╲ ╱  ╓───  ──┰──
   ╳   ╰───╮   │
  ╱ ╲  ▂▁▁▁│   ┇
-`))
+`)
   console.log('A modern exist-db command line interface')
 }
 
 const parser = yargs(hideBin(process.argv))
   .config('config', 'Read configuration file', configure)
   .middleware(readConnection)
+  .usageConfiguration({ 'hide-types': true })
+  .completion('completion', false)
+  .strictCommands(true)
+  .strictOptions(false)
+  .help()
   .command('$0 [<command>]', 'Interact with an eXist-db', () => {}, async (argv) => {
+    if (argv.command) {
+      console.error(`Command "${argv.command}" not recognized.
+Try xst --help`)
+    }
+
     showLogo()
     const scriptName = getScriptName(argv.$0)
     showCompletionHelp(scriptName)
     // append examples
     showExamples(scriptName)
   })
-  .help()
-  .completion('completion', false)
   .command(commands)
-  .demandCommand(1)
-  .usageConfiguration({ 'hide-types': true })
   // .recommendCommands()
-  .strict(false)
   .fail(false)
 
 parser.wrap(parser.terminalWidth())

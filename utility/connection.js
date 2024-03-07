@@ -10,7 +10,7 @@
  *     must be set for EXISTDB_USER to take effect
  */
 import { readOptionsFromEnv } from '@existdb/node-exist'
-import { getAccountInfo } from '../utility/account.js'
+import { getAccountInfo, AdminGroup } from '../utility/account.js'
 
 /**
  * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
@@ -55,4 +55,13 @@ export function getServerUrl (db) {
 export async function getUserInfo (db) {
   const { user } = db.client.options.basic_auth
   return await getAccountInfo(db, user)
+}
+
+/**
+ * check whether a user account has administrator privileges
+ * @param {AccountInfo} accountInfo
+ * @returns {Boolean}
+ */
+export function isDBAdmin (accountInfo) {
+  return accountInfo.groups.includes(AdminGroup)
 }
