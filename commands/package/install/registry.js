@@ -19,18 +19,18 @@ export const command = ['registry <package> [<version>]']
 export const describe = 'Install a package from a registry (AKA public-repo)'
 
 export const builder = yargs => {
-    return yargs.version(false)
-      .positional("version", {
-        describe: "The version to install",
-        default: "",
-        string: true
-      })
-      .positional('package', {
-        describe: 'The NAME of the package to install',
-        string: true
-      })
+  return yargs.version(false)
+    .positional('version', {
+      describe: 'The version to install',
+      default: '',
+      string: true
+    })
+    .positional('package', {
+      describe: 'The NAME of the package to install',
+      string: true
+    })
 }
-  
+
 export async function handler (argv) {
   if (argv.help) {
     return 0
@@ -61,7 +61,7 @@ export async function handler (argv) {
   }
 
   try {
-    const { target, version } = await install(db, { 
+    const { target, version } = await install(db, {
       publicRepoURL: registry,
       packageName: argv.package,
       version: argv.version
