@@ -3,6 +3,7 @@ import { getRestClient } from '@existdb/node-exist'
 import { readXquery } from './xq.js'
 
 const queryVersion = readXquery('get-package-version.xq')
+const queryInstallFromRepo = readXquery('install-from-repo.xq')
 
 export const expathPackageMeta = 'expath-pkg.xml'
 
@@ -40,6 +41,12 @@ export async function getInstalledVersion (db, nameOrAbbrev) {
   const { pages } = await db.queries.readAll(queryVersion, { variables: { 'name-or-abbrev': nameOrAbbrev } })
   const rawResult = pages.toString()
   return JSON.parse(rawResult).version
+}
+
+export async function installFromRepo (db, options) {
+  const { pages } = await db.queries.readAll(queryInstallFromRepo, { variables: options })
+  const rawResult = pages.toString()
+  return JSON.parse(rawResult)
 }
 
 export function extractPackageMeta (contents) {

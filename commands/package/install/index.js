@@ -1,11 +1,11 @@
 import * as local from './local.js'
 import * as github from './github.js'
-// import * as registry from './registry.js'
+import * as registry from './registry.js'
 
 const commands = [
   local,
-  github
-  // registry
+  github,
+  registry
 ]
 
 export const command = ['install <command>', 'i']
@@ -19,7 +19,14 @@ export async function handler (argv) {
 const options = {
   registry: {
     describe: 'Where to resolve dependencies from, if they are not already installed',
-    default: 'https://exist-db.org/exist/apps/public-repo/'
+    default: 'https://exist-db.org/exist/apps/public-repo',
+    string: true
+  },
+  f: {
+    alias: 'force',
+    describe: 'Force installation, skip version check',
+    default: false,
+    boolean: true,
   }
 }
 
