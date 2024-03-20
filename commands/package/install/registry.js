@@ -4,16 +4,7 @@ import { connect } from '@existdb/node-exist'
 
 import { isDBAdmin, getServerUrl, getUserInfo } from '../../../utility/connection.js'
 import { getInstalledVersion, installFromRepo } from '../../../utility/package.js'
-import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
-
-async function install (db, options) {
-  const installResult = await installFromRepo(db, options)
-  if (!installResult.success) {
-    throw new Error(installResult.error)
-  }
-
-  return installResult.result
-}
+import { fail, logSuccess, logSkipped } from '../../../utility/message.js'
 
 export const command = ['registry <package> [<version>]']
 export const describe = 'Install a package from a registry (AKA public-repo)'
@@ -29,6 +20,14 @@ export const builder = yargs => {
       describe: 'The NAME of the package to install',
       string: true
     })
+    .options({
+      v: {
+        alias: 'verbose',
+        describe: 'Display more information',
+        boolean: true
+      }
+    }
+    )
 }
 
 export async function handler (argv) {
@@ -42,7 +41,6 @@ export async function handler (argv) {
 
   // check permissions (and therefore implicitly the connection)
   const user = await getUserInfo(db)
-  // console.log(db)
   if (!isDBAdmin(user)) {
     throw Error(`Package installation failed. User "${user.name}" is not a DB administrator.`)
   }
@@ -55,23 +53,22 @@ export async function handler (argv) {
   const isUpToDate = argv.version === installedVersion
 
   if (!force && isUpToDate) {
-    logSkipped(`Version ${installedVersion} is already installed, nothing to do.`)
+    logSkipped(`${chalk.dim(argv.package)} > ${installedVersion} is already installed`)
     console.error(chalk.yellow('If you wish to force installation use --force.'))
     return 0
   }
 
-  try {
-    const { target, version } = await install(db, {
-      publicRepoURL: registry,
-      packageName: argv.package,
-      version: argv.version
-    })
-    logSuccess(`${chalk.dim(argv.package)} > installed ${version === '' ? 'latest version' : 'version ' + version} at ${target}`)
-  } catch (e) {
-    if (verbose) console.error(e)
+  const { success, result } = await installFromRepo(db, {
+    publicRepoURL: registry,
+    packageName: argv.package,
+    version: argv.version
+  })
 
-    logFailure(`${chalk.dim(argv.package)} > could not be installed `)
+  if (!success) {
+    throw new Error(`${fail} ${chalk.dim(argv.package)} > could not be installed `)
   }
+
+  logSuccess(`${chalk.dim(argv.package)} > installed ${result.version === '' ? 'latest version' : 'version ' + result.version} at ${result.target}`)
 
   return 0
 }
