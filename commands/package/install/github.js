@@ -2,10 +2,10 @@ import { got } from 'got'
 import { valid, gt, lt, eq } from 'semver'
 import chalk from 'chalk'
 
-import { connect } from '@existdb/node-exist'
+import { connect, getRestClient } from '@existdb/node-exist'
 
 import { isDBAdmin, getServerUrl, getUserInfo } from '../../../utility/connection.js'
-import { uploadMethod, removeTemporaryCollection, getInstalledVersion } from '../../../utility/package.js'
+import { removeTemporaryCollection, getInstalledVersion, putPackage } from '../../../utility/package.js'
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 
 async function getRelease (api, owner, repo, release, assetFilter) {
@@ -49,17 +49,8 @@ async function install (db, upload, xarName, contents, registry) {
 }
 
 export const command = ['github-release <abbrev>', 'gh']
-export const describe = 'Install a XAR package from a github release'
+export const describe = 'Install a XAR package from a github release (REST only)'
 const options = {
-  rest: {
-    describe: 'force upload over REST API',
-    boolean: true
-  },
-  xmlrpc: {
-    alias: 'rpc',
-    describe: 'force upload over XML-RPC API',
-    boolean: true
-  },
   v: {
     alias: 'verbose',
     describe: 'Display more information',
@@ -114,7 +105,7 @@ export async function handler (argv) {
   // main
   const {
     abbrev, api, force, T, owner, release, registry,
-    connectionOptions, rest, xmlrpc, verbose
+    connectionOptions, verbose
   } = argv
 
   const repo = argv.repo && argv.repo !== '' ? argv.repo : abbrev
@@ -130,7 +121,10 @@ export async function handler (argv) {
     console.log(`Connected to ${getServerUrl(db)}`)
   }
 
-  const upload = await uploadMethod(db, connectionOptions, xmlrpc, rest)
+  const restClient = await getRestClient(connectionOptions)
+  // check rest connection
+  await restClient.get('db')
+  const upload = putPackage.bind(null, db, restClient)
   const tagMatcher = new RegExp(`^${T}(?<version>.+)$`)
 
   // const r = false ? new RegExp(`${asset}`) : new RegExp(`^${abbrev}.*\\.xar$`)
@@ -140,7 +134,11 @@ export async function handler (argv) {
   const installedVersion = await getInstalledVersion(db, abbrev)
 
   const { xarName, packageContents, releaseName } = await getRelease(api, owner, repo, release, assetFilter)
-  const foundVersion = tagMatcher.exec(releaseName).groups.version
+  const matchedTag = tagMatcher.exec(releaseName)
+  if (!matchedTag) {
+    throw Error(`Could not extract version from Release: "${releaseName}" with tag prefix set to "${T}"`)
+  }
+  const foundVersion = matchedTag.groups.version
   const isUpdate = valid(foundVersion) && valid(installedVersion) && gt(foundVersion, installedVersion)
   const isUpToDate = foundVersion === installedVersion || (valid(foundVersion) && valid(installedVersion) && eq(foundVersion, installedVersion))
   const isDowngrade = valid(foundVersion) && valid(installedVersion) && lt(foundVersion, installedVersion)
@@ -151,15 +149,9 @@ export async function handler (argv) {
     return 0
   }
 
-  let assetDownload
   try {
-    assetDownload = await got.get(packageContents)
-  } catch (e) {
-    throw Error(`Could not get asset from: ${e.options.url}`)
-  }
-
-  try {
-    const result = await install(db, upload, xarName, assetDownload.rawBody, registry)
+    const contentStream = got.stream.get(packageContents)
+    const result = await install(db, upload, xarName, contentStream, registry)
     let action
     if (isDowngrade) {
       action = `${chalk.yellow('downgraded')} to`
@@ -172,6 +164,9 @@ export async function handler (argv) {
     const target = verbose ? ` to ${result.target}` : ''
 
     logSuccess(`${chalk.dim(xarName)} > ${action} ${foundVersion}${target}`)
+  } catch (e) {
+    // throw Error(`Could not get asset from: ${e.options.url}`)
+    throw Error(e)
   } finally {
     await removeTemporaryCollection(db)
   }
