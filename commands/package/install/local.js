@@ -14,13 +14,13 @@ import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
  */
 
 /**
- * 
- * @param {NodeExist} db 
- * @param {Function} upload 
- * @param {String} localFilePath 
- * @param {Boolean} force 
- * @param {Boolean} verbose 
- * @returns {{success:boolean, error:string, needsForce:boolean, result:Object}} 
+ *
+ * @param {NodeExist} db
+ * @param {Function} upload
+ * @param {String} localFilePath
+ * @param {Boolean} force
+ * @param {Boolean} verbose
+ * @returns {{success:boolean, error:string, needsForce:boolean, result:Object}}
  */
 async function install (db, upload, localFilePath, force, verbose) {
   const xarDisplay = chalk.dim(localFilePath) + ' >'
@@ -146,7 +146,7 @@ export async function handler (argv) {
   if (errors.length === 1 && packages.length > 1) {
     throw Error('One package was not installed!')
   }
-  if (errors.length > 1 ) {
+  if (errors.length > 1) {
     throw Error(`${errors.length} packages were not installed!`)
   }
 
