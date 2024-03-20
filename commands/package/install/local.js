@@ -9,54 +9,71 @@ import { isDBAdmin, getServerUrl, getUserInfo } from '../../../utility/connectio
 import { uploadMethod, removeTemporaryCollection, extractPackageMeta, getInstalledVersion } from '../../../utility/package.js'
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 
+/**
+ * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
+ */
+
+/**
+ * 
+ * @param {NodeExist} db 
+ * @param {Function} upload 
+ * @param {String} localFilePath 
+ * @param {Boolean} force 
+ * @param {Boolean} verbose 
+ * @returns {{success:boolean, error:string, needsForce:boolean, result:Object}} 
+ */
 async function install (db, upload, localFilePath, force, verbose) {
+  const xarDisplay = chalk.dim(localFilePath) + ' >'
   const xarName = basename(localFilePath)
-  const contents = readFileSync(localFilePath)
-  const { version, abbrev, name } = extractPackageMeta(contents)
-  const installedVersion = await getInstalledVersion(db, name)
+  try {
+    const contents = readFileSync(localFilePath)
+    const { version, abbrev, name } = extractPackageMeta(contents)
+    const installedVersion = await getInstalledVersion(db, name)
 
-  const isUpdate = valid(version) && valid(installedVersion) && gt(version, installedVersion)
-  const isUpToDate = version === installedVersion || (valid(version) && valid(installedVersion) && eq(version, installedVersion))
-  const isDowngrade = valid(version) && valid(installedVersion) && lt(version, installedVersion)
+    const isUpdate = valid(version) && valid(installedVersion) && gt(version, installedVersion)
+    const isUpToDate = version === installedVersion || (valid(version) && valid(installedVersion) && eq(version, installedVersion))
+    const isDowngrade = valid(version) && valid(installedVersion) && lt(version, installedVersion)
 
-  const xarDisplay = chalk.dim(localFilePath)
-  const packageDisplay = `${abbrev}@${version}`
+    const packageDisplay = `${abbrev}@${version}`
 
-  if (!force && isUpToDate) {
-    logSkipped(`${xarDisplay} > ${packageDisplay} is already installed`)
-    return { success: false, needsForce: true }
-  }
+    if (!force && isUpToDate) {
+      logSkipped(`${xarDisplay} > ${packageDisplay} is already installed`)
+      return { success: false, needsForce: true }
+    }
 
-  const uploadResult = await upload(contents, xarName)
-  if (!uploadResult.success) {
-    logFailure(`${xarDisplay} > ${packageDisplay} could not be uploaded`)
-    console.error(uploadResult.error)
-    return uploadResult
-  }
+    const uploadResult = await upload(contents, xarName)
+    if (!uploadResult.success) {
+      logFailure(`${xarDisplay} > ${packageDisplay} could not be uploaded`)
+      console.error(uploadResult.error)
+      return uploadResult
+    }
 
-  const installResult = await db.app.install(xarName)
+    const installResult = await db.app.install(xarName)
 
-  if (!installResult.success) {
-    logFailure(`${xarDisplay} > ${packageDisplay} could not be installed`)
-    console.error(installResult.error)
+    if (!installResult.success) {
+      logFailure(`${xarDisplay} > ${packageDisplay} could not be installed`)
+      console.error(installResult.error)
+      return installResult
+    }
+
+    let message
+    if (isDowngrade) {
+      message = `${xarDisplay} ${chalk.yellow('downgraded')} to ${packageDisplay}`
+    } else if (isUpdate) {
+      message = `${xarDisplay} updated to ${packageDisplay}`
+    } else {
+      message = `${xarDisplay} installed ${packageDisplay}`
+    }
+
+    if (verbose) {
+      message += ` to ${installResult.result.target}`
+    }
+    logSuccess(message)
     return installResult
+  } catch (e) {
+    logFailure(`${xarDisplay} ${e.message}`)
+    return { success: false, error: e }
   }
-
-  let message
-  if (isDowngrade) {
-    message = `${xarDisplay} > ${chalk.yellow('downgraded')} to ${packageDisplay}`
-  } else if (isUpdate) {
-    message = `${xarDisplay} > updated to ${packageDisplay}`
-  } else {
-    message = `${xarDisplay} > installed ${packageDisplay}`
-  }
-
-  if (verbose) {
-    message += ` to ${installResult.result.target}`
-  }
-  logSuccess(message)
-
-  return installResult
 }
 
 export const command = ['local <packages..>', 'file-system', 'files']
@@ -118,19 +135,19 @@ export async function handler (argv) {
   // cleanup
   await removeTemporaryCollection(db)
 
-  results.forEach(r => console.error(r.error))
-
   const [showForceHint, errors] = results.reduce((prev, next) => [
     prev[0] || Boolean(next.needsForce),
     prev[1] || Boolean(next.error)
   ], [false, false])
-
   if (showForceHint) {
     console.error(chalk.yellow('If you wish to force installation use --force.'))
   }
 
-  if (errors) {
-    throw Error('Some packages were not installed!')
+  if (errors.length === 1 && packages.length > 1) {
+    throw Error('One package was not installed!')
+  }
+  if (errors.length > 1 ) {
+    throw Error(`${errors.length} packages were not installed!`)
   }
 
   return 0
