@@ -1,5 +1,5 @@
 import { test } from 'tape'
-import { run, asAdmin } from '../../test.js'
+import { run, asAdmin } from '../../../test.js'
 
 const packageCollection = '/db/pkgtmp'
 const testAppName = 'http://exist-db.org/apps/test-app'
@@ -36,33 +36,35 @@ async function noTestApp (t) {
 }
 
 test('shows help', async function (t) {
-  const { stderr, stdout } = await run('xst', ['package', 'install', '--help'])
+  const { stderr, stdout } = await run('xst', ['package', 'install', 'local', '--help'])
 
   if (stderr) { return t.fail(stderr) }
   t.ok(stdout, 'got output')
   const firstLine = stdout.split('\n')[0]
-  t.equal(firstLine, 'xst package install <packages..>', firstLine)
+  t.equal(firstLine, 'xst package install local <packages..>', firstLine)
 })
 
 test('fails when dependency is not met', async function (t) {
-  const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar'], asAdmin)
+  const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-app.xar'], asAdmin)
   if (!stderr) {
     t.fail(stdout)
     t.end()
     return
   }
 
-  t.ok(stderr.startsWith('Error: experr:EXPATH00 Failed to install dependency'), 'Error starts with expected code')
-  t.ok(stderr.match(/from https?:\/\/[^?]+\?/), 'Has repo url')
-  t.ok(stderr.includes('?name=http%3A%2F%2Fexist-db.org%2Fapps%2Ftest-lib'), 'Asks for expected dependency')
-  t.ok(stderr.match(/&processor=[^&]+&/), 'has processor')
-  t.ok(stderr.includes('&semver=1'), 'Has correct version requirement')
+  const lines = stderr.split('\n')
+  t.equals(lines[0], '✘ spec/fixtures/test-app.xar > test-app@1.0.1 could not be installed', 'Expected failure message')
+  t.ok(lines[1].startsWith('Error: experr:EXPATH00 Failed to install dependency'), 'Error starts with expected code')
+  t.ok(/from https?:\/\/[^?]+\?/.test(lines[1]), 'Has repo url')
+  t.ok(lines[1].includes('?name=http%3A%2F%2Fexist-db.org%2Fapps%2Ftest-lib'), 'Asks for expected dependency')
+  t.ok(/&processor=[^&]+&/.test(lines[1]), 'has processor')
+  t.ok(lines[1].includes('&semver=1'), 'Has correct version requirement')
   t.end()
 })
 
 test('single valid package with dependency', async function (t) {
   t.test('installs when dependeny is installed first', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-lib.xar', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-lib.xar', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -70,17 +72,22 @@ test('single valid package with dependency', async function (t) {
     }
 
     const lines = stdout.split('\n')
-    st.equal(lines[0], 'Install test-lib.xar on https://localhost:8443')
-    st.equal(lines[1], '✔︎ uploaded')
-    st.equal(lines[2], '✔︎ installed')
-    st.equal(lines[3], 'Install test-app.xar on https://localhost:8443')
-    st.equal(lines[4], '✔︎ uploaded')
-    st.equal(lines[5], '✔︎ installed')
+    st.equal(lines[0], '✔︎ spec/fixtures/test-lib.xar > installed test-lib@1.0.0', lines[0])
+    st.equal(lines[1], '✔︎ spec/fixtures/test-app.xar > installed test-app@1.0.1', lines[1])
     st.end()
   })
 
-  t.test('updates on second run', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar'], asAdmin)
+  t.test('skips installation on second run', async function (st) {
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-app.xar'], asAdmin)
+    st.ok(stderr, 'If you wish to force installation use --force.', 'Showed installation hint')
+
+    const lines = stdout.split('\n')
+    st.equal(lines[0], '- spec/fixtures/test-app.xar > test-app@1.0.1 is already installed', lines[0])
+    st.end()
+  })
+
+  t.test('installs on second run with --force', async function (st) {
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-app.xar', '--force'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -88,9 +95,7 @@ test('single valid package with dependency', async function (t) {
     }
 
     const lines = stdout.split('\n')
-    st.equal(lines[0], 'Install test-app.xar on https://localhost:8443')
-    st.equal(lines[1], '✔︎ uploaded')
-    st.equal(lines[2], '✔︎ updated')
+    st.equal(lines[0], '✔︎ spec/fixtures/test-app.xar > installed test-app@1.0.1', lines[0])
     st.end()
   })
 
@@ -105,12 +110,12 @@ test('single valid package with dependency', async function (t) {
 
 test('single broken package', async function (t) {
   t.test(async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/broken-test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/broken-test-app.xar'], asAdmin)
+    if (stdout) { return st.fail(stdout) }
 
-    const lines = stdout.split('\n')
-    st.equal(lines[0], 'Install broken-test-app.xar on https://localhost:8443')
-    st.equal(lines[1], '✔︎ uploaded')
-    st.equal(stderr, 'Error: experr:EXPATH00 Missing descriptor from package: /db/pkgtmp/broken-test-app.xar\n')
+    const lines = stderr.split('\n')
+    console.log(lines)
+    st.equal(lines[0], '✘ spec/fixtures/broken-test-app.xar > expath-pkg.xml is missing in package')
     st.end()
   })
 
@@ -119,7 +124,7 @@ test('single broken package', async function (t) {
 
 test('multiple valid packages', async function (t) {
   t.test('installed lib first', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-lib.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-lib.xar'], asAdmin)
     if (stderr) {
       console.error(stderr)
       st.fail(stderr)
@@ -129,20 +134,11 @@ test('multiple valid packages', async function (t) {
   })
 
   t.test('twice the same package', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar', 'spec/fixtures/test-app.xar'], asAdmin)
-    if (stderr) {
-      console.error(stderr)
-      st.fail(stderr)
-      return st.end()
-    }
-    console.log(stdout)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-app.xar', 'spec/fixtures/test-app.xar'], asAdmin)
     const lines = stdout.split('\n')
-    st.equal(lines[0], 'Install test-app.xar on https://localhost:8443')
-    st.equal(lines[1], '✔︎ uploaded')
-    st.equal(lines[2], '✔︎ installed')
-    st.equal(lines[3], 'Install test-app.xar on https://localhost:8443')
-    st.equal(lines[4], '✔︎ uploaded')
-    st.equal(lines[5], '✔︎ updated')
+    st.equal(lines[0], '✔︎ spec/fixtures/test-app.xar > installed test-app@1.0.1', lines[0])
+    st.equal(lines[1], '- spec/fixtures/test-app.xar > test-app@1.0.1 is already installed', lines[1])
+    st.equal(stderr, 'If you wish to force installation use --force.\n')
     st.end()
   })
   t.test('temporary collection was removed', async function (st) {
@@ -157,7 +153,7 @@ test('multiple valid packages', async function (t) {
 
 test('using rest for upload', async function (t) {
   t.test('installs lib first', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', '--rest', 'spec/fixtures/test-lib.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', '--rest', 'spec/fixtures/test-lib.xar'], asAdmin)
     if (stderr) {
       // console.error(stderr)
       st.fail(stderr)
@@ -166,7 +162,7 @@ test('using rest for upload', async function (t) {
     st.ok(stdout)
   })
   t.test('installs app', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', '--rest', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', '--rest', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stderr) {
       // console.error(stderr)
       st.fail(stderr)
@@ -180,11 +176,13 @@ test('using rest for upload', async function (t) {
 
 test('multiple packages', async function (t) {
   t.test('first is broken', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/broken-test-app.xar', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/broken-test-app.xar', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stdout) {
-      st.equal(stdout, 'Install broken-test-app.xar on https://localhost:8443\n✔︎ uploaded\n')
+      console.error(stderr)
+      st.fail(stdout)
+      st.end()
     }
-    st.equal(stderr, 'Error: experr:EXPATH00 Missing descriptor from package: /db/pkgtmp/broken-test-app.xar\n')
+    st.equal(stderr, '✘ spec/fixtures/broken-test-app.xar > expath-pkg.xml is missing in package\n')
     st.end()
   })
   t.test('temporary collection was removed', async function (st) {
@@ -199,7 +197,7 @@ test('multiple packages', async function (t) {
 
 test('multiple packages', async function (t) {
   t.test('installed lib first', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-lib.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-lib.xar'], asAdmin)
     if (stderr) {
       console.error(stderr)
       st.fail(stderr)
@@ -209,19 +207,17 @@ test('multiple packages', async function (t) {
   })
 
   t.test('second is broken', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar', 'spec/fixtures/broken-test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-app.xar', 'spec/fixtures/broken-test-app.xar'], asAdmin)
 
     const lines = stdout.split('\n')
-    st.equal(lines[0], 'Install test-app.xar on https://localhost:8443')
-    st.equal(lines[1], '✔︎ uploaded')
-    st.equal(lines[2], '✔︎ installed')
-    st.equal(lines[3], 'Install broken-test-app.xar on https://localhost:8443')
-    st.equal(lines[4], '✔︎ uploaded')
-    st.equal(stderr, 'Error: experr:EXPATH00 Missing descriptor from package: /db/pkgtmp/broken-test-app.xar\n')
+    st.equal(lines[0], '✔︎ spec/fixtures/test-app.xar > installed test-app@1.0.1')
+    st.equal(stderr, '✘ spec/fixtures/broken-test-app.xar > expath-pkg.xml is missing in package\n')
     st.end()
   })
   t.test('temporary collection was removed', async function (st) {
     const { stderr, stdout } = await run('xst', ['ls', packageCollection], asAdmin)
+    // console.log(stdout)
+    // console.log(stderr)
     if (stdout) { return st.fail(stdout) }
 
     st.equal(stderr, `Collection "${packageCollection}" not found!\n`)
