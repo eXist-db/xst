@@ -7,7 +7,7 @@ const queryInstallFromRepo = readXquery('install-from-repo.xq')
 
 export const expathPackageMeta = 'expath-pkg.xml'
 
-async function putPackage (db, restClient, content, fileName) {
+export async function putPackage (db, restClient, content, fileName) {
   const dbPath = db.app.packageCollection + '/' + fileName
   const res = await restClient.put(content, dbPath)
   return { success: res.statusCode === 201, error: res.body }
@@ -59,6 +59,7 @@ export function extractPackageMeta (contents) {
     throw Error(`${expathPackageMeta} is missing in package`)
   }
   const packageMeta = strFromU8(decompressed[expathPackageMeta])
+  console.log('----')
   const version = packageMeta.match(/<package[\s\S]*?version="(?<version>[^"]+)"/m).groups.version
   const abbrev = packageMeta.match(/<package[\s\S]*?abbrev="(?<abbrev>.*?)"/m).groups.abbrev
   const name = packageMeta.match(/<package[\s\S]*?name="(?<name>.*?)"/m).groups.name
