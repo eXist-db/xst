@@ -37,13 +37,13 @@ async function install (db, upload, localFilePath, force, verbose) {
     const packageDisplay = `${abbrev}@${version}`
 
     if (!force && isUpToDate) {
-      logSkipped(`${xarDisplay} > ${packageDisplay} is already installed`)
+      logSkipped(`${xarDisplay} ${packageDisplay} is already installed`)
       return { success: false, needsForce: true }
     }
 
     const uploadResult = await upload(contents, xarName)
     if (!uploadResult.success) {
-      logFailure(`${xarDisplay} > ${packageDisplay} could not be uploaded`)
+      logFailure(`${xarDisplay} ${packageDisplay} could not be uploaded`)
       console.error(uploadResult.error)
       return uploadResult
     }
@@ -51,7 +51,7 @@ async function install (db, upload, localFilePath, force, verbose) {
     const installResult = await db.app.install(xarName)
 
     if (!installResult.success) {
-      logFailure(`${xarDisplay} > ${packageDisplay} could not be installed`)
+      logFailure(`${xarDisplay} ${packageDisplay} could not be installed`)
       console.error(installResult.error)
       return installResult
     }
