@@ -59,7 +59,6 @@ export function extractPackageMeta (contents) {
     throw Error(`${expathPackageMeta} is missing in package`)
   }
   const packageMeta = strFromU8(decompressed[expathPackageMeta])
-  console.log('----')
   const version = packageMeta.match(/<package[\s\S]*?version="(?<version>[^"]+)"/m).groups.version
   const abbrev = packageMeta.match(/<package[\s\S]*?abbrev="(?<abbrev>.*?)"/m).groups.abbrev
   const name = packageMeta.match(/<package[\s\S]*?name="(?<name>.*?)"/m).groups.name
