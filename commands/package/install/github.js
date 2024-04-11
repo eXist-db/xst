@@ -11,22 +11,24 @@ import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 async function getRelease (api, owner, repo, release, assetFilter) {
   const tag = release === 'latest' ? release : 'tags/' + release
   const path = `repos/${owner}/${repo}/releases/${tag}`
+  let assets, name
   try {
-    const { assets, name } = await got.get(path, { prefixUrl: api }).json()
-    const f = assets.filter(assetFilter)
-    if (!f.length) {
-      throw Error('no matching asset found')
-    }
-    if (f.length > 1) {
-      throw Error('more than one matching asset found')
-    }
-    return {
-      xarName: f[0].name,
-      packageContents: f[0].browser_download_url,
-      releaseName: name
-    }
+    ({ assets, name } = await got.get(path, { prefixUrl: api }).json())
   } catch (e) {
     throw Error(`Could not get release from: ${e.options.url}`)
+  }
+  const filteredAssets = assets.filter(assetFilter)
+  if (!filteredAssets.length) {
+    throw Error('no matching asset found')
+  }
+  if (filteredAssets.length > 1) {
+    throw Error('more than one matching asset found')
+  }
+  const asset = filteredAssets[0]
+  return {
+    xarName: asset.name,
+    packageContents: asset.browser_download_url,
+    releaseName: name
   }
 }
 
