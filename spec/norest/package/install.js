@@ -17,7 +17,7 @@ async function cleanup (t) {
 
 test('package install without REST', async function (t) {
   t.test('falls back to XMLRPC, succeeds', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-lib.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-lib.xar'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -33,7 +33,7 @@ test('package install without REST', async function (t) {
   })
 
   t.test('succeeds when enforcing upload over XMLRPC', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', '--rpc', 'spec/fixtures/test-lib.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', '--rpc', 'spec/fixtures/test-lib.xar'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -48,7 +48,7 @@ test('package install without REST', async function (t) {
   })
 
   t.test('fails with enforced upload over REST', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', '--rest', 'spec/fixtures/test-lib.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', '--rest', 'spec/fixtures/test-lib.xar'], asAdmin)
 
     st.equal(stdout, 'Install test-lib.xar on https://localhost:8443\n')
 
