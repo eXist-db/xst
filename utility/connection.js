@@ -24,6 +24,11 @@ export function readConnection (argv) {
     return argv
   }
   const connectionOptions = readOptionsFromEnv()
+
+  // Apply our defaults: XST usually requires admin privileges. the guest user node_exist defaults
+  // to is usually not sufficient (and often does not exist)
+  connectionOptions.basic_auth = { user: 'admin', pass: '', ...connectionOptions.basic_auth }
+
   argv.connectionOptions = connectionOptions
   return argv
 }
