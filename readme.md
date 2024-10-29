@@ -88,7 +88,7 @@ xst list /db/apps --long --tree --color
 xst list /db/apps --long --recursive --color --glob '*.js' --sizesort
 ```
 
-#### Download a resource 
+#### Download a resource
 
 This will download the controller of the dashboard to the current working directory.
 
@@ -98,7 +98,7 @@ xst get /db/apps/dashboard/controller.xql .
 
 #### Download a collection
 
-If the target is a collection, a folder with the same name will be created at the 
+If the target is a collection, a folder with the same name will be created at the
 specified target and all of its contents will be downloaded.
 
 ```bash
@@ -108,7 +108,7 @@ xst get /db/apps/dashboard .
 The above downloads the contents of the collection `/db/apps/dashboard` into the
 `dashboard` folder in the current working directory.
 
-#### Set the permission for a resource 
+#### Set the permission for a resource
 
 This demonstrates how you can extend the current functionality by running arbitrary
 scripts. You need to connnect as a database administrator to be able to run the
@@ -165,7 +165,7 @@ configuration file. Currently three different formats are recognized.
 **Example**
 
 ```bash
-xst ls /db/apps --config spec/fixtures/.xstrc 
+xst ls /db/apps --config spec/fixtures/.xstrc
 ```
 
 #### .xstrc
@@ -194,14 +194,14 @@ it will be loaded automatically unless the --config parameter is set.
 
 ### With Environment Variables
 
-Override any of the default connection parameters by setting environment 
-variables prefixed with `EXISTDB`. In the following table you see a list of the 
+Override any of the default connection parameters by setting environment
+variables prefixed with `EXISTDB`. In the following table you see a list of the
 parameters with their default values and a description.
 
 | variable name | default | description
 |----|----|----
-| `EXISTDB_USER` | `admin` | the user used to connect to the database and to execute queries with
-| `EXISTDB_PASS` | _empty_ | the password to authenticate the user against the database
+| `EXISTDB_USER` | `guest` | the user used to connect to the database and to execute queries with
+| `EXISTDB_PASS` | `guest` | the password to authenticate the user against the database
 | `EXISTDB_SERVER` | `https://localhost:8443` | the URL of the database instance to connect to (only http and https protocols are allowed)
 
 **Example**
@@ -238,7 +238,7 @@ If you want to test or develop this package further follow the steps below
 
 ## Testing
 
-Once you followed the above steps and linked a local clone of this repository 
+Once you followed the above steps and linked a local clone of this repository
 run the testsuite with
 
 ```bash
@@ -253,7 +253,7 @@ We are happy to accept contributions from the community.
 Contributions can be just a typo in the readme or better documentation,
 as well as bugfixes and new features.
 For bugfixes and features it is best to open an issue, so that
-we can discuss your approach first. That way your PR will 
+we can discuss your approach first. That way your PR will
 be merged quickly.
 
 When committing to this project each commit message must conform
@@ -262,7 +262,7 @@ releases are automated using [semantic-release](https://semantic-release.gitbook
 
 ### commitlint
 
-If you want to check your commits while developing you can add a pre-commit-hook with 
+If you want to check your commits while developing you can add a pre-commit-hook with
 [husky](https://typicode.github.io/husky/#/).
 
 Activate husky for this project
@@ -277,7 +277,7 @@ This will add to git hooks
   committing when it encounters problems like unused variables and such.
 - **commit-msg** will run commitlint to ensure the commit message is following conventional commit
   message format
- 
+
 These are not activated by default as it prevents you from doing work-in-progress commits.
 But keep in mind, both checks will run when you open a PR, so it might be easier
-to have this checked right from the start and not having to edit your history later. 
+to have this checked right from the start and not having to edit your history later.

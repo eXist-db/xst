@@ -5,7 +5,7 @@
  *
  * EXISTDB_SERVER - URL to the exist-db you want to connect to
  * EXISTDB_USER - username of the user the queries should be executed with
- *     defaults to "admin"
+ *     defaults to "guest"
  * EXISTDB_PASS - password to authenticate EXISTDB_USER
  *     must be set for EXISTDB_USER to take effect
  */
@@ -24,6 +24,7 @@ export function readConnection (argv) {
     return argv
   }
   const connectionOptions = readOptionsFromEnv()
+
   argv.connectionOptions = connectionOptions
   return argv
 }
