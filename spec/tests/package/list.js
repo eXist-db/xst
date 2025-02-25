@@ -92,7 +92,7 @@ test.skip('sorts by type and installation date', async function (t) {
 test('with new package', async function (t) {
   let firstInstallationDate
   t.test('install extra package with dependency', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-lib.xar', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-lib.xar', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -174,17 +174,14 @@ test('with new package', async function (t) {
   })
 
   t.test('update extra package', async function (st) {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-app.xar', '-f'], asAdmin)
     if (stderr) {
       st.fail(stderr)
       st.end()
       return
     }
 
-    const lines = stdout.split('\n')
-    st.equal(lines[0], 'Install test-app.xar on https://localhost:8443')
-    st.equal(lines[1], '✔︎ uploaded')
-    st.equal(lines[2], '✔︎ updated')
+    st.equal(stdout, '✔︎ spec/fixtures/test-app.xar > installed test-app@1.0.1\n')
     st.end()
   })
 

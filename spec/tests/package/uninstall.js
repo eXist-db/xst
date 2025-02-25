@@ -37,7 +37,7 @@ async function cleanupTest (t) {
 
 async function prepare (t) {
   try {
-    const { stderr, stdout } = await run('xst', ['package', 'install', 'spec/fixtures/test-lib.xar', 'spec/fixtures/test-app.xar'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-lib.xar', 'spec/fixtures/test-app.xar'], asAdmin)
     if (stderr) { throw Error(stderr) }
     t.ok(stdout, 'packages installed')
   } catch (e) {
