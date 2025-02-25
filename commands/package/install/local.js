@@ -52,7 +52,7 @@ async function install (db, upload, localFilePath, force, verbose) {
 
     if (!installResult.success) {
       logFailure(`${xarDisplay} ${packageDisplay} could not be installed`)
-      console.error(installResult.error)
+      // console.error(installResult.error)
       return installResult
     }
 
@@ -135,19 +135,24 @@ export async function handler (argv) {
   // cleanup
   await removeTemporaryCollection(db)
 
-  const [showForceHint, errors] = results.reduce((prev, next) => [
-    prev[0] || Boolean(next.needsForce),
-    prev[1] || Boolean(next.error)
-  ], [false, false])
+  const [showForceHint, errors] = results.reduce((prev, next) => {
+    const showForceHint = prev[0] || Boolean(next.needsForce)
+    const errors = prev[1] += (next.error ? 1 : 0)
+    return [showForceHint, errors]
+  }, [false, 0])
+
   if (showForceHint) {
     console.error(chalk.yellow('If you wish to force installation use --force.'))
   }
 
-  if (errors.length === 1 && packages.length > 1) {
-    throw Error('One package was not installed!')
-  }
-  if (errors.length > 1) {
-    throw Error(`${errors.length} packages were not installed!`)
+  if (errors) {
+    let message
+    if (packages.length === 1) {
+      message = 'Package could not be installed!'
+    } else {
+      message = `${errors} of ${packages.length} packages could not be installed!`
+    }
+    throw Error(chalk.red(message))
   }
 
   return 0
