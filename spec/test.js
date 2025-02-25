@@ -12,9 +12,12 @@ export async function run (cmd, args, options) {
     proc.stderr.on('data', data => {
       stderr ? stderr += data.toString() : stderr = data.toString()
     })
-    proc.on('close', _ => resolve({ stderr, stdout }))
-    // ls.on('exit', code => reject(code))
-    proc.on('error', error => reject(error))
+    proc.on('error', error => {
+      reject(error)
+    })
+    proc.on('close', code => {
+      resolve({ stderr, stdout, code })
+    })
   })
 }
 

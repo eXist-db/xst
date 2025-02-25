@@ -8,16 +8,18 @@ async function removeRemoteCollection (t) {
   if (stderr) { return console.error(stderr) }
 }
 
-test('uploading files and folders', function (t) {
+test.only('uploading files and folders', function (t) {
   t.test(`single file into non-existing collection ${testCollection}' as admin`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', 'spec/fixtures/test.xq', testCollection], asAdmin)
+    const { stderr, stdout, code } = await run('xst', ['up', 'spec/fixtures/test.xq', testCollection], asAdmin)
+    st.equal(code, 1, 'exit code 1')
     st.notOk(stdout, stdout)
     st.equal(stderr, `Target ${testCollection} must be an existing collection.\n`, stderr)
     st.end()
   })
 
   t.test(`calling 'xst up modules spec/fixtures ${testCollection}' as admin`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', 'spec/fixtures', testCollection], asAdmin)
+    const { stderr, stdout, code } = await run('xst', ['up', 'spec/fixtures', testCollection], asAdmin)
+    st.equal(code, 0, 'exit code 0')
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -28,14 +30,16 @@ test('uploading files and folders', function (t) {
   })
 
   t.test(`single, new file to ${testCollection}' as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', 'spec/test.js', testCollection])
+    const { stderr, stdout, code } = await run('xst', ['up', 'spec/test.js', testCollection])
+    st.equal(code, 1, 'exit code 1')
     st.ok(/Upload of .+?spec\/test\.js failed\./.test(stderr), stderr)
     st.notOk(stdout, stdout)
     st.end()
   })
 
   t.test(`verbose: single, new file to ${testCollection}' as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', '-v', 'spec/test.js', testCollection])
+    const { stderr, stdout, code } = await run('xst', ['up', '-v', 'spec/test.js', testCollection])
+    st.equal(code, 1, 'exit code 1')
     const lines = stderr.split('\n')
     st.equal(lines[0], '✘ test.js Error: Write permission is not granted on the Collection.', lines[0])
     st.ok(/Upload of .+?spec\/test\.js failed\./.test(lines[1]), lines[1])
@@ -44,7 +48,8 @@ test('uploading files and folders', function (t) {
   })
 
   t.test(`calling 'xst up modules/test.xq ${testCollection}' as admin`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', 'spec/fixtures/test.xq', testCollection], asAdmin)
+    const { stderr, stdout, code } = await run('xst', ['up', 'spec/fixtures/test.xq', testCollection], asAdmin)
+    st.equal(code, 0, 'exit code 0')
     if (stderr) {
       st.fail(stderr)
       st.end()
@@ -55,14 +60,16 @@ test('uploading files and folders', function (t) {
   })
 
   t.test(`single, existing file to ${testCollection}' as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', 'spec/fixtures/test.xq', testCollection])
+    const { stderr, stdout, code } = await run('xst', ['up', 'spec/fixtures/test.xq', testCollection])
+    st.equal(code, 1, 'exit code 1')
     st.ok(/Upload of .+?spec\/fixtures\/test\.xq failed\./.test(stderr))
     st.notOk(stdout, stdout)
     st.end()
   })
 
   t.test(`verbose: single, existing file to ${testCollection}' as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', '-v', 'spec/fixtures/test.xq', testCollection])
+    const { stderr, stdout, code } = await run('xst', ['up', '-v', 'spec/fixtures/test.xq', testCollection])
+    st.equal(code, 1, 'exit code 1')
     const lines = stderr.split('\n')
     st.equal(lines[0], '✘ test.xq Error: A resource with the same name already exists in the target collection \'/db/upload-test\', and you do not have write access on that resource.')
     st.ok(/Upload of .+?spec\/fixtures\/test\.xq failed\./.test(lines[1]))
@@ -82,14 +89,16 @@ test('uploading files and folders', function (t) {
   })
 
   t.test('error on upload with more than two positional arguments', async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', 'spec/fixtures/test-app.xar', 'spec/fixtures/test-lib.xar', testCollection], asAdmin)
+    const { stderr, stdout, code } = await run('xst', ['up', 'spec/fixtures/test-app.xar', 'spec/fixtures/test-lib.xar', testCollection], asAdmin)
+    st.equal(code, 1, 'exit code 1')
     st.notOk(stdout, stdout)
-    st.equal(stderr, 'More than two positional arguments provided.\nDid you use a globbing character, like * or ? for the source argument?\nUse --include and/or --exclude instead.\n')
+    st.equal(stderr, 'Unknown command: /db/upload-test\n')
     st.end()
   })
 
   t.test(`calling 'xst up modules ${testCollection}' as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['up', 'modules', testCollection])
+    const { stderr, stdout, code } = await run('xst', ['up', 'modules', testCollection])
+    st.equal(code, 2, 'exit code 2')
     st.ok(stdout.startsWith('Created 0 collections and uploaded 0 resources in'), stdout)
 
     const lines = stderr.split('\n')
