@@ -39,17 +39,15 @@ test('package install without REST', async function (t) {
     }
 
     const lines = stdout.split('\n')
-    st.equal(lines[0], 'Install test-lib.xar on https://localhost:8443')
-    st.equal(lines[1], '✔︎ spec/fixtures/test-lib.xar > installed test-lib@1.0.0')
+    st.equal(lines[0], '✔︎ spec/fixtures/test-lib.xar > installed test-lib@1.0.0')
     st.end()
   })
 
   t.test('fails with enforced upload over REST', async function (st) {
     const { stderr, stdout } = await run('xst', ['package', 'install', 'local', '--rest', 'spec/fixtures/test-lib.xar', '-f'], asAdmin)
 
-    st.equal(stdout, 'Install test-lib.xar on https://localhost:8443\n')
-
-    st.equal(stderr, 'Response code 403 (Forbidden)\n')
+    st.notOk(stdout, 'No output on stdout')
+    st.equal(stderr, '✘ spec/fixtures/test-lib.xar > Response code 403 (Forbidden)\nPackage could not be installed!\n')
     st.end()
   })
 
