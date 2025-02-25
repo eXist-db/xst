@@ -33,7 +33,7 @@ function showExamples (scriptName) {
 ${dimWhite('Examples:')}
   ${scriptName} run 'count(//p)'
   ${scriptName} list --tree --depth 1 /db/apps
-  ${scriptName} package install ./my-package.xar
+  ${scriptName} package install local ./my-package.xar
 `)
 }
 
