@@ -315,17 +315,11 @@ export function builder (yargs) {
       type: 'boolean'
     })
     .nargs({ i: 1, e: 1 })
-    // .demandCommand(0)
-    // .strict(true)
 }
 
 export async function handler (argv) {
   if (argv.help) {
     return 0
-  }
-
-  if (argv._.length > 1) {
-    throw Error('More than two positional arguments provided.\nDid you use a globbing character, like * or ? for the source argument?\nUse --include and/or --exclude instead.')
   }
 
   const { threads, mintime, source, target } = argv
