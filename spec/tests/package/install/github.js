@@ -49,7 +49,7 @@ test('shows help', async function (st) {
   st.equal(firstLine, 'xst package install github-release <abbrev>', firstLine)
 })
 
-test.only('installing packages from github', async function (t) {
+test('installing packages from github', async function (t) {
   t.test('rejects installs when user is not admin', async function (st) {
     const { stderr, stdout } = await run('xst', [
       'package',
