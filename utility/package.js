@@ -1,3 +1,4 @@
+import { got } from 'got'
 import { unzipSync, strFromU8 } from 'fflate'
 import { getRestClient } from '@existdb/node-exist'
 import { readXquery } from './xq.js'
@@ -43,8 +44,77 @@ export async function getInstalledVersion (db, nameOrAbbrev) {
   return JSON.parse(rawResult).version
 }
 
-export async function installFromRepo (db, options) {
-  const { pages } = await db.queries.readAll(queryInstallFromRepo, { variables: options })
+async function queryRepo (params, verbose, publicRepoURL) {
+  const url = `${publicRepoURL}/find?${new URLSearchParams(params)}`
+  try {
+    if (verbose) {
+      console.log(`Resolving ${url}`)
+    }
+    const found = await got.get(url).json()
+
+    return found.name
+  } catch (err) {
+    const statusCode = err.response.statusCode
+    if (statusCode === 404) {
+      // Package not found. Can be expected because the nameOrAbbrev is actually
+      // a name put into an abbrev. this is always the case, even for a legacy
+      // server
+      return null
+    }
+
+    if (err.code === 'ERR_BODY_PARSE_FAILURE') {
+      // We are talking to an old server that does not respond with JSON. Retry with XML
+      try {
+        if (await got.get(url).text()) {
+          // We are talking with an old server _and_ we got an OK result. The name is correct!
+          if (verbose) {
+            console.log(`Resolved ${params.name} to a legacy server`)
+          }
+          return params.name
+        }
+      } catch (_) {
+        return null
+      }
+    }
+
+    throw new Error(`Could not get release from: ${url}`)
+  }
+}
+
+export async function installFromRepo (
+  db,
+  { version, nameOrAbbrev, verbose, publicRepoURL }
+) {
+  const processor = await db.server.version()
+  // TODO: first query for abbrev and get name from there. If there is no `@name`, requery with name.
+  const baseParams = {
+    processor,
+    info: true
+  }
+
+  if (version) {
+    baseParams.version = version
+  }
+
+  const paramsForAbbrev = { ...baseParams, abbrev: nameOrAbbrev }
+  let name = await queryRepo(paramsForAbbrev, verbose, publicRepoURL)
+
+  if (!name) {
+    if (verbose) {
+      console.log('Falling back to name search')
+    }
+
+    const paramsForName = { ...baseParams, name: nameOrAbbrev }
+    name = await queryRepo(paramsForName, verbose, publicRepoURL)
+  }
+
+  if (!name) {
+    return { success: false, result: 'could not be found in the registry' }
+  }
+
+  const { pages } = await db.queries.readAll(queryInstallFromRepo, {
+    variables: { version, packageName: name, verbose, publicRepoURL }
+  })
   const rawResult = pages.toString()
   return JSON.parse(rawResult)
 }
