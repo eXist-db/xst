@@ -8,7 +8,7 @@ async function removeRemoteCollection (t) {
   if (stderr) { return console.error(stderr) }
 }
 
-test.only('uploading files and folders', function (t) {
+test('uploading files and folders', function (t) {
   t.test(`single file into non-existing collection ${testCollection}' as admin`, async (st) => {
     const { stderr, stdout, code } = await run('xst', ['up', 'spec/fixtures/test.xq', testCollection], asAdmin)
     st.equal(code, 1, 'exit code 1')
