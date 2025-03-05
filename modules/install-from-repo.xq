@@ -45,7 +45,7 @@ try {
                 "version": $version,
                 "target": $installation/@target/string()
             }
-        }, 
+        },
         map { "method": "json" }
     )
 }
@@ -61,7 +61,7 @@ catch * {
                 "line": $err:line-number
                 (: "column": $err:column :)
             }
-        }, 
+        },
         map { "method": "json" }
     )
 }

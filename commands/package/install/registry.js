@@ -17,17 +17,9 @@ export const builder = yargs => {
       string: true
     })
     .positional('package', {
-      describe: 'The NAME of the package to install',
+      describe: "The package's name or its abbrev",
       string: true
     })
-    .options({
-      v: {
-        alias: 'verbose',
-        describe: 'Display more information',
-        boolean: true
-      }
-    }
-    )
 }
 
 export async function handler (argv) {
@@ -60,15 +52,18 @@ export async function handler (argv) {
 
   const { success, result } = await installFromRepo(db, {
     publicRepoURL: registry,
-    packageName: argv.package,
-    version: argv.version
+    nameOrAbbrev: argv.package,
+    version: argv.version,
+    verbose
   })
 
   if (!success) {
-    throw new Error(`${fail} ${chalk.dim(argv.package)} > could not be installed `)
+    throw new Error(`${fail} ${chalk.dim(argv.package)} > ${result}`)
   }
 
-  logSuccess(`${chalk.dim(argv.package)} > installed ${result.version === '' ? 'latest version' : 'version ' + result.version} at ${result.target}`)
+  logSuccess(
+    `${chalk.dim(argv.package)} > installed ${result.version === '' ? 'latest version' : 'version ' + result.version} at ${result.target}`
+  )
 
   return 0
 }
