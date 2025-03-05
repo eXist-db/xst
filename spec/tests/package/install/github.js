@@ -148,7 +148,7 @@ test('installing packages from github', async function (t) {
       )
       st.equal(
         stderr,
-        'Could not get release from: https://api.github.com/repos/eXist-db/Nonsense/releases/latest\n',
+        'Could not get release from: https://api.github.com/repos/eXist-db/Nonsense/releases/latest. 404: Not Found\n',
         'There should have been errors'
       )
 
