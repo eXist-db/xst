@@ -5,8 +5,17 @@ import chalk from 'chalk'
 
 import { connect } from '@existdb/node-exist'
 
-import { isDBAdmin, getServerUrl, getUserInfo } from '../../../utility/connection.js'
-import { uploadMethod, removeTemporaryCollection, extractPackageMeta, getInstalledVersion } from '../../../utility/package.js'
+import {
+  isDBAdmin,
+  getServerUrl,
+  getUserInfo
+} from '../../../utility/connection.js'
+import {
+  uploadMethod,
+  removeTemporaryCollection,
+  extractPackageMeta,
+  getInstalledVersion
+} from '../../../utility/package.js'
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 
 /**
@@ -20,7 +29,7 @@ import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
  * @param {String} localFilePath
  * @param {Boolean} force
  * @param {Boolean} verbose
- * @returns {{success:boolean, error:string, needsForce:boolean, result:Object}}
+ * @returns {Promise<{success:boolean, error:string, needsForce:boolean, result:Object}>}
  */
 async function install (db, upload, localFilePath, force, verbose) {
   const xarDisplay = chalk.dim(localFilePath) + ' >'
@@ -30,9 +39,15 @@ async function install (db, upload, localFilePath, force, verbose) {
     const { version, abbrev, name } = extractPackageMeta(contents)
     const installedVersion = await getInstalledVersion(db, name)
 
-    const isUpdate = valid(version) && valid(installedVersion) && gt(version, installedVersion)
-    const isUpToDate = version === installedVersion || (valid(version) && valid(installedVersion) && eq(version, installedVersion))
-    const isDowngrade = valid(version) && valid(installedVersion) && lt(version, installedVersion)
+    const isUpdate =
+      valid(version) && valid(installedVersion) && gt(version, installedVersion)
+    const isUpToDate =
+      version === installedVersion ||
+      (valid(version) &&
+        valid(installedVersion) &&
+        eq(version, installedVersion))
+    const isDowngrade =
+      valid(version) && valid(installedVersion) && lt(version, installedVersion)
 
     const packageDisplay = `${abbrev}@${version}`
 
@@ -52,7 +67,9 @@ async function install (db, upload, localFilePath, force, verbose) {
 
     if (!installResult.success) {
       logFailure(`${xarDisplay} ${packageDisplay} could not be installed`)
-      // console.error(installResult.error)
+      if (verbose) {
+        console.log(installResult.error)
+      }
       return installResult
     }
 
@@ -90,9 +107,8 @@ const options = {
   }
 }
 
-export const builder = yargs => {
-  return yargs.options(options)
-    .conflicts('xmlrpc', 'rest')
+export const builder = (yargs) => {
+  return yargs.options(options).conflicts('xmlrpc', 'rest')
 }
 
 export async function handler (argv) {
@@ -102,9 +118,11 @@ export async function handler (argv) {
 
   // main
   const { packages, connectionOptions, rest, xmlrpc, force, verbose } = argv
-  packages.forEach(packagePath => {
+  packages.forEach((packagePath) => {
     if (!packagePath.match(/\.xar$/i)) {
-      throw Error('Packages must have the file extension .xar! Got: "' + packagePath + '"')
+      throw Error(
+        'Packages must have the file extension .xar! Got: "' + packagePath + '"'
+      )
     }
   })
 
@@ -113,7 +131,9 @@ export async function handler (argv) {
   // check permissions (and therefore implicitly the connection)
   const user = await getUserInfo(db)
   if (!isDBAdmin(user)) {
-    throw Error(`Package installation failed. User "${user.name}" is not a DB administrator.`)
+    throw Error(
+      `Package installation failed. User "${user.name}" is not a DB administrator.`
+    )
   }
 
   if (verbose) {
@@ -130,14 +150,19 @@ export async function handler (argv) {
   // cleanup
   await removeTemporaryCollection(db)
 
-  const [showForceHint, errors] = results.reduce((prev, next) => {
-    const showForceHint = prev[0] || Boolean(next.needsForce)
-    const errors = prev[1] += (next.error ? 1 : 0)
-    return [showForceHint, errors]
-  }, [false, 0])
+  const [showForceHint, errors] = results.reduce(
+    (prev, next) => {
+      const showForceHint = prev[0] || Boolean(next.needsForce)
+      const errors = (prev[1] += next.error ? 1 : 0)
+      return [showForceHint, errors]
+    },
+    [false, 0]
+  )
 
   if (showForceHint) {
-    console.error(chalk.yellow('If you wish to force installation use --force.'))
+    console.error(
+      chalk.yellow('If you wish to force installation use --force.')
+    )
   }
 
   if (errors) {

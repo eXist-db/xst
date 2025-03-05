@@ -10,6 +10,7 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         node-version: [18, 20, 22]
@@ -22,10 +23,28 @@ jobs:
           - 8443:8443
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: xst
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci --no-optional
+        working-directory: xst
       - run: npm link
+        working-directory: xst
+      - name: Checkout public-repo locally
+        uses: actions/checkout@v4
+        with:
+          repository: eXist-db/public-repo
+          path: public-repo
+      - name: Install public-repo locally
+        # Do not attempt to install the local public repo on Exist-DB 4 or 5. It won't work
+        if:  matrix.exist-version != '4.10.0' && matrix.exist-version != '5.4.1'
+        run: |
+          cd public-repo
+          sed -e 's/@project.name@/public-repo/g' expath-pkg.xml.tmpl  -e 's/@project.version@/development/g'> expath-pkg.xml
+          zip -0r public-repo.xar .
+          EXISTDB_USER=admin EXISTDB_PASS='' xst package install local public-repo.xar --verbose
       - run: npm test
+        working-directory: xst

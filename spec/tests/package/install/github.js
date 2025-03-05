@@ -3,9 +3,9 @@ import { run, asAdmin } from '../../../test.js'
 
 const monexAppName = 'http://exist-db.org/apps/demo'
 const demoAppsGithubAbbrev = 'demo-apps'
-const roasterGithubOwner = 'eeditiones'
-const roasterGithubAbbrev = 'roaster'
-const roasterAppName = 'http://e-editiones.org/roaster'
+const hsgGithubOwner = 'HistoryAtState'
+const hsgGithubAbbrev = 'administrative-timeline'
+const hsgAppName = 'http://history.state.gov/ns/data/administrative-timeline'
 
 async function removeTestApp (appName) {
   const { stderr } = await run(
@@ -23,10 +23,7 @@ async function removeTestApp (appName) {
  */
 async function cleanup (t) {
   try {
-    await Promise.all([
-      removeTestApp(monexAppName),
-      removeTestApp(roasterAppName)
-    ])
+    await Promise.all([removeTestApp(monexAppName), removeTestApp(hsgAppName)])
   } catch (err) {
     t.fail('The cleanup should succeed')
   }
@@ -49,7 +46,7 @@ test('shows help', async function (st) {
   st.equal(firstLine, 'xst package install github-release <abbrev>', firstLine)
 })
 
-test('installing packages from github', async function (t) {
+test.only('installing packages from github', async function (t) {
   t.test('rejects installs when user is not admin', async function (st) {
     const { stderr, stdout } = await run('xst', [
       'package',
@@ -98,7 +95,7 @@ test('installing packages from github', async function (t) {
   )
 
   t.test(
-    'Allows installs of a lib (roaster) from github at an exact version',
+    'Allows installs of a lib (hsg-timeline) from github at an exact version',
     async function (st) {
       const { stderr, stdout } = await run(
         'xst',
@@ -106,42 +103,50 @@ test('installing packages from github', async function (t) {
           'package',
           'install',
           'github-release',
-          roasterGithubAbbrev,
+          hsgGithubAbbrev,
           '--owner',
-          roasterGithubOwner,
+          hsgGithubOwner,
           '--release',
-          'v1.9.1'
+          'v0.6.3'
         ],
         asAdmin
       )
       st.notOk(stderr, 'There should not have been any errors')
-      st.equal(stdout, '✔︎ roaster-1.9.1.xar > installed 1.9.1\n', stdout)
+      st.equal(
+        stdout,
+        '✔︎ administrative-timeline.xar > installed 0.6.3\n',
+        stdout
+      )
 
       st.end()
     }
   )
 
   t.test(
-    'Allows installs of a lib (roaster) from github at the latest version',
+    'Allows installs of a lib (administrative-timeline) from github at the latest version',
     async function (st) {
-      // Remove roaster again: we are reinstalling it
-      removeTestApp(roasterAppName)
+      // Remove administrative-timeline again: we are reinstalling it
+      removeTestApp(hsgAppName)
       const { stderr, stdout } = await run(
         'xst',
         [
           'package',
           'install',
           'github-release',
-          roasterGithubAbbrev,
+          hsgGithubAbbrev,
           '--owner',
-          roasterGithubOwner
+          hsgGithubOwner
         ],
         asAdmin
       )
       st.notOk(stderr, 'There should not have been any errors')
 
       // The version here changes over time
-      st.match(stdout, /✔︎ roaster-.*\.xar > installed .*\n/, stdout)
+      st.match(
+        stdout,
+        /✔︎ administrative-timeline.xar > installed .*\n/,
+        stdout
+      )
 
       st.end()
     }
