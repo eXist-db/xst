@@ -19,7 +19,14 @@ import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 async function getRelease (api, owner, repo, release, assetFilter, verbose) {
   const tag = release === 'latest' ? release : 'tags/' + release
   const path = `repos/${owner}/${repo}/releases/${tag}`
-  let assets, name
+  /**
+   * @type {unknown[]}
+   */
+  let assets
+  /**
+   * @type {string}
+   */
+  let name
   try {
     const result = await got.get(path, { prefixUrl: api }).json()
     // The name is not always filled in. Fall back to the tag name if it is absent
@@ -27,10 +34,15 @@ async function getRelease (api, owner, repo, release, assetFilter, verbose) {
     assets = result.assets
   } catch (e) {
     throw Error(
-      `Could not get release from: ${e.options.url}. ${e.response.statusCode}: ${e.response.statusMessage}`
+      `Could not get release from: ${e.options.url} ${e.response.statusCode}: ${e.response.statusMessage}`
     )
   }
   const filteredAssets = assets.filter(assetFilter)
+  if (verbose) {
+    console.log(
+      `Found ${assets.length} assets: "${assets.map((asset) => asset.name).join(', ')}"`
+    )
+  }
   if (!filteredAssets.length) {
     throw Error('no matching asset found')
   }
@@ -120,7 +132,8 @@ export async function handler (argv) {
     release,
     registry,
     connectionOptions,
-    verbose
+    verbose,
+    A
   } = argv
 
   const repo = argv.repo && argv.repo !== '' ? argv.repo : abbrev
@@ -144,8 +157,7 @@ export async function handler (argv) {
   const upload = putPackage.bind(null, db, restClient)
   const tagMatcher = new RegExp(`^${T}(?<version>.+)$`)
 
-  // const r = false ? new RegExp(`${asset}`) : new RegExp(`^${abbrev}.*\\.xar$`)
-  const assetMatcher = new RegExp(`^${abbrev}.*\\.xar$`)
+  const assetMatcher = A ? new RegExp(A) : new RegExp(`^${abbrev}.*\\.xar$`)
   const assetFilter = (asset) => {
     return assetMatcher.test(asset.name)
   }
