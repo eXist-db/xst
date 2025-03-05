@@ -2,7 +2,7 @@ name: Test
 
 on: [push, pull_request]
 
-# Tests cannot run on windows due to issues with the windows server 2019 images 
+# Tests cannot run on windows due to issues with the windows server 2019 images
 # the github action runners are using not being able to run linux docker images
 # https://github.com/actions/virtual-environments/issues/1143
 
@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node-version: [14, 16, 18]
+        node-version: [18, 20, 22]
         exist-version: [latest, release, 5.4.1, 4.10.0]
     services:
       exist:
