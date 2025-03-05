@@ -1,7 +1,7 @@
+import { got } from 'got'
 import { readFile } from 'fs/promises'
-import { test } from 'tape'
+import test from 'tape'
 import { run, asAdmin } from '../../../test.js'
-import assert from 'assert'
 
 const testAppName = 'http://exist-db.org/apps/test-app'
 const testLibName = 'http://exist-db.org/apps/test-lib'
@@ -33,7 +33,19 @@ async function cleanup (t) {
   await removeTestlib(t)
 }
 
-async function installPackageToLocalRepo () {
+async function isLocalRepoAvailable () {
+  return (
+    await got.get('http://localhost:8080/exist/apps/public-repo', {
+      throwHttpErrors: false
+    })
+  ).ok
+}
+
+/**
+ * @param {test.Test} t
+ *
+ */
+async function installPackageToLocalRepo (t) {
   for (const app of ['test-app.xar', 'test-lib.xar']) {
     const formData = new FormData()
     const file = await readFile(`spec/fixtures/${app}`)
@@ -42,20 +54,17 @@ async function installPackageToLocalRepo () {
     formData.append('', '\\')
 
     // TODO: Read in localhost
-    const result = await fetch(
+    const result = await got.post(
       'http://localhost:8080/exist/apps/public-repo/publish',
       {
         headers: {
           Authorization: `Basic ${Buffer.from('repo:repo').toString('base64')}`
         },
-        body: formData,
-        method: 'post'
+        body: formData
       }
     )
 
-    console.log(result.statusText)
-
-    assert.ok(result.ok, 'The install should have worked')
+    t.ok(result.ok, `The install of ${app} should have worked`)
   }
 }
 
@@ -81,7 +90,12 @@ test('shows help', async function (st) {
 })
 
 test('Work with a local public registry', async function (t) {
-  await installPackageToLocalRepo()
+  if (!(await isLocalRepoAvailable())) {
+    t.skip()
+    return
+  }
+
+  await installPackageToLocalRepo(t)
 
   t.test('rejects installs when user is not admin', async function (st) {
     const { stderr, stdout } = await run('xst', [
