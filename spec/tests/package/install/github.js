@@ -1,8 +1,8 @@
 import test from 'tape'
 import { run, asAdmin } from '../../../test.js'
 
-const monexAppName = 'http://exist-db.org/apps/monex'
-const monexGithubAbbrev = 'monex'
+const monexAppName = 'http://exist-db.org/apps/demo'
+const demoAppsGithubAbbrev = 'demo-apps'
 const roasterGithubOwner = 'eeditiones'
 const roasterGithubAbbrev = 'roaster'
 const roasterAppName = 'http://e-editiones.org/roaster'
@@ -14,7 +14,7 @@ async function removeTestApp (appName) {
     asAdmin
   )
   if (stderr) {
-    console.error(stderr)
+    console.error(`Error removing ${appName}`, stderr)
   }
 }
 
@@ -55,9 +55,12 @@ test('installing packages from github', async function (t) {
       'package',
       'install',
       'github-release',
-      monexGithubAbbrev,
-      '--tag-prefix',
-      '""'
+      demoAppsGithubAbbrev,
+      '--release',
+      'v0.4.3',
+      // The only asset for demo-apps is a xar, which is named `demo.xar`.
+      '--asset-pattern',
+      '.*'
     ])
     st.equal(
       stderr,
@@ -69,24 +72,30 @@ test('installing packages from github', async function (t) {
     st.end()
   })
 
-  t.test('Allows installs of a repo (monex) from github', async function (st) {
-    const { stderr, stdout } = await run(
-      'xst',
-      [
-        'package',
-        'install',
-        'github-release',
-        monexGithubAbbrev,
-        '--tag-prefix',
-        ''
-      ],
-      asAdmin
-    )
-    st.notOk(stderr)
-    st.ok(stdout)
+  t.test(
+    'Allows installs of a repo (demo-apps) from github',
+    async function (st) {
+      const { stderr, stdout } = await run(
+        'xst',
+        [
+          'package',
+          'install',
+          'github-release',
+          demoAppsGithubAbbrev,
+          '--release',
+          'v0.4.3',
+          // The only asset for demo-apps is a xar, which is named `demo.xar`.
+          '--asset-pattern',
+          '.*'
+        ],
+        asAdmin
+      )
+      st.notOk(stderr)
+      st.ok(stdout)
 
-    st.end()
-  })
+      st.end()
+    }
+  )
 
   t.test(
     'Allows installs of a lib (roaster) from github at an exact version',
@@ -148,7 +157,7 @@ test('installing packages from github', async function (t) {
       )
       st.equal(
         stderr,
-        'Could not get release from: https://api.github.com/repos/eXist-db/Nonsense/releases/latest. 404: Not Found\n',
+        'Could not get release from: https://api.github.com/repos/eXist-db/Nonsense/releases/latest 404: Not Found\n',
         'There should have been errors'
       )
 
@@ -168,15 +177,15 @@ test('installing packages from github', async function (t) {
           'package',
           'install',
           'github-release',
-          'monex',
+          demoAppsGithubAbbrev,
           '--asset-pattern',
-          '*.nonsense'
+          'nonsense'
         ],
         asAdmin
       )
       st.equal(
         stderr,
-        'Could not extract version from Release: "undefined" with tag prefix set to "v"\n',
+        'no matching asset found\n',
         'There should have been errors'
       )
 
