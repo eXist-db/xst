@@ -4,18 +4,31 @@ import chalk from 'chalk'
 
 import { connect, getRestClient } from '@existdb/node-exist'
 
-import { isDBAdmin, getServerUrl, getUserInfo } from '../../../utility/connection.js'
-import { removeTemporaryCollection, getInstalledVersion, putPackage } from '../../../utility/package.js'
+import {
+  isDBAdmin,
+  getServerUrl,
+  getUserInfo
+} from '../../../utility/connection.js'
+import {
+  removeTemporaryCollection,
+  getInstalledVersion,
+  putPackage
+} from '../../../utility/package.js'
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 
-async function getRelease (api, owner, repo, release, assetFilter) {
+async function getRelease (api, owner, repo, release, assetFilter, verbose) {
   const tag = release === 'latest' ? release : 'tags/' + release
   const path = `repos/${owner}/${repo}/releases/${tag}`
   let assets, name
   try {
-    ({ assets, name } = await got.get(path, { prefixUrl: api }).json())
+    const result = await got.get(path, { prefixUrl: api }).json()
+    // The name is not always filled in. Fall back to the tag name if it is absent
+    name = result.name || result.tagName
+    assets = result.assets
   } catch (e) {
-    throw Error(`Could not get release from: ${e.options.url}`)
+    throw Error(
+      `Could not get release from: ${e.options.url}. ${e.response.statusCode}: ${e.response.statusMessage}`
+    )
   }
   const filteredAssets = assets.filter(assetFilter)
   if (!filteredAssets.length) {
@@ -51,13 +64,9 @@ async function install (db, upload, xarName, contents, registry) {
 }
 
 export const command = ['github-release <abbrev>', 'gh']
-export const describe = 'Install a XAR package from a github release (REST only)'
+export const describe =
+  'Install a XAR package from a github release (REST only)'
 const options = {
-  v: {
-    alias: 'verbose',
-    describe: 'Display more information',
-    boolean: true
-  },
   release: {
     describe: 'Install a specific release',
     default: 'latest',
@@ -79,24 +88,21 @@ const options = {
   },
   A: {
     alias: 'asset-pattern',
-    // eslint-disable-next-line no-template-curly-in-string
-    describe: 'Pattern to match the package file. Defaults to /^${abbrev}.*?\\.xar$/'
+    describe:
+      // eslint-disable-next-line no-template-curly-in-string
+      'Pattern to match the package file. Defaults to /^${abbrev}.*?\\.xar$/'
   },
   T: {
     alias: 'tag-prefix',
-    describe: 'How to read the version from the associated git-tag. Default is "v"',
+    describe:
+      'How to read the version from the associated git-tag. Default is "v"',
     default: 'v',
     string: true
-  },
-  debug: {
-    boolean: true,
-    default: false
   }
 }
 
-export const builder = yargs => {
-  return yargs.options(options)
-    .conflicts('xmlrpc', 'rest')
+export const builder = (yargs) => {
+  return yargs.options(options).conflicts('xmlrpc', 'rest')
 }
 
 export async function handler (argv) {
@@ -106,8 +112,15 @@ export async function handler (argv) {
 
   // main
   const {
-    abbrev, api, force, T, owner, release, registry,
-    connectionOptions, verbose
+    abbrev,
+    api,
+    force,
+    T,
+    owner,
+    release,
+    registry,
+    connectionOptions,
+    verbose
   } = argv
 
   const repo = argv.repo && argv.repo !== '' ? argv.repo : abbrev
@@ -116,7 +129,9 @@ export async function handler (argv) {
   // check permissions (and therefore implicitly the connection)
   const user = await getUserInfo(db)
   if (!isDBAdmin(user)) {
-    throw Error(`Package installation failed. User "${user.name}" is not a DB administrator.`)
+    throw Error(
+      `Package installation failed. User "${user.name}" is not a DB administrator.`
+    )
   }
 
   if (verbose) {
@@ -131,23 +146,56 @@ export async function handler (argv) {
 
   // const r = false ? new RegExp(`${asset}`) : new RegExp(`^${abbrev}.*\\.xar$`)
   const assetMatcher = new RegExp(`^${abbrev}.*\\.xar$`)
-  const assetFilter = asset => { return assetMatcher.test(asset.name) }
+  const assetFilter = (asset) => {
+    return assetMatcher.test(asset.name)
+  }
 
   const installedVersion = await getInstalledVersion(db, abbrev)
 
-  const { xarName, packageContents, releaseName } = await getRelease(api, owner, repo, release, assetFilter)
+  if (verbose) {
+    console.log(`Preparing to install ${owner}/${repo} at version ${release}`)
+  }
+  const { xarName, packageContents, releaseName } = await getRelease(
+    api,
+    owner,
+    repo,
+    release,
+    assetFilter,
+    verbose
+  )
+  if (verbose) {
+    console.log(
+      `Resolved the version to release name "${releaseName}", ${xarName}`
+    )
+  }
   const matchedTag = tagMatcher.exec(releaseName)
   if (!matchedTag) {
-    throw Error(`Could not extract version from Release: "${releaseName}" with tag prefix set to "${T}"`)
+    throw Error(
+      `Could not extract version from Release: "${releaseName}" with tag prefix set to "${T}"`
+    )
   }
   const foundVersion = matchedTag.groups.version
-  const isUpdate = valid(foundVersion) && valid(installedVersion) && gt(foundVersion, installedVersion)
-  const isUpToDate = foundVersion === installedVersion || (valid(foundVersion) && valid(installedVersion) && eq(foundVersion, installedVersion))
-  const isDowngrade = valid(foundVersion) && valid(installedVersion) && lt(foundVersion, installedVersion)
+  const isUpdate =
+    valid(foundVersion) &&
+    valid(installedVersion) &&
+    gt(foundVersion, installedVersion)
+  const isUpToDate =
+    foundVersion === installedVersion ||
+    (valid(foundVersion) &&
+      valid(installedVersion) &&
+      eq(foundVersion, installedVersion))
+  const isDowngrade =
+    valid(foundVersion) &&
+    valid(installedVersion) &&
+    lt(foundVersion, installedVersion)
 
   if (!force && isUpToDate) {
-    logSkipped(`Version ${installedVersion} is already installed, nothing to do.`)
-    console.error(chalk.yellow('If you wish to force installation use --force.'))
+    logSkipped(
+      `Version ${installedVersion} is already installed, nothing to do.`
+    )
+    console.error(
+      chalk.yellow('If you wish to force installation use --force.')
+    )
     return 0
   }
 
