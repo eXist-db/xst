@@ -87,11 +87,6 @@ const options = {
     alias: 'rpc',
     describe: 'force upload over XML-RPC API',
     boolean: true
-  },
-  v: {
-    alias: 'verbose',
-    describe: 'Display more information',
-    boolean: true
   }
 }
 
