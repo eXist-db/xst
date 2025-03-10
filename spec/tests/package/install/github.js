@@ -46,7 +46,7 @@ test('shows help', async function (st) {
   st.equal(firstLine, 'xst package install github-release <abbrev>', firstLine)
 })
 
-test.only('installing packages from github', async function (t) {
+test('installing packages from github', async function (t) {
   t.test('rejects installs when user is not admin', async function (st) {
     const { stderr, stdout } = await run('xst', [
       'package',
@@ -126,7 +126,7 @@ test.only('installing packages from github', async function (t) {
     'Allows installs of a lib (administrative-timeline) from github at the latest version',
     async function (st) {
       // Remove administrative-timeline again: we are reinstalling it
-      removeTestApp(hsgAppName)
+      await removeTestApp(hsgAppName)
       const { stderr, stdout } = await run(
         'xst',
         [
