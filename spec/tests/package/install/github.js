@@ -122,6 +122,117 @@ test('installing packages from github', async function (t) {
     }
   )
 
+  t.test('Allows downgrading packages', async function (st) {
+    const { stderr, stdout, code } = await run(
+      'xst',
+      [
+        'package',
+        'install',
+        'github-release',
+        hsgGithubAbbrev,
+        '--owner',
+        hsgGithubOwner,
+        '--release',
+        'v0.6.2'
+      ],
+      asAdmin
+    )
+
+    st.equal(code, 0, 'The code should indicate success')
+    st.notOk(stderr, 'There should not have been any errors')
+
+    st.equal(
+      stdout,
+      '✔︎ administrative-timeline.xar > downgraded to 0.6.2\n',
+      stdout
+    )
+  })
+
+  t.test('Allows upgrading packages', async function (st) {
+    const { stderr, stdout, code } = await run(
+      'xst',
+      [
+        'package',
+        'install',
+        'github-release',
+        hsgGithubAbbrev,
+        '--owner',
+        hsgGithubOwner,
+        '--release',
+        'v0.6.3'
+      ],
+      asAdmin
+    )
+
+    st.equal(code, 0, 'The code should indicate success')
+    st.notOk(stderr, 'There should not have been any errors')
+
+    st.equal(
+      stdout,
+      '✔︎ administrative-timeline.xar > updated to 0.6.3\n',
+      stdout
+    )
+  })
+
+  t.test('Allows reinstalling packages', async function (st) {
+    {
+      const { stderr, stdout, code } = await run(
+        'xst',
+        [
+          'package',
+          'install',
+          'github-release',
+          hsgGithubAbbrev,
+          '--owner',
+          hsgGithubOwner,
+          '--release',
+          'v0.6.3'
+        ],
+        asAdmin
+      )
+
+      st.equal(
+        stderr,
+        'If you wish to force installation use --force.\n',
+        stderr
+      )
+      st.equal(
+        stdout,
+        '- Version 0.6.3 is already installed, nothing to do.\n',
+        stdout
+      )
+
+      st.equal(code, 0, 'The code should indicate success')
+    }
+    // Attempt 2: now with force
+    {
+      const { stderr, stdout, code } = await run(
+        'xst',
+        [
+          'package',
+          'install',
+          'github-release',
+          hsgGithubAbbrev,
+          '--owner',
+          hsgGithubOwner,
+          '--release',
+          'v0.6.3',
+          '--force'
+        ],
+        asAdmin
+      )
+
+      st.equal(code, 0, 'The code should indicate success')
+      st.notOk(stderr, 'There should not have been any errors')
+
+      st.equal(
+        stdout,
+        '✔︎ administrative-timeline.xar > installed 0.6.3\n',
+        stdout
+      )
+    }
+  })
+
   t.test(
     'Allows installs of a lib (administrative-timeline) from github at the latest version',
     async function (st) {
