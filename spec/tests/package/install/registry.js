@@ -190,8 +190,6 @@ test('Work with a local public registry', async function (t) {
     st.end()
   })
 
-  // tODO: install public repo on an older version. Then run some tests!
-
   t.test(
     'rejects installation when the package is already installed under the same version. depends on previous test',
     async function (st) {
@@ -203,9 +201,8 @@ test('Work with a local public registry', async function (t) {
           'registry',
           '--registry',
           'http://localhost:8080/exist/apps/public-repo',
-          '--version',
-          '1.0.1',
-          testAppName
+          testAppName,
+          '1.0.1'
         ],
         asAdmin
       )
@@ -221,6 +218,35 @@ test('Work with a local public registry', async function (t) {
     }
   )
 
+  t.test('Allows reinstalls with force flag passed', async function (st) {
+    const { stderr, stdout } = await run(
+      'xst',
+      [
+        'package',
+        'install',
+        'registry',
+        '--registry',
+        'http://localhost:8080/exist/apps/public-repo',
+        testAppName,
+        '1.0.1',
+        '--force'
+      ],
+      asAdmin
+    )
+    st.notOk(stderr, 'The install should have succeeded')
+
+    // TODO: why is this the URI?
+    const lines = stdout.split('\n')
+    st.equal(
+      lines[0],
+      '✔︎ http://exist-db.org/apps/test-app > installed version 1.0.1 at /db/apps/test-app',
+      lines[0]
+    )
+    st.notOk(lines[1])
+
+    st.end()
+  })
+
   t.test(
     'rejects installation when the package is not available under the requested version',
     async function (st) {
@@ -232,9 +258,8 @@ test('Work with a local public registry', async function (t) {
           'registry',
           '--registry',
           'http://localhost:8080/exist/apps/public-repo',
-          '--version',
-          '10.98.2',
-          testAppName
+          testAppName,
+          '10.98.2'
         ],
         asAdmin
       )
