@@ -11,7 +11,7 @@ export const expathPackageMeta = 'expath-pkg.xml'
 export async function putPackage (db, restClient, content, fileName) {
   const dbPath = db.app.packageCollection + '/' + fileName
   const res = await restClient.put(content, dbPath)
-  return { success: res.statusCode === 201, error: res.body }
+  return { success: res.statusCode === 201, result: res.body }
 }
 
 export async function uploadMethod (db, connectionOptions, xmlrpc, rest) {
@@ -39,7 +39,9 @@ export async function removeTemporaryCollection (db) {
 }
 
 export async function getInstalledVersion (db, nameOrAbbrev) {
-  const { pages } = await db.queries.readAll(queryVersion, { variables: { 'name-or-abbrev': nameOrAbbrev } })
+  const { pages } = await db.queries.readAll(queryVersion, {
+    variables: { 'name-or-abbrev': nameOrAbbrev }
+  })
   const rawResult = pages.toString()
   return JSON.parse(rawResult).version
 }
@@ -97,7 +99,12 @@ export async function installFromRepo (
   }
 
   const paramsForAbbrev = { ...baseParams, abbrev: nameOrAbbrev }
-  let name = await queryRepo(paramsForAbbrev, verbose, publicRepoURL)
+  let name
+  try {
+    name = await queryRepo(paramsForAbbrev, verbose, publicRepoURL)
+  } catch (e) {
+    return { success: false, result: e }
+  }
 
   if (!name) {
     if (verbose) {
@@ -105,7 +112,11 @@ export async function installFromRepo (
     }
 
     const paramsForName = { ...baseParams, name: nameOrAbbrev }
-    name = await queryRepo(paramsForName, verbose, publicRepoURL)
+    try {
+      name = await queryRepo(paramsForName, verbose, publicRepoURL)
+    } catch (e) {
+      return { success: false, result: e }
+    }
   }
 
   if (!name) {
@@ -129,8 +140,12 @@ export function extractPackageMeta (contents) {
     throw Error(`${expathPackageMeta} is missing in package`)
   }
   const packageMeta = strFromU8(decompressed[expathPackageMeta])
-  const version = packageMeta.match(/<package[\s\S]*?version="(?<version>[^"]+)"/m).groups.version
-  const abbrev = packageMeta.match(/<package[\s\S]*?abbrev="(?<abbrev>.*?)"/m).groups.abbrev
-  const name = packageMeta.match(/<package[\s\S]*?name="(?<name>.*?)"/m).groups.name
+  const version = packageMeta.match(
+    /<package[\s\S]*?version="(?<version>[^"]+)"/m
+  ).groups.version
+  const abbrev = packageMeta.match(/<package[\s\S]*?abbrev="(?<abbrev>.*?)"/m)
+    .groups.abbrev
+  const name = packageMeta.match(/<package[\s\S]*?name="(?<name>.*?)"/m).groups
+    .name
   return { version, abbrev, name }
 }
