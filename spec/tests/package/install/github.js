@@ -23,7 +23,8 @@ async function removeTestApp (appName) {
  */
 async function cleanup (t) {
   try {
-    await Promise.all([removeTestApp(monexAppName), removeTestApp(hsgAppName)])
+    await removeTestApp(monexAppName)
+    await removeTestApp(hsgAppName)
   } catch (err) {
     t.fail('The cleanup should succeed')
   }
