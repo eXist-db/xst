@@ -62,6 +62,28 @@ test('fails when dependency is not met', async function (t) {
   t.end()
 })
 
+test('is the default method of installing', async function (t) {
+  const { stderr, stdout } = await run(
+    'xst',
+    ['package', 'install', 'spec/fixtures/test-lib.xar'],
+    asAdmin
+  )
+  if (stderr) {
+    t.fail(stderr)
+    t.end()
+    return
+  }
+
+  const lines = stdout.split('\n')
+  t.equal(
+    lines[0],
+    '✔︎ spec/fixtures/test-lib.xar > installed test-lib@1.0.0',
+    lines[0]
+  )
+  await removeTestlib(t)
+  t.end()
+})
+
 test('single valid package with dependency', async function (t) {
   t.test('installs when dependeny is installed first', async function (st) {
     const { stderr, stdout } = await run('xst', ['package', 'install', 'local', 'spec/fixtures/test-lib.xar', 'spec/fixtures/test-app.xar'], asAdmin)
