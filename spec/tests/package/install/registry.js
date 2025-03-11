@@ -68,27 +68,49 @@ async function installPackageToLocalRepo (t) {
   }
 }
 
-test('shows help', async function (st) {
-  const { stderr, stdout } = await run('xst', [
-    'package',
-    'install',
-    'registry',
-    'help'
-  ])
+test('shows help', async function (t) {
+  t.test('for registry command', async function (st) {
+    const { stderr, stdout } = await run('xst', [
+      'package',
+      'install',
+      'registry',
+      'help'
+    ])
 
-  if (stderr) {
-    st.fail(stderr)
-    return
-  }
-  st.ok(stdout, 'got output')
-  const firstLine = stdout.split('\n')[0]
-  st.equal(
-    firstLine,
-    'xst package install registry <package> [<version>]',
-    firstLine
-  )
+    if (stderr) {
+      st.fail(stderr)
+      return
+    }
+    st.ok(stdout, 'got output')
+    const firstLine = stdout.split('\n')[0]
+    st.equal(
+      firstLine,
+      'xst package install registry <package> [<version>]',
+      firstLine
+    )
+  })
+
+  t.test('for from-registry command', async function (st) {
+    const { stderr, stdout } = await run('xst', [
+      'package',
+      'install',
+      'from-registry',
+      'help'
+    ])
+
+    if (stderr) {
+      st.fail(stderr)
+      return
+    }
+    st.ok(stdout, 'got output')
+    const firstLine = stdout.split('\n')[0]
+    st.equal(
+      firstLine,
+      'xst package install registry <package> [<version>]',
+      firstLine
+    )
+  })
 })
-
 test('Work with a local public registry', async function (t) {
   if (!(await isLocalRepoAvailable())) {
     t.skip()
