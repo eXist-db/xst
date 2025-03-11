@@ -9,6 +9,8 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ${{ matrix.os }}
+    # Exist latest is in development, so failures are allowed, but valuable to log
+    continue-on-error: ${{ matrix.exist-version == 'latest' }}
     strategy:
       fail-fast: false
       matrix:
