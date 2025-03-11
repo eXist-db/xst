@@ -93,7 +93,7 @@ async function install (db, upload, localFilePath, force, verbose) {
   }
 }
 
-export const command = ['local <packages..>', 'file-system', 'files']
+export const command = ['local <packages..>', 'file-system', 'files', '$0']
 export const describe = 'Install XAR packages from the local filesystem'
 const options = {
   rest: {
