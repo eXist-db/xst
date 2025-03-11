@@ -12,7 +12,6 @@ export const describe = 'Install XAR packages'
  */
 const options = {
   registry: {
-    alias: 'from-registry',
     describe:
       'Where to resolve dependencies from, if they are not already installed',
     default: 'https://exist-db.org/exist/apps/public-repo',

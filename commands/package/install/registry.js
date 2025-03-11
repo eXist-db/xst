@@ -2,15 +2,26 @@ import chalk from 'chalk'
 
 import { connect } from '@existdb/node-exist'
 
-import { isDBAdmin, getServerUrl, getUserInfo } from '../../../utility/connection.js'
-import { getInstalledVersion, installFromRepo } from '../../../utility/package.js'
+import {
+  isDBAdmin,
+  getServerUrl,
+  getUserInfo
+} from '../../../utility/connection.js'
+import {
+  getInstalledVersion,
+  installFromRepo
+} from '../../../utility/package.js'
 import { fail, logSuccess, logSkipped } from '../../../utility/message.js'
 
-export const command = ['registry <package> [<version>]']
+export const command = [
+  'registry <package> [<version>]',
+  'from-registry <package> [<version>]'
+]
 export const describe = 'Install a package from a registry (AKA public-repo)'
 
-export const builder = yargs => {
-  return yargs.version(false)
+export const builder = (yargs) => {
+  return yargs
+    .version(false)
     .positional('version', {
       describe: 'The version to install',
       default: '',
@@ -34,7 +45,9 @@ export async function handler (argv) {
   // check permissions (and therefore implicitly the connection)
   const user = await getUserInfo(db)
   if (!isDBAdmin(user)) {
-    throw Error(`Package installation failed. User "${user.name}" is not a DB administrator.`)
+    throw Error(
+      `Package installation failed. User "${user.name}" is not a DB administrator.`
+    )
   }
 
   if (verbose) {
@@ -45,8 +58,12 @@ export async function handler (argv) {
   const isUpToDate = argv.version === installedVersion
 
   if (!force && isUpToDate) {
-    logSkipped(`${chalk.dim(argv.package)} > ${installedVersion} is already installed`)
-    console.error(chalk.yellow('If you wish to force installation use --force.'))
+    logSkipped(
+      `${chalk.dim(argv.package)} > ${installedVersion} is already installed`
+    )
+    console.error(
+      chalk.yellow('If you wish to force installation use --force.')
+    )
     return 0
   }
 
