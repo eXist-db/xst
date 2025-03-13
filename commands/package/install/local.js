@@ -93,8 +93,12 @@ async function install (db, upload, localFilePath, force, verbose) {
   }
 }
 
-export const command = ['local <packages..>', 'file-system', 'files', '$0']
-export const describe = 'Install XAR packages from the local filesystem'
+export const command = [
+  'local-files <packages..>',
+  'local <packages..>',
+  '$0 <packages..>'
+]
+export const describe = 'Install XAR package(s) from the local filesystem'
 const options = {
   rest: {
     describe: 'force upload over REST API',
@@ -108,7 +112,14 @@ const options = {
 }
 
 export const builder = (yargs) => {
-  return yargs.options(options).conflicts('xmlrpc', 'rest')
+  return yargs
+    .positional('packages', {
+      describe: 'One or more paths to XAR files',
+      array: true,
+      string: true
+    })
+    .options(options)
+    .conflicts('xmlrpc', 'rest')
 }
 
 export async function handler (argv) {
