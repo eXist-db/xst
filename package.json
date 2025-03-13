@@ -11,7 +11,7 @@
   },
   "type": "module",
   "engines": {
-    "node": "^14.18 || ^16.13 || >=18"
+    "node": ">=18"
   },
   "scripts": {
     "test": "standard && tape \"spec/tests/**/*.js\"",
