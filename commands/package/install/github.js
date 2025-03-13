@@ -75,15 +75,14 @@ async function install (db, upload, xarName, contents, registry) {
   return installResult.result
 }
 
-export const command = ['github-release <abbrev>', 'gh']
-export const describe =
-  'Install a XAR package from a github release (REST only)'
+export const command = [
+  'github-release <abbrev> [<release>]',
+  'gh <abbrev> [<release>]'
+]
+
+export const describe = 'Install a XAR package from a github release. Always uses the REST API to upload!'
+
 const options = {
-  release: {
-    describe: 'Install a specific release',
-    default: 'latest',
-    string: true
-  },
   owner: {
     describe: 'The owner of the repository',
     default: 'eXist-db',
@@ -114,7 +113,17 @@ const options = {
 }
 
 export const builder = (yargs) => {
-  return yargs.options(options).conflicts('xmlrpc', 'rest')
+  return yargs
+    .positional('abbrev', {
+      describe: "The package's abbreviated name. This is often equal to the repositories name.",
+      string: true
+    })
+    .positional('release', {
+      describe: 'Install a specific release',
+      default: 'latest',
+      string: true
+    })
+    .options(options)
 }
 
 export async function handler (argv) {
