@@ -41,7 +41,7 @@ test('shows help', async function (t) {
   if (stderr) { return t.fail(stderr) }
   t.ok(stdout, 'got output')
   const firstLine = stdout.split('\n')[0]
-  t.equal(firstLine, 'xst package install local <packages..>', firstLine)
+  t.equal(firstLine, 'xst package install local-files <packages..>', firstLine)
 })
 
 test('fails when dependency is not met', async function (t) {
