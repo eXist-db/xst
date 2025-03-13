@@ -35,7 +35,7 @@ test('shows help', async function (st) {
     'package',
     'install',
     'github-release',
-    'help'
+    '--help'
   ])
 
   if (stderr) {
@@ -44,7 +44,7 @@ test('shows help', async function (st) {
   }
   st.ok(stdout, 'got output')
   const firstLine = stdout.split('\n')[0]
-  st.equal(firstLine, 'xst package install github-release <abbrev>', firstLine)
+  st.equal(firstLine, 'xst package install github-release <abbrev> [<release>]', firstLine)
 })
 
 test('installing packages from github', async function (t) {
@@ -54,7 +54,6 @@ test('installing packages from github', async function (t) {
       'install',
       'github-release',
       demoAppsGithubAbbrev,
-      '--release',
       'v0.4.3',
       // The only asset for demo-apps is a xar, which is named `demo.xar`.
       '--asset-pattern',
@@ -80,7 +79,6 @@ test('installing packages from github', async function (t) {
           'install',
           'github-release',
           demoAppsGithubAbbrev,
-          '--release',
           'v0.4.3',
           // The only asset for demo-apps is a xar, which is named `demo.xar`.
           '--asset-pattern',
@@ -105,10 +103,9 @@ test('installing packages from github', async function (t) {
           'install',
           'github-release',
           hsgGithubAbbrev,
+          'v0.6.3',
           '--owner',
-          hsgGithubOwner,
-          '--release',
-          'v0.6.3'
+          hsgGithubOwner
         ],
         asAdmin
       )
@@ -131,10 +128,9 @@ test('installing packages from github', async function (t) {
         'install',
         'github-release',
         hsgGithubAbbrev,
+        'v0.6.2',
         '--owner',
-        hsgGithubOwner,
-        '--release',
-        'v0.6.2'
+        hsgGithubOwner
       ],
       asAdmin
     )
@@ -157,10 +153,9 @@ test('installing packages from github', async function (t) {
         'install',
         'github-release',
         hsgGithubAbbrev,
+        'v0.6.3',
         '--owner',
-        hsgGithubOwner,
-        '--release',
-        'v0.6.3'
+        hsgGithubOwner
       ],
       asAdmin
     )
@@ -184,10 +179,9 @@ test('installing packages from github', async function (t) {
           'install',
           'github-release',
           hsgGithubAbbrev,
+          'v0.6.3',
           '--owner',
-          hsgGithubOwner,
-          '--release',
-          'v0.6.3'
+          hsgGithubOwner
         ],
         asAdmin
       )
@@ -214,10 +208,9 @@ test('installing packages from github', async function (t) {
           'install',
           'github-release',
           hsgGithubAbbrev,
+          'v0.6.3',
           '--owner',
           hsgGithubOwner,
-          '--release',
-          'v0.6.3',
           '--force'
         ],
         asAdmin
