@@ -4,8 +4,8 @@ import * as registry from './registry.js'
 
 const commands = [local, github, registry]
 
-export const command = ['install <command>', 'i']
-export const describe = 'Install XAR packages'
+export const command = ['install <command>', 'i <command>']
+export const describe = 'Install XAR packages from different sources'
 
 /**
  * @type {Record<string, import('yargs').Options>}
