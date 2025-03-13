@@ -61,8 +61,8 @@ xst <command> --help
 |`execute [<query>] [options]`|Execute a query string or file|`run` `exec`|
 |`list [options] <collection>`|List collection contents|`ls`|
 |`package list [options]`|List installed packages|`pkg ls`|
-|`package install [options] <packages..>`|Install XAR packages|`pkg i`|
-|`package uninstall [options] <packages..>`|Remove XAR packages|`pkg uninstall`|
+|`package install <command>`|Install XAR packages from various sources|`pkg i <command>`|
+|`package uninstall [options] <packages..>`|Remove XAR packages (does check dependents)|`pkg uninstall`|
 
 ### Examples
 
@@ -135,21 +135,39 @@ you can save it to a file and use the `--file` parameter.
 xst execute --file my-query.xq
 ```
 
-#### Install a local XAR package into an exist-db.
+#### Installation of XAR packages
 
-This will also install all of its declared dependencies from the configured repository.
+NOTE: The user initiating the command must be a member of the DBA group.
+
+Package installation will attempt to resolve and install all dependencies declare in repo.xml. Installation will fail, if a dependency could not be found or could not be installed.
+The default registry (AKA public-repo) is `https://exist-db.org/exist/apps/public-repo` but can be overridden with the `--registry` option.
+
+##### From a registry
 
 ```bash
-xst package install path/to/my-package.xar
+xst package install from-registry demo-apps
 ```
 
-NOTE: User that connects must be a database administrator.
+##### One or more local files
+
+```bash
+xst package install local-files path/to/*.xar
+```
 
 #### List all installed application packages with their dependencies
 
 ```bash
 xst package list --applications --dependencies
 ```
+
+#### Uninstall a package
+
+NOTE: The user initiating the command must be a member of the DBA group.
+
+```bash
+xst package uninstall demo-apps
+```
+
 
 ## Configuration
 
