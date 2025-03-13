@@ -14,21 +14,21 @@ import {
 import { fail, logSuccess, logSkipped } from '../../../utility/message.js'
 
 export const command = [
-  'registry <package> [<version>]',
-  'from-registry <package> [<version>]'
+  'from-registry <package> [<version>]',
+  'registry <package> [<version>]'
 ]
 export const describe = 'Install a package from a registry (AKA public-repo)'
 
 export const builder = (yargs) => {
   return yargs
     .version(false)
+    .positional('package', {
+      describe: "The package's name or its abbrev",
+      string: true
+    })
     .positional('version', {
       describe: 'The version to install',
       default: '',
-      string: true
-    })
-    .positional('package', {
-      describe: "The package's name or its abbrev",
       string: true
     })
 }

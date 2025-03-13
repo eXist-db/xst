@@ -85,7 +85,7 @@ test('shows help', async function (t) {
     const firstLine = stdout.split('\n')[0]
     st.equal(
       firstLine,
-      'xst package install registry <package> [<version>]',
+      'xst package install from-registry <package> [<version>]',
       firstLine
     )
   })
@@ -106,7 +106,7 @@ test('shows help', async function (t) {
     const firstLine = stdout.split('\n')[0]
     st.equal(
       firstLine,
-      'xst package install registry <package> [<version>]',
+      'xst package install from-registry <package> [<version>]',
       firstLine
     )
   })
