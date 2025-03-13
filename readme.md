@@ -19,7 +19,7 @@ Built on top of [@existdb/node-exist](https://www.npmjs.com/package/@existdb/nod
 
 ## Installation
 
-Prerequisite: [nodeJS](https://nodejs.org/) version 14.18 or later
+Prerequisite: [nodeJS](https://nodejs.org/) version 18 or later
 
 `npm install --global @existdb/xst`
 
