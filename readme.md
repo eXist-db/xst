@@ -25,6 +25,14 @@ Prerequisite: [nodeJS](https://nodejs.org/) version 18 or later
 
 This will put the executable `xst` in your path.
 
+### Updating
+
+To update to the latest version of `xst`
+
+```bash
+npm update --global @existdb/xst
+```
+
 ## Usage
 
 ```bash
