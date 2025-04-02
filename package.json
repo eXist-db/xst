@@ -64,6 +64,6 @@
     "url": "https://opencollective.com/existdb"
   },
   "optionalDependencies": {
-    "husky": "^8.0.2"
+    "husky": "^9.1.7"
   }
 }
