@@ -67,7 +67,7 @@ async function edit (db, resource, editor) {
       }
       const newFileContents = readFileSync(tempFile)
       const fileHandle = await db.documents.upload(newFileContents)
-      const uploadResult = await db.documents.parseLocal(fileHandle, resource, null)
+      const uploadResult = await db.documents.parseLocal(fileHandle, resource)
       if (!editor.isTerminalEditor) {
         console.log('upload: ', uploadResult)
       }
@@ -100,7 +100,7 @@ async function edit (db, resource, editor) {
         } else {
           const newFileContents = readFileSync(tempFile)
           const fileHandle = await db.documents.upload(newFileContents)
-          const uploadResult = await db.documents.parseLocal(fileHandle, resource, {})
+          const uploadResult = await db.documents.parseLocal(fileHandle, resource)
           console.log('upload: ', uploadResult)
         }
 

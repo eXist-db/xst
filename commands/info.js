@@ -23,7 +23,7 @@ const query = readXquery('info.xq')
  * @returns {0|1} exit code
  */
 async function info (db, options) {
-  const result = await db.queries.readAll(query, {})
+  const result = await db.queries.readAll(query)
   const raw = result.pages.toString()
   const json = JSON.parse(raw)
 
