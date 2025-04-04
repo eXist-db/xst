@@ -494,7 +494,7 @@ function getSorter (options) {
  * @returns {Number} the exit code
  */
 async function listPackages (db, options) {
-  const result = await db.queries.readAll(query, {})
+  const result = await db.queries.readAll(query)
   const raw = result.pages.toString()
   if (options.raw) {
     return console.log(raw)
