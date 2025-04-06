@@ -316,7 +316,7 @@ If you want to check your commits while developing you can add a pre-commit-hook
 Activate husky for this project
 
 ```bash
-npx husky install
+npx husky
 ```
 
 This will add to git hooks
