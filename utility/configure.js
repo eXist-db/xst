@@ -1,12 +1,17 @@
 import { readFileSync, existsSync } from 'node:fs'
 import * as dotenv from 'dotenv'
+import { findUpSync } from 'find-up-simple'
 
-// read connection options from .env file in current working directory
-dotenv.config()
+// read connection options from .env file in current working directory or any parent directory
+const path = findUpSync('.env')
+if (path) {
+  // console.log(path)
+  dotenv.config({ path })
+}
 
 /**
  * read config files in .env, .existdb.json or node-exist format
- * @param {String} configPath path to the configuarion file
+ * @param {String} configPath path to the configuration file
  * @returns {Object} configuration
  */
 export function configure (configPath) {
