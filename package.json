@@ -11,7 +11,7 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": "^18.19.0 || >=20.5.0"
   },
   "scripts": {
     "test": "standard && tape 'spec/tests/**/*.js'",
