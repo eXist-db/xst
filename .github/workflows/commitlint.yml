@@ -20,5 +20,5 @@ jobs:
         with:
           node-version: 'lts/*'
           cache: 'npm'
-      - run: npm ci --no-optional
+      - run: npm ci --omit=optional
       - run: npx commitlint --from=${{ github.event.pull_request.base.sha }}

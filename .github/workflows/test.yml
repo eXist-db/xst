@@ -33,7 +33,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
           cache-dependency-path: 'xst'
-      - run: npm ci --no-optional
+      - run: npm ci --omit=optional
         working-directory: xst
       - run: npm link
         working-directory: xst

@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 'lts/*'
           cache: 'npm'
-      - run: npm ci --no-optional
+      - run: npm ci --omit=optional
       - run: npm link
       - name: Wait for container to be healthy
         run: timeout 60s sh -c 'until docker ps | grep exist | grep -q healthy; do echo "Not ready yet."; sleep 2; done; echo "$(docker ps | grep exist)"'
