@@ -12,14 +12,13 @@ jobs:
     name: Lint commit messages
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
-      - run: npm ci --no-optional
+          node-version: 'lts/*'
+          cache: 'npm'
+      - run: npm ci --omit=optional
       - run: npx commitlint --from=${{ github.event.pull_request.base.sha }}

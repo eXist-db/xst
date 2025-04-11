@@ -27,11 +27,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: xst
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Set up NodeJS v${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm ci --no-optional
+          cache: 'npm'
+          cache-dependency-path: 'xst'
+      - run: npm ci --omit=optional
         working-directory: xst
       - run: npm link
         working-directory: xst
