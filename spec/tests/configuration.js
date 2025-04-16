@@ -91,3 +91,32 @@ test('fail if config file was not found', async function (t) {
   t.ok(stderr, stderr)
   t.end()
 })
+
+test('configuration cascade', function (st) {
+  st.test('connection.xstrc fails to connect (certificate expired)', async function (t) {
+    const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/connection.xstrc', '-f', 'modules/whoami.xq', '--verbose'])
+    if (stdout) return t.fail(stdout)
+    t.equal(stderr, 'Connecting to https://localhost:8443 as guest\ncertificate has expired\n')
+    t.end()
+  })
+
+  st.test('override server via environment variable', async function (t) {
+    const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/connection.xstrc', '-f', 'modules/whoami.xq', '--verbose'], {
+      env: { ...process.env, EXISTDB_SERVER: 'http://localhost:8080/' }
+    })
+    t.equal(stderr, 'Connecting to http://localhost:8080 as guest\n')
+    const parsed = JSON.parse(stdout)
+    t.equal(parsed.real.user, 'guest')
+    t.end()
+  })
+
+  st.test('override user and password via environment variable', async function (t) {
+    const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/connection.xstrc', '-f', 'modules/whoami.xq', '--verbose'], {
+      env: { ...process.env, ...asAdmin.env, EXISTDB_SERVER: 'http://localhost:8080/' }
+    })
+    t.equal(stderr, 'Connecting to http://localhost:8080 as admin\n')
+    const parsed = JSON.parse(stdout)
+    t.equal(parsed.real.user, 'admin')
+    t.end()
+  })
+})

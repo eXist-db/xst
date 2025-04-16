@@ -99,13 +99,10 @@ test('with test collection', async (t) => {
 
   t.test(`'xst get --verbose ${testCollection}' as admin`, async (st) => {
     const { stderr, stdout } = await run('xst', ['get', '--verbose', testCollection, '.'], asAdmin)
-    if (stderr) {
-      st.fail(stderr)
-      return t.end()
-    }
-    const lines = stdout.split('\n')
+    st.plan(9)
+    st.equal(stderr, 'Connecting to https://localhost:8443 as admin\n', stderr)
 
-    st.plan(8)
+    const lines = stdout.split('\n')
 
     st.ok(lines[0].startsWith('Downloading: /db/get-test to '))
     // Server: https://localhost:8443 (v6.1.0-SNAPSHOT)

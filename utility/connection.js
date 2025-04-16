@@ -10,6 +10,7 @@
  *     must be set for EXISTDB_USER to take effect
  */
 import { readOptionsFromEnv } from '@existdb/node-exist'
+import { defaultConnectionOptions } from '@existdb/node-exist/components/connection.js'
 import { getAccountInfo, AdminGroup } from '../utility/account.js'
 
 /**
@@ -19,12 +20,18 @@ import { getAccountInfo, AdminGroup } from '../utility/account.js'
  * @typedef { import("./account.js").AccountInfo } AccountInfo
  */
 
+/**
+ * Merge connection options with environment variables
+ * @param {object} argv all options, from command line and config file
+ * @returns
+ */
 export function readConnection (argv) {
-  if (argv.connectionOptions) {
-    return argv
+  const connectionOptions = Object.assign({}, defaultConnectionOptions, argv.connectionOptions, readOptionsFromEnv())
+  if (argv.verbose) {
+    const { protocol, host, port } = connectionOptions
+    const user = connectionOptions.basic_auth.user
+    console.error(`Connecting to ${protocol}//${host}:${port} as ${user}`)
   }
-  const connectionOptions = readOptionsFromEnv()
-
   argv.connectionOptions = connectionOptions
   return argv
 }
