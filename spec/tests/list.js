@@ -256,6 +256,7 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/.xstrc
 /db/list-test/fixtures/binding.json
 /db/list-test/fixtures/broken-test-app.xar
+/db/list-test/fixtures/connection.xstrc
 /db/list-test/fixtures/test-app.xar
 /db/list-test/fixtures/test-lib.xar
 /db/list-test/fixtures/test.xml
@@ -286,6 +287,7 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/.env
 /db/list-test/fixtures/.env.staging
 /db/list-test/fixtures/binding.json
+/db/list-test/fixtures/connection.xstrc
 /db/list-test/fixtures/.xstrc
 /db/list-test/fixtures/.existdb.json
 /db/list-test/fixtures/test-app.xar
@@ -296,8 +298,8 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests
 /db/list-test/tests/cli.js
 /db/list-test/tests/info.js
-/db/list-test/tests/configuration.js
 /db/list-test/tests/exec.js
+/db/list-test/tests/configuration.js
 /db/list-test/tests/upload.js
 /db/list-test/tests/rm.js
 /db/list-test/tests/get.js

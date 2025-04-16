@@ -1,0 +1,8 @@
+{
+    "connectionOptions": {
+        "rejectUnauthorized": true,
+        "host": "localhost",
+        "port": 8443,
+        "protocol": "https:"
+    }
+}
