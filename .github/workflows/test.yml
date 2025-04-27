@@ -36,5 +36,6 @@ jobs:
         # Do not attempt to install the local public repo on Exist-DB 4 or 5. It won't work
         if:  matrix.exist-version != '4.10.0' && matrix.exist-version != '5.4.1'
         run: |
-          xst package install github-release public-repo --config spec/fixtures/.env
+          xst package install github-release templating v1.2.1 --config spec/fixtures/.env --verbose
+          xst package install github-release public-repo v4.0.0 --config spec/fixtures/.env --verbose
       - run: npm test
