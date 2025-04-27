@@ -1,5 +1,5 @@
 import { test } from 'tape'
-import { run, asAdmin } from '../test.js'
+import { run, asAdmin, cleanEnv } from '../test.js'
 
 test('no config file or env variables defaults to guest user', async function (t) {
   const { stderr, stdout } = await run('xst', ['exec', '-f', 'modules/whoami.xq'])
@@ -101,22 +101,30 @@ test('configuration cascade', function (st) {
   })
 
   st.test('override server via environment variable', async function (t) {
-    const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/connection.xstrc', '-f', 'modules/whoami.xq', '--verbose'], {
-      env: { ...process.env, EXISTDB_SERVER: 'http://localhost:8080/' }
+    const { stderr, stdout } = await run('xst', ['exec', '-f', 'modules/whoami.xq', '--verbose'], {
+      env: { ...cleanEnv.env, EXISTDB_SERVER: 'http://localhost:8080/' }
     })
     t.equal(stderr, 'Connecting to http://localhost:8080 as guest\n')
-    const parsed = JSON.parse(stdout)
-    t.equal(parsed.real.user, 'guest')
+    const { real } = JSON.parse(stdout)
+    t.equal(real.user, 'guest')
+    t.end()
+  })
+
+  st.test('server set in config takes precedence over environment variable', async function (t) {
+    const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/connection.xstrc', '-f', 'modules/whoami.xq', '--verbose'], {
+      env: { ...cleanEnv.env, EXISTDB_SERVER: 'http://localhost:8080/' }
+    })
+    t.equal(stderr, 'Connecting to https://localhost:8443 as guest\ncertificate has expired\n')
+    t.notOk(stdout)
     t.end()
   })
 
   st.test('override user and password via environment variable', async function (t) {
     const { stderr, stdout } = await run('xst', ['exec', '--config', 'spec/fixtures/connection.xstrc', '-f', 'modules/whoami.xq', '--verbose'], {
-      env: { ...process.env, ...asAdmin.env, EXISTDB_SERVER: 'http://localhost:8080/' }
+      env: { ...cleanEnv.env, ...asAdmin.env }
     })
-    t.equal(stderr, 'Connecting to http://localhost:8080 as admin\n')
-    const parsed = JSON.parse(stdout)
-    t.equal(parsed.real.user, 'admin')
+    t.equal(stderr, 'Connecting to https://localhost:8443 as admin\ncertificate has expired\n')
+    t.notOk(stdout)
     t.end()
   })
 })
