@@ -1,24 +1,23 @@
 import { readFileSync, existsSync } from 'node:fs'
 import * as dotenv from 'dotenv'
 import { findUpSync } from 'find-up-simple'
-
-// configuration cascade (precedence)
-//
-// 1. parameters set in --config (including connection options)
-// 2. CLI flags
-// 3. connction options set in .env file in working or parent directories
-// 4. environment variables (server, user, password)
-
 // read connection options from .env file in current working directory or any parent directory
 // existing environment variables take precedence
 const path = findUpSync('.env')
 if (path) {
-  // console.log(path)
   dotenv.config({ path })
 }
 
 /**
- * read config files in .env, .existdb.json or node-exist format
+ * read configuration files in .env, .existdb.json or node-exist format
+
+ configuration cascade (precedence)
+
+ 1. parameters set in --config (including connection options)
+ 2. environment variables (server, user, password, color, editor)
+ 3. environment variables set in .env file in current or descendant directory
+ 4. options set on command line (cannot contain connection options)
+
  * @param {String} configPath path to the configuration file
  * @returns {Object} configuration
  */

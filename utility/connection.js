@@ -23,10 +23,10 @@ import { getAccountInfo, AdminGroup } from '../utility/account.js'
 /**
  * Merge connection options with environment variables
  * @param {object} argv all options, from command line and config file
- * @returns
+ * @returns {object} argv with connection options resolved
  */
 export function readConnection (argv) {
-  const connectionOptions = Object.assign({}, defaultConnectionOptions, argv.connectionOptions, readOptionsFromEnv())
+  const connectionOptions = Object.assign({}, defaultConnectionOptions, readOptionsFromEnv(), argv.connectionOptions)
   if (argv.verbose) {
     const { protocol, host, port } = connectionOptions
     const user = connectionOptions.basic_auth.user
