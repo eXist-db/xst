@@ -26,12 +26,17 @@ async function getRelease (api, owner, repo, release, assetFilter, verbose) {
   /**
    * @type {string}
    */
-  let name
+  let releaseName
+  /**
+   * @type {string}
+   */
+  let tagName
   try {
     const result = await got.get(path, { prefixUrl: api }).json()
-    // The name is not always filled in. Fall back to the tag name if it is absent
-    name = result.name || result.tagName
+    // The name is not always filled in. Fall back to the tag_name if it is absent
+    releaseName = result.name || result.tag_name
     assets = result.assets
+    tagName = result.tag_name
   } catch (e) {
     throw Error(
       `Could not get release from: ${e.options.url} ${e.response.statusCode}: ${e.response.statusMessage}`
@@ -53,7 +58,8 @@ async function getRelease (api, owner, repo, release, assetFilter, verbose) {
   return {
     xarName: asset.name,
     packageContents: asset.browser_download_url,
-    releaseName: name
+    releaseName,
+    tagName
   }
 }
 
@@ -176,7 +182,7 @@ export async function handler (argv) {
   if (verbose) {
     console.log(`Preparing to install ${owner}/${repo} at version ${release}`)
   }
-  const { xarName, packageContents, releaseName } = await getRelease(
+  const { xarName, packageContents, releaseName, tagName } = await getRelease(
     api,
     owner,
     repo,
@@ -186,13 +192,13 @@ export async function handler (argv) {
   )
   if (verbose) {
     console.log(
-      `Resolved the version to release name "${releaseName}", ${xarName}`
+      `Found release name "${releaseName}", ${xarName}`
     )
   }
-  const matchedTag = tagMatcher.exec(releaseName)
+  const matchedTag = tagMatcher.exec(tagName)
   if (!matchedTag) {
     throw Error(
-      `Could not extract version from Release: "${releaseName}" with tag prefix set to "${T}"`
+      `Could not extract version from release tag: "${tagName}" with tag prefix set to "${T}"`
     )
   }
   const foundVersion = matchedTag.groups.version
