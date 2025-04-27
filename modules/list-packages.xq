@@ -68,10 +68,11 @@ function local:expath($package-uri as xs:string) as map(*) {
             "abbrev": $expath//@abbrev/string(),
             "version": $expath//expath:package/@version/string(),
             "title": $expath//expath:title/text(),
-            "processor": local:dependency($expath//expath:dependency[@processor]),
+            "processor": array { 
+                for-each($expath//expath:dependency[@processor], local:dependency#1)
+            },
             "dependencies": array {
-                for-each($expath//expath:dependency[@package],
-                    local:dependency#1)
+                for-each($expath//expath:dependency[@package], local:dependency#1)
             },
             "components": map:merge(($components, $jars))
             (: ,"expath": $expath :)

@@ -211,13 +211,21 @@ function processorName (name) {
  * @returns {BlockFormatter} the formatter
  */
 function getProcessorFormatter (options) {
+  const separator = '\n    '
   return function (pkg) {
-    if (!pkg.processor.name) {
-      return coloredLabel('Processor: ') + 'any'
-    }
-    return coloredLabel('Processor: ') + processorName(pkg.processor.name) + ' ' +
-        chalk.yellow(formatVersion(pkg.processor))
+    const procs = !pkg.processor.length ? [{}] : pkg.processor
+    return coloredLabel('Processor: ') +
+        (procs.length === 1 ? '' : separator) +
+        procs.map(fmtProcessor).join(separator)
   }
+}
+
+function fmtProcessor (proc) {
+  if (!proc.name) {
+    return 'any'
+  }
+  return processorName(proc.name) + ' ' +
+    chalk.yellow(formatVersion(proc))
 }
 
 /**
