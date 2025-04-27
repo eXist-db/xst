@@ -1,14 +1,18 @@
 import { spawn } from 'node:child_process'
 
 /**
- * Run an XST command
+ * @typedef {Promise<{stderr?: string, stdout?: string, code: number}>} CommandResult
+ */
+
+/**
+ * Run an shell command
  *
  * @param   {string}   cmd     - The command
- * @param   {string[]} cmd     - The arguments
+ * @param   {string[]} args    - The arguments
  * @param   {Record<string, unknown>} [options] - Any options to the command, like environment variables
- * @returns {Promise<{stderr?: string, stdout?: string, code: number}>} The result of running the command
+ * @returns {CommandResult} The result of running the command
  */
-export async function run (cmd, args, options) {
+export async function run (cmd, args, options = cleanEnv) {
   return new Promise((resolve, reject) => {
     let stderr
     let stdout
@@ -29,7 +33,18 @@ export async function run (cmd, args, options) {
   })
 }
 
-export async function runPipe (cmd1, args1, cmd2, args2, options) {
+/**
+ * run two shell commands piped together
+ * [options.env] cmd1 <args1> | cmd2 <args2>
+
+ * @param {string}   cmd1    the first command
+ * @param {string[]} args1   arguments for the first command
+ * @param {string}   cmd2    the command run after the pipe
+ * @param {string[]} args2   arguments for the second command
+ * @param   {Record<string, unknown>} [options] - Any options to the command, like environment variables
+ * @returns {CommandResult} The result of the pipe
+ */
+export async function runPipe (cmd1, args1, cmd2, args2, options = cleanEnv) {
   return new Promise((resolve, reject) => {
     let stderr
     let stdout
@@ -50,9 +65,17 @@ export async function runPipe (cmd1, args1, cmd2, args2, options) {
   })
 }
 
+// guard test execution against environment variables in development setups
+const { EXISTDB_PASS, EXISTDB_USER, EXISTDB_SERVER, ...filteredEnv } = process.env
+export const cleanEnv = {
+  env: filteredEnv
+}
+export const asGuest = {
+  env: { ...filteredEnv, EXISTDB_USER: 'guest', EXISTDB_PASS: 'guest' }
+}
 export const asAdmin = {
-  env: { ...process.env, EXISTDB_USER: 'admin', EXISTDB_PASS: '' }
+  env: { ...filteredEnv, EXISTDB_USER: 'admin', EXISTDB_PASS: '' }
 }
 export function forceColorLevel (level) {
-  return { env: { ...process.env, FORCE_COLOR: level } }
+  return { env: { ...filteredEnv, FORCE_COLOR: level } }
 }
