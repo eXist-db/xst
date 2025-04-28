@@ -2,11 +2,7 @@ import chalk from 'chalk'
 
 import { connect } from '@existdb/node-exist'
 
-import {
-  isDBAdmin,
-  getServerUrl,
-  getUserInfo
-} from '../../../utility/connection.js'
+import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
   getInstalledVersion,
   installFromRepo
@@ -48,10 +44,6 @@ export async function handler (argv) {
     throw Error(
       `Package installation failed. User "${user.name}" is not a DB administrator.`
     )
-  }
-
-  if (verbose) {
-    console.log(`Connected to ${getServerUrl(db)}`)
   }
 
   const installedVersion = await getInstalledVersion(db, argv.package)

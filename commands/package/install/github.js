@@ -4,11 +4,7 @@ import chalk from 'chalk'
 
 import { connect, getRestClient } from '@existdb/node-exist'
 
-import {
-  isDBAdmin,
-  getServerUrl,
-  getUserInfo
-} from '../../../utility/connection.js'
+import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
   removeTemporaryCollection,
   getInstalledVersion,
@@ -160,10 +156,6 @@ export async function handler (argv) {
     throw Error(
       `Package installation failed. User "${user.name}" is not a DB administrator.`
     )
-  }
-
-  if (verbose) {
-    console.log(`Connected to ${getServerUrl(db)}`)
   }
 
   const restClient = await getRestClient(connectionOptions)

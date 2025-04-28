@@ -5,11 +5,7 @@ import chalk from 'chalk'
 
 import { connect } from '@existdb/node-exist'
 
-import {
-  isDBAdmin,
-  getServerUrl,
-  getUserInfo
-} from '../../../utility/connection.js'
+import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
   uploadMethod,
   removeTemporaryCollection,
@@ -147,9 +143,6 @@ export async function handler (argv) {
     )
   }
 
-  if (verbose) {
-    console.log(`Connected to ${getServerUrl(db)}`)
-  }
   const upload = await uploadMethod(db, connectionOptions, xmlrpc, rest)
 
   const results = []
