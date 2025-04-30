@@ -10,7 +10,7 @@ import {
   uploadMethod,
   removeTemporaryCollection,
   extractPackageMeta,
-  getInstalledVersion
+  getInstalledPackageMeta
 } from '../../../utility/package.js'
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 
@@ -33,7 +33,7 @@ async function install (db, upload, localFilePath, force, verbose) {
   try {
     const contents = readFileSync(localFilePath)
     const { version, abbrev, name } = extractPackageMeta(contents)
-    const installedVersion = await getInstalledVersion(db, name)
+    const installedVersion = (await getInstalledPackageMeta(db, name)).version
 
     const isUpdate =
       valid(version) && valid(installedVersion) && gt(version, installedVersion)

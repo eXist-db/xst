@@ -4,7 +4,8 @@ import { connect } from '@existdb/node-exist'
 
 import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
-  getInstalledVersion,
+  findCompatibleVersion,
+  getInstalledPackageMeta,
   installFromRepo
 } from '../../../utility/package.js'
 import { fail, logSuccess, logSkipped } from '../../../utility/message.js'
@@ -46,12 +47,25 @@ export async function handler (argv) {
     )
   }
 
-  const installedVersion = await getInstalledVersion(db, argv.package)
-  const isUpToDate = argv.version === installedVersion
+  const info = await getInstalledPackageMeta(db, argv.package)
+
+  if (verbose) {
+    const installedOrNot = info.version ? `already installed in version ${info.version}` : 'not installed yet'
+    console.error(`Package ${info.name} is ${installedOrNot}.`)
+  }
+
+  let pkgInfo
+  try {
+    pkgInfo = await findCompatibleVersion(db, { nameOrAbbrev: argv.package, version: argv.version, registryUrl: registry, verbose })
+  } catch (e) {
+    throw new Error(`${fail} ${chalk.dim(argv.package)} > ${e.message}`)
+  }
+
+  const isUpToDate = pkgInfo.version && pkgInfo.version === info.version
 
   if (!force && isUpToDate) {
     logSkipped(
-      `${chalk.dim(argv.package)} > ${installedVersion} is already installed`
+      `${chalk.dim(argv.package)} > ${info.version} is already installed`
     )
     console.error(
       chalk.yellow('If you wish to force installation use --force.')
@@ -60,9 +74,9 @@ export async function handler (argv) {
   }
 
   const { success, result } = await installFromRepo(db, {
-    publicRepoURL: registry,
-    nameOrAbbrev: argv.package,
-    version: argv.version,
+    registryUrl: registry,
+    packageName: pkgInfo.name,
+    version: pkgInfo.version,
     verbose
   })
 
@@ -71,7 +85,7 @@ export async function handler (argv) {
   }
 
   logSuccess(
-    `${chalk.dim(argv.package)} > installed ${result.version === '' ? 'latest version' : 'version ' + result.version} at ${result.target}`
+    `${chalk.dim(argv.package)} > installed version ${result.version} at ${result.target}`
   )
 
   return 0

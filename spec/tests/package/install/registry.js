@@ -158,7 +158,7 @@ test('Work with a local public registry', async function (t) {
       const lines = stdout.split('\n')
       st.equal(
         lines[0],
-        `✔︎ ${testAppName} > installed latest version at /db/apps/test-app`,
+        `✔︎ ${testAppName} > installed version 1.0.1 at /db/apps/test-app`,
         lines[0]
       )
       st.notOk(lines[1])
@@ -167,7 +167,7 @@ test('Work with a local public registry', async function (t) {
   )
 
   t.test(
-    'installs new packages from a local public registry by abbreviation',
+    'does not attmept to re-install the same package version from a local public registry, resolved by abbreviation',
     async function (st) {
       const { stderr, stdout } = await run(
         'xst',
@@ -181,23 +181,23 @@ test('Work with a local public registry', async function (t) {
         ],
         asAdmin
       )
-      st.notOk(stderr, 'There should have been no errors')
 
       const lines = stdout.split('\n')
       st.equal(
         lines[0],
-        '✔︎ test-app > installed latest version at /db/apps/test-app',
+        '- test-app > 1.0.1 is already installed',
         lines[0]
       )
+      st.equal(stderr, 'If you wish to force installation use --force.\n', stderr)
       st.notOk(lines[1])
       st.end()
     }
   )
 
-  t.test('installs new packages from the public registry', async function (st) {
+  t.test('installs new packages from the public registry (forced)', async function (st) {
     const { stderr, stdout } = await run(
       'xst',
-      ['package', 'install', 'registry', 'http://exist-db.org/apps/eXide'],
+      ['package', 'install', 'registry', 'http://exist-db.org/apps/eXide', '-f'],
       asAdmin
     )
     st.notOk(stderr, 'There should have been no errors')
@@ -205,7 +205,7 @@ test('Work with a local public registry', async function (t) {
     const lines = stdout.split('\n')
     st.equal(
       lines[0],
-      '✔︎ http://exist-db.org/apps/eXide > installed latest version at /db/apps/eXide',
+      '✔︎ http://exist-db.org/apps/eXide > installed version 3.5.4 at /db/apps/eXide',
       lines[0]
     )
     st.notOk(lines[1])
@@ -292,7 +292,7 @@ test('Work with a local public registry', async function (t) {
       // @todo: maybe a better error here? Explain user what actually went wrong?
       st.equal(
         stderr,
-        '✘ http://exist-db.org/apps/test-app > could not be found in the registry\n'
+        '✘ http://exist-db.org/apps/test-app > Package could not be found in the registry!\n'
       )
       st.end()
     }
@@ -319,7 +319,7 @@ test('Work with a local public registry', async function (t) {
       // @todo: maybe a better error here? Explain user what actually went wrong?
       st.equal(
         stderr,
-        '✘ http://exist-db.org/apps/test-app > could not be found in the registry\n',
+        '✘ http://exist-db.org/apps/test-app > Package could not be found in the registry!\n',
         stderr
       )
       st.end()

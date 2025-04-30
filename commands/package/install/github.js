@@ -7,7 +7,7 @@ import { connect, getRestClient } from '@existdb/node-exist'
 import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
   removeTemporaryCollection,
-  getInstalledVersion,
+  getInstalledPackageMeta,
   putPackage
 } from '../../../utility/package.js'
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
@@ -169,7 +169,7 @@ export async function handler (argv) {
     return assetMatcher.test(asset.name)
   }
 
-  const installedVersion = await getInstalledVersion(db, abbrev)
+  const installedVersion = (await getInstalledPackageMeta(db, abbrev)).version
 
   if (verbose) {
     console.log(`Preparing to install ${owner}/${repo} at version ${release}`)
