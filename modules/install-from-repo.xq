@@ -3,7 +3,7 @@ xquery version "3.1";
 declare namespace expath="http://expath.org/ns/pkg";
 
 declare variable $packageName external;
-declare variable $publicRepoURL external;
+declare variable $registryFindUrl external;
 declare variable $version external;
 
 declare variable $latest := $version eq '';
@@ -29,12 +29,12 @@ try {
         if ($latest)
         then repo:install-and-deploy(
             $packageName,
-            $publicRepoURL || "/find"
+            $registryFindUrl
         )
         else repo:install-and-deploy(
             $packageName,
             $version,
-            $publicRepoURL || "/find"
+            $registryFindUrl
         )
 
     return

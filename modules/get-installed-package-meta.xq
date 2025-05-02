@@ -36,10 +36,15 @@ function local:find($name-or-abbrev) as document-node()? {
 };
 
 try {
-    serialize(
-        map { "version": local:find($name-or-abbrev)//expath:package/@version/string() },
-        map { "method": "json" }
-    )
+    let $maybe-meta := local:find($name-or-abbrev)//expath:package
+    return
+        serialize(
+            map {
+                "version": $maybe-meta/@version/string(),
+                "name": $maybe-meta/@name/string()
+            },
+            map { "method": "json" }
+        )
 }
 catch * {
     serialize(
