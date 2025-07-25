@@ -7,12 +7,16 @@ const testCollection = '/db/' + testCollectionName
 
 async function removeLocalDownload () {
   const { stderrRmLocal } = await run('rm', ['-rf', testCollectionName])
-  if (stderrRmLocal) { return console.error(stderrRmLocal) }
+  if (stderrRmLocal) {
+    return console.error(stderrRmLocal)
+  }
 }
 
 async function removeRemoteCollection (t) {
   const { stderrRmRemote } = await run('xst', ['rm', '-rf', testCollection])
-  if (stderrRmRemote) { return console.error(stderrRmRemote) }
+  if (stderrRmRemote) {
+    return console.error(stderrRmRemote)
+  }
 }
 
 async function tearDown (t) {
@@ -51,7 +55,9 @@ async function prepare (t) {
     storeResourceQuery(testCollection, 'test.xq', '"1"')
   ].join(',')
   const { stderr, stdout } = await run('xst', ['run', query], asAdmin)
-  if (stderr) { return t.fail(stderr) }
+  if (stderr) {
+    return t.fail(stderr)
+  }
   t.true(stdout)
 }
 
@@ -61,7 +67,9 @@ function storeResourceQuery (collection, fileName, content) {
 
 test("calling 'xst get --help'", async (t) => {
   const { stderr, stdout } = await run('xst', ['get', '--help'])
-  if (stderr) { return t.fail(stderr) }
+  if (stderr) {
+    return t.fail(stderr)
+  }
 
   t.ok(stdout, stdout)
   t.end()
@@ -72,8 +80,10 @@ test('with test collection', async (t) => {
   t.test(prepare)
 
   t.test(`can get ${testCollection} as admin`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['get', testCollection, '.'], asAdmin)
-    if (stderr) { return st.fail(stderr) }
+    const { stderr, stdout } = await run('xst', ['get', testCollection, '.', '--threads', '2'], asAdmin)
+    if (stderr) {
+      return st.fail(stderr)
+    }
     st.plan(3)
 
     st.notOk(stdout, 'no output')
@@ -84,7 +94,7 @@ test('with test collection', async (t) => {
   })
 
   t.test(`cannot get ${testCollection} as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['get', testCollection, '.'])
+    const { stderr, stdout } = await run('xst', ['get', testCollection, '.', '--threads', '2'])
     if (stdout) {
       await removeLocalDownload()
       return st.ok(stderr)
@@ -98,7 +108,7 @@ test('with test collection', async (t) => {
   })
 
   t.test(`'xst get --verbose ${testCollection}' as admin`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['get', '--verbose', testCollection, '.'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['get', '--verbose', testCollection, '.', '--threads', '2'], asAdmin)
     st.plan(9)
     st.equal(stderr, 'Connecting to https://localhost:8443 as admin\n', stderr)
 
@@ -110,8 +120,16 @@ test('with test collection', async (t) => {
     st.equal(lines[2], 'User: admin')
     st.equal(lines.length, 16, 'all expected lines in verbose output')
     // files are not downloaded in reproducible order
-    st.equal(lines.filter(l => /^✔︎ created directory [/\w]+\/get-test/.exec(l)).length, 3, 'notify 3 directories created')
-    st.equal(lines.filter(l => /^✔︎ downloaded resource [/\w]+\/get-test/.exec(l)).length, 9, 'notify 9 resources downloaded')
+    st.equal(
+      lines.filter((l) => /^✔︎ created directory [/\w]+\/get-test/.exec(l)).length,
+      3,
+      'notify 3 directories created'
+    )
+    st.equal(
+      lines.filter((l) => /^✔︎ downloaded resource [/\w]+\/get-test/.exec(l)).length,
+      9,
+      'notify 9 resources downloaded'
+    )
 
     st.deepEqual(readdirSync(testCollectionName), expectedDirectoryListing, 'all files were downloaded')
     st.deepEqual(readdirSync(testCollectionName + '/subcollection'), ['b'], 'subcollection contents were downloaded')
@@ -123,7 +141,11 @@ test('with test collection', async (t) => {
 
   t.test(`'xst get ${testCollection}/empty-subcollection ${additionalTestDirectory}' as admin`, async (st) => {
     await run('mkdir', [additionalTestDirectory])
-    const { stderr, stdout } = await run('xst', ['get', testCollection + '/empty-subcollection', additionalTestDirectory], asAdmin)
+    const { stderr, stdout } = await run(
+      'xst',
+      ['get', testCollection + '/empty-subcollection', additionalTestDirectory],
+      asAdmin
+    )
     if (stderr) {
       st.fail(stderr)
       return st.end()
@@ -131,7 +153,11 @@ test('with test collection', async (t) => {
     st.plan(2)
     st.notOk(stdout, 'no output')
 
-    st.deepEqual(readdirSync(additionalTestDirectory), ['empty-subcollection'], `empty subcollection was created in ${additionalTestDirectory} folder`)
+    st.deepEqual(
+      readdirSync(additionalTestDirectory),
+      ['empty-subcollection'],
+      `empty subcollection was created in ${additionalTestDirectory} folder`
+    )
     await run('rm', ['-rf', additionalTestDirectory])
   })
 
