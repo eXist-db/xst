@@ -80,7 +80,21 @@ test('with test collection', async (t) => {
   t.test(prepare)
 
   t.test(`can get ${testCollection} as admin`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['get', testCollection, '.', '--threads', '2'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['get', testCollection, '.'], asAdmin)
+    if (stderr) {
+      return st.fail(stderr)
+    }
+    st.plan(3)
+
+    st.notOk(stdout, 'no output')
+    st.deepEqual(readdirSync(testCollectionName), expectedDirectoryListing, 'all files were downloaded')
+    st.deepEqual(readdirSync(testCollectionName + '/subcollection'), ['b'], 'subcollection contents were downloaded')
+
+    await removeLocalDownload()
+  })
+
+  t.test(`can get ${testCollection} as admin with just one thread`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['get', testCollection, '.', '--threads', '1'], asAdmin)
     if (stderr) {
       return st.fail(stderr)
     }
@@ -94,7 +108,7 @@ test('with test collection', async (t) => {
   })
 
   t.test(`cannot get ${testCollection} as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['get', testCollection, '.', '--threads', '2'])
+    const { stderr, stdout } = await run('xst', ['get', testCollection, '.'])
     if (stdout) {
       await removeLocalDownload()
       return st.ok(stderr)
@@ -108,17 +122,17 @@ test('with test collection', async (t) => {
   })
 
   t.test(`'xst get --verbose ${testCollection}' as admin`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['get', '--verbose', testCollection, '.', '--threads', '2'], asAdmin)
+    const { stderr, stdout } = await run('xst', ['get', '--verbose', testCollection, '.'], asAdmin)
     st.plan(9)
-    st.equal(stderr, 'Connecting to https://localhost:8443 as admin\n', stderr)
+    const verboseLines = stderr.split('\n')
+    st.equal(verboseLines[0], 'Connecting to https://localhost:8443 as admin', verboseLines[0])
+    st.ok(verboseLines[1].startsWith('Downloading: /db/get-test to'), verboseLines[1])
+    st.equal(verboseLines[2], 'Downloading up to 4 resources at a time', verboseLines[2])
+    st.equal(verboseLines[3], '', verboseLines[3])
+    st.equal(verboseLines.length, 4, 'all expected lines in verbose output')
 
     const lines = stdout.split('\n')
 
-    st.ok(lines[0].startsWith('Downloading: /db/get-test to '))
-    // Server: https://localhost:8443 (v6.1.0-SNAPSHOT)
-    st.ok(/Server: [^ ]+ \(v\d+\.\d+.\d+(-[\w\d]+)?\)/.exec(lines[1]))
-    st.equal(lines[2], 'User: admin')
-    st.equal(lines.length, 16, 'all expected lines in verbose output')
     // files are not downloaded in reproducible order
     st.equal(
       lines.filter((l) => /^✔︎ created directory [/\w]+\/get-test/.exec(l)).length,
