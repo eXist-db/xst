@@ -206,20 +206,14 @@ async function downloadCollectionOrResource (db, source, target, options) {
   const root = resolve(target)
 
   if (options.verbose) {
-    console.log('Downloading:', source, 'to', root)
-    console.log(
-      'Server:',
-      (db.client.isSecure ? 'https' : 'http') + '://' + db.client.options.host + ':' + db.client.options.port,
-      '(v' + options.version + ')'
-    )
-    console.log('User:', db.client.options.basic_auth.user)
+    console.error('Downloading:', source, 'to', root)
     if (options.include.length > 1 || options.include[0] !== '**') {
-      console.log('Include:\n', ...options.include, '\n')
+      console.error('Include:\n', ...options.include, '\n')
     }
     if (options.exclude.length) {
-      console.log('Exclude:\n', ...options.exclude, '\n')
+      console.error('Exclude:\n', ...options.exclude, '\n')
     }
-    console.log(`Downloading up to ${options.threads} resources at a time`)
+    console.error(`Downloading up to ${options.threads} resources at a time`)
   }
 
   // initial file
