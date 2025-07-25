@@ -1,6 +1,8 @@
 import { resolve, join, posix, dirname, basename } from 'node:path'
-import { writeFileSync, statSync, existsSync, mkdirSync } from 'node:fs'
+import { statSync, existsSync, mkdirSync } from 'node:fs'
+import { writeFile } from 'node:fs/promises'
 import { connect } from '@existdb/node-exist'
+import Bottleneck from 'bottleneck'
 
 /**
  * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
@@ -14,6 +16,8 @@ import { connect } from '@existdb/node-exist'
  * @prop {Number} depth how many levels to traverse down for recursive and tree views
  * @prop {String[]} include filter items
  * @prop {String[]} exclude filter items
+ * @prop {Number} threads How many resources should be downloaded at the same time
+ * @prop {Number} mintime How long a downloads should take at least
  */
 
 /**
@@ -57,10 +61,7 @@ const xmlBooleanSetting = {
     return value
   }
 }
-const serializationOptionNames = [
-  'insert-final-newline',
-  'omit-xml-declaration'
-]
+const serializationOptionNames = ['insert-final-newline', 'omit-xml-declaration']
 
 const serializationDefaults = {
   // "exist:indent": "no",
@@ -71,7 +72,7 @@ const serializationDefaults = {
 
 function getSerializationOptions (options) {
   const serializationOptions = serializationDefaults
-  serializationOptionNames.forEach(o => {
+  serializationOptionNames.forEach((o) => {
     if (o in options) {
       serializationOptions[o] = options[o]
     }
@@ -83,6 +84,7 @@ function getSerializationOptions (options) {
 /**
  * Download a single resource into an existdb instance
  * @param {NodeExist.BoundModules} db NodeExist client
+ * @param {GetOptions} options
  * @param {Boolean} verbose
  * @param {ResourceInfo} resource
  * @param {String} directory
@@ -100,7 +102,7 @@ async function downloadResource (db, options, resource, directory, collection, r
     }
     const localName = rename || posix.basename(resource.name)
     const localPath = join(directory, localName)
-    await writeFileSync(localPath, fileContents)
+    await writeFile(localPath, fileContents)
 
     if (verbose) {
       console.log(`✔︎ downloaded resource ${localPath}`)
@@ -115,11 +117,13 @@ async function downloadResource (db, options, resource, directory, collection, r
 /**
  * download a collection from an existdb instance
  * @param {NodeExist} db NodeExist client
+ * @param {GetOptions} options
  * @param {boolean} verbose
  * @param {String} collection
  * @param {String} baseCollection
+ * @param {Bottleneck} limiter
  */
-async function downloadCollection (db, options, collection, baseCollection, directory) {
+async function downloadCollection (db, options, collection, baseCollection, directory, limiter) {
   const absCollection = posix.join(baseCollection, collection)
   const { verbose } = options
   try {
@@ -134,12 +138,21 @@ async function downloadCollection (db, options, collection, baseCollection, dire
     }
 
     const targetDir = posix.join(directory, collection)
-    await collectionMeta.documents.forEach(
-      async resource => downloadResource(db, options, resource, targetDir, absCollection))
+    // Download all documents. Do this in parallel, but not everything at once. Pool that work so we don't take down the
+    // server
+    await Promise.all(
+      collectionMeta.documents.map(async (resource) => {
+        await limiter.schedule(() => downloadResource(db, options, resource, targetDir, absCollection))
+      })
+    )
 
     // recursive (optional?)
-    await collectionMeta.collections.forEach(
-      async collection => downloadCollection(db, options, collection, absCollection, targetDir))
+
+    // There should always be fewer collections than resources, so no need for pooling. Go over them one by one. No need
+    // to do this in parallel
+    for (const collection of collectionMeta.collections) {
+      await downloadCollection(db, options, collection, absCollection, targetDir, limiter)
+    }
 
     return true
   } catch (e) {
@@ -189,12 +202,13 @@ async function getPathInfo (db, path) {
  */
 async function downloadCollectionOrResource (db, source, target, options) {
   // read parameters
-//  const start = Date.now()
+  //  const start = Date.now()
   const root = resolve(target)
 
   if (options.verbose) {
     console.log('Downloading:', source, 'to', root)
-    console.log('Server:',
+    console.log(
+      'Server:',
       (db.client.isSecure ? 'https' : 'http') + '://' + db.client.options.host + ':' + db.client.options.port,
       '(v' + options.version + ')'
     )
@@ -205,6 +219,7 @@ async function downloadCollectionOrResource (db, source, target, options) {
     if (options.exclude.length) {
       console.log('Exclude:\n', ...options.exclude, '\n')
     }
+    console.log(`Downloading up to ${options.threads} resources at a time`)
   }
 
   // initial file
@@ -260,10 +275,13 @@ async function downloadCollectionOrResource (db, source, target, options) {
     throw Error(`${source} is a collection but ${root} is not a directory`)
   }
 
+  const limiter = new Bottleneck({
+    maxConcurrent: options.threads,
+    minTime: options.mintime
+  })
+
   // download collection into a folder
-  return await downloadCollection(db, options,
-    posix.basename(info.name),
-    posix.dirname(info.name), root)
+  return await downloadCollection(db, options, posix.basename(info.name), posix.dirname(info.name), root, limiter)
 }
 
 export const command = ['get [options] <source> <target>', 'download', 'fetch']
@@ -301,6 +319,18 @@ export function builder (yargs) {
       type: 'boolean',
       default: false
     })
+    .option('t', {
+      alias: 'threads',
+      describe: 'The maximum number of concurrent threads that will be used to dowload data',
+      type: 'number',
+      default: 4
+    })
+    .option('m', {
+      alias: 'mintime',
+      describe: 'The minimum time each dowload will take',
+      type: 'number',
+      default: 0
+    })
     .nargs({ i: 1, e: 1 })
 }
 
@@ -308,7 +338,15 @@ export async function handler (argv) {
   if (argv.help) {
     return 0
   }
-  const { source } = argv
+
+  const { threads, mintime, source } = argv
+
+  if (typeof mintime !== 'number' || mintime < 0) {
+    throw Error('Invalid value for option "mintime"; must be an integer equal or greater than zero.')
+  }
+  if (typeof threads !== 'number' || threads <= 0) {
+    throw Error('Invalid value for option "threads"; must be an integer equal or greater than zero.')
+  }
 
   const target = argv.target ? argv.target : '.'
 
