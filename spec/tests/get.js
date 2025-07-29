@@ -1,6 +1,8 @@
 import { test } from 'tape'
 import { run, asAdmin } from '../test.js'
 import { readdirSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 
 const testCollectionName = 'get-test'
 const testCollection = '/db/' + testCollectionName
@@ -34,7 +36,8 @@ const expectedDirectoryListing = [
   'empty-subcollection',
   'index.html',
   'subcollection',
-  'test.xq'
+  'test.xq',
+  'xincludes.xml'
 ]
 
 async function prepare (t) {
@@ -52,7 +55,14 @@ async function prepare (t) {
     storeResourceQuery(testCollection, 'a20.txt', '"test"'),
     storeResourceQuery(testCollection, 'a22.xml', '<test />'),
     storeResourceQuery(testCollection, 'index.html', '<html><body>1</body></html>'),
-    storeResourceQuery(testCollection, 'test.xq', '"1"')
+    storeResourceQuery(testCollection, 'test.xq', '"1"'),
+    storeResourceQuery(
+      testCollection,
+      'xincludes.xml',
+      `<xml xmlns:xi="http://www.w3.org/2001/XInclude">
+  <xi:include href="./a22.xml"><xi:fallback><p>I am an x include</p></xi:fallback></xi:include>
+</xml>`
+    )
   ].join(',')
   const { stderr, stdout } = await run('xst', ['run', query], asAdmin)
   if (stderr) {
@@ -89,6 +99,43 @@ test('with test collection', async (t) => {
     st.notOk(stdout, 'no output')
     st.deepEqual(readdirSync(testCollectionName), expectedDirectoryListing, 'all files were downloaded')
     st.deepEqual(readdirSync(testCollectionName + '/subcollection'), ['b'], 'subcollection contents were downloaded')
+
+    await removeLocalDownload()
+  })
+
+  t.test(`can get ${testCollection} as admin without expanding xincludes`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['get', testCollection, '.', '--expand-xincludes=no'], asAdmin)
+    if (stderr) {
+      return st.fail(stderr)
+    }
+    st.plan(4)
+
+    st.notOk(stdout, 'no output')
+    st.deepEqual(readdirSync(testCollectionName), expectedDirectoryListing, 'all files were downloaded')
+    st.deepEqual(readdirSync(testCollectionName + '/subcollection'), ['b'], 'subcollection contents were downloaded')
+
+    const contents = await readFile(path.join(testCollectionName, 'xincludes.xml'), 'utf-8')
+    st.strictEqual(
+      contents,
+      '<xml xmlns:xi="http://www.w3.org/2001/XInclude"><xi:include href="./a22.xml"><xi:fallback><p>I am an x include</p></xi:fallback></xi:include></xml>'
+    )
+
+    await removeLocalDownload()
+  })
+
+  t.test(`can get ${testCollection} as admin with expanding xincludes`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['get', testCollection, '.', '--expand-xincludes', 'yes'], asAdmin)
+    if (stderr) {
+      return st.fail(stderr)
+    }
+    st.plan(4)
+
+    st.notOk(stdout, 'no output')
+    st.deepEqual(readdirSync(testCollectionName), expectedDirectoryListing, 'all files were downloaded')
+    st.deepEqual(readdirSync(testCollectionName + '/subcollection'), ['b'], 'subcollection contents were downloaded')
+
+    const contents = await readFile(path.join(testCollectionName, 'xincludes.xml'), 'utf-8')
+    st.strictEqual(contents, '<xml xmlns:xi="http://www.w3.org/2001/XInclude"><test/></xml>')
 
     await removeLocalDownload()
   })
@@ -141,8 +188,8 @@ test('with test collection', async (t) => {
     )
     st.equal(
       lines.filter((l) => /^✔︎ downloaded resource [/\w]+\/get-test/.exec(l)).length,
-      9,
-      'notify 9 resources downloaded'
+      10,
+      'notify 10 resources downloaded'
     )
 
     st.deepEqual(readdirSync(testCollectionName), expectedDirectoryListing, 'all files were downloaded')

@@ -51,19 +51,19 @@ const xmlBooleanOptionValue = new Map([
 const xmlBooleanSetting = {
   type: 'string',
   coerce: (value) => {
-    console.log(value)
     if (value === null) {
       return value
     }
     if (!xmlBooleanOptionValue.has(value)) {
       throw Error('Unsupported XML serialization option value: ' + value)
     }
-    return value
+    return xmlBooleanOptionValue.get(value)
   }
 }
-const serializationOptionNames = ['insert-final-newline', 'omit-xml-declaration']
+const serializationOptionNames = ['insert-final-newline', 'omit-xml-declaration', 'expand-xincludes']
 
 const serializationDefaults = {
+  'expand-xincludes': 'yes'
   // "exist:indent": "no",
   // "indent": "no",
   // "output.indent": "no",
@@ -214,6 +214,9 @@ async function downloadCollectionOrResource (db, source, target, options) {
       console.error('Exclude:\n', ...options.exclude, '\n')
     }
     console.error(`Downloading up to ${options.threads} resources at a time`)
+    if (options['expand-xincludes'] === 'false') {
+      console.error('Skipping XInclude expansion')
+    }
   }
 
   // initial file
@@ -294,6 +297,12 @@ export function builder (yargs) {
       describe: 'Exclude any file matching one or more of exclude patterns (comma separated)',
       default: [],
       ...stringList
+    })
+    .option('x', {
+      group: 'serialization',
+      alias: 'expand-xincludes',
+      describe: 'Skip expanding XInclude elements when set to "false"',
+      ...xmlBooleanSetting
     })
     .option('X', {
       group: 'serialization',
