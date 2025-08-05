@@ -8,7 +8,11 @@ import { hideBin } from 'yargs/helpers'
 import { readConnection } from './utility/connection.js'
 import { configure } from './utility/configure.js'
 
-const dimWhite = chalk.white.dim
+// colored terminal output
+const bb = chalk.blackBright
+const ma = chalk.magenta
+const rb = chalk.redBright
+const yl = chalk.yellow
 
 /**
  * if package was linked to global strip relative path from output
@@ -24,13 +28,13 @@ function getScriptName ($0) {
 
 function showCompletionHelp (scriptName) {
   console.log(`
-${dimWhite('Install command completions for ZSH and BASH')}
+${bb('Install command completions for ZSH and BASH')}
   ${scriptName} completion`)
 }
 
 function showExamples (scriptName) {
   console.log(`
-${dimWhite('Examples:')}
+${bb('Examples:')}
   ${scriptName} run 'count(//p)'
   ${scriptName} list --tree --depth 1 /db/apps
   ${scriptName} package install from-registry demo-apps
@@ -38,12 +42,12 @@ ${dimWhite('Examples:')}
 }
 
 function showLogo () {
-  console.log(chalk.yellow`
- ╲ ╱  ╓───  ──┰──
-  ╳   ╰───╮   │
- ╱ ╲  ▂▁▁▁│   ┇
-`)
-  console.log('A modern exist-db command line interface')
+  console.log('\n' +
+    ma`  ╲ ╱  ╓───  ──┰──` + '\n' +
+    rb`   ╳   ╰───╮   │  ` + '\n' +
+    yl`  ╱ ╲  ▂▁▁▁│   ┇  ` + '\n'
+  )
+  console.log(yl`A modern command line interface for exist-db`)
 }
 
 const parser = yargs(hideBin(process.argv))

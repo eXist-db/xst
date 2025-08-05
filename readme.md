@@ -1,6 +1,11 @@
-# xst [ĭg-zĭst′]
 
-> A modern command line interface for exist-db
+```
+  ╲ ╱  ╓───  ──┰──
+   ╳   ╰───╮   │  
+  ╱ ╲  ▂▁▁▁│   ┇  
+
+  A modern command line interface for exist-db
+```
 
 [![version][version-image]][version-url]
 [![Conventional Commits][ccommits-image]][ccommits-url]
