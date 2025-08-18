@@ -127,7 +127,8 @@ function formatNameColored (item, display) {
       case 'text/plain':
       case 'text/markdown':
       case null: return chalk.white.dim(display)
-      default: return chalk.white(mimetype + display)
+      default: return chalk.white(display) + chalk.white.dim(' (' + mimetype + ')')
+      // default: return chalk.white(mimetype + display)
     }
   }
   return chalk.blueBright(display)
