@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^20.1.0",
-    "@commitlint/config-conventional": "^19.8.0",
+    "@commitlint/config-conventional": "^20.0.0",
     "@semantic-release/github": "^11.0.1",
     "@types/yargs": "^17.0.17",
     "c8": "^10.1.3",
