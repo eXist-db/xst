@@ -47,7 +47,7 @@ test('package install without REST', async function (t) {
     const { stderr, stdout } = await run('xst', ['package', 'install', 'local', '--rest', 'spec/fixtures/test-lib.xar', '-f'], asAdmin)
 
     st.notOk(stdout, 'No output on stdout')
-    st.equal(stderr, '✘ spec/fixtures/test-lib.xar > Response code 403 (Forbidden)\nPackage could not be installed!\n')
+    st.equal(stderr, '✘ spec/fixtures/test-lib.xar > Request failed with status code 403 (Forbidden): PUT https://localhost:8443/exist/rest/db/pkgtmp/test-lib.xar\nPackage could not be installed!\n')
     st.end()
   })
 

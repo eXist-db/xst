@@ -122,6 +122,7 @@ function formatNameColored (item, display) {
       case 'image/jpeg':
       case 'image/gif':
       case 'image/vnd.microsoft.icon': return chalk.cyan.dim(display)
+      case 'text/javascript':
       case 'application/javascript':
       case 'text/css': return chalk.cyan(display)
       case 'text/plain':
