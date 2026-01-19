@@ -136,7 +136,6 @@ test('single broken package', async function (t) {
     if (stdout) { return st.fail(stdout) }
 
     const lines = stderr.split('\n')
-    console.log(lines)
     st.equal(lines[0], '✘ spec/fixtures/broken-test-app.xar > expath-pkg.xml is missing in package')
     st.end()
   })
