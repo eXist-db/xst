@@ -1,11 +1,11 @@
 import { readFileSync, existsSync } from 'node:fs'
-import * as dotenv from 'dotenv'
+import { loadEnvFile } from 'node:process'
 import { findUpSync } from 'find-up-simple'
 // read connection options from .env file in current working directory or any parent directory
 // existing environment variables take precedence
 const path = findUpSync('.env')
 if (path) {
-  dotenv.config({ path })
+  loadEnvFile(path)
 }
 
 /**
@@ -26,9 +26,9 @@ export function configure (configPath) {
     throw new Error('Configfile not found! "' + configPath + '"')
   }
   if (/\.env(\..+)?$/.test(configPath)) {
-    const { parsed } = dotenv.config({ path: configPath })
-    if (!parsed) throw new Error(configPath + ' could not be read')
-    return compileConnectionOptions(parsed.EXISTDB_SERVER, parsed.EXISTDB_USER, parsed.EXISTDB_PASS)
+    loadEnvFile(configPath)
+    const { EXISTDB_SERVER, EXISTDB_PASS, EXISTDB_USER } = process.env
+    return compileConnectionOptions(EXISTDB_SERVER, EXISTDB_USER, EXISTDB_PASS)
   }
   if (/\.existdb\.json$/.test(configPath)) {
     return fromExistdbJson(configPath)
