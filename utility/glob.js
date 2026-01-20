@@ -8,7 +8,8 @@ export function toRegExpPattern (glob) {
     .replace(/\\/g, '\\\\') // escape backslashes
     .replace(/\./g, '\\.') // make . literals
     .replace(/\?/g, '.') // transform ?
-    .replace(/\*/g, '.*?') // transform *
+    .replace(/\*\*/g, '.*?') // transform **
+    .replace(/\*/g, '[^/]*?') // transform *
 
   return `^${converted}$`
 }
@@ -19,6 +20,13 @@ export function toRegExpPattern (glob) {
  * @returns {(item:ListResultItem) => Boolean}
  */
 export function getGlobMatcher (glob) {
-  const regex = new RegExp(toRegExpPattern(glob), 'i')
+  if (glob == null || glob.length === 0 || glob === '') {
+    return () => false
+  }
+  if (glob === '**') {
+    return () => true
+  }
+  const pattern = toRegExpPattern(glob)
+  const regex = new RegExp(pattern, 'i')
   return (item) => regex.test(item.name)
 }
