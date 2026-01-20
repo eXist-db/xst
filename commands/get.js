@@ -3,6 +3,7 @@ import { statSync, existsSync, mkdirSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
 import { connect } from '@existdb/node-exist'
 import Bottleneck from 'bottleneck'
+import { getGlobMatcher } from '../utility/glob.js'
 
 /**
  * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
@@ -30,15 +31,6 @@ import Bottleneck from 'bottleneck'
  * @prop {String[]} exclude filter items
  */
 
-const stringList = {
-  type: 'string',
-  array: true,
-  coerce: (values) =>
-    values.length === 1 && values[0].trim() === 'false'
-      ? ['**']
-      : values.reduce((values, value) => values.concat(value.split(',').map((value) => value.trim())), [])
-}
-
 const xmlBooleanOptionValue = new Map([
   ['true', 'yes'],
   ['yes', 'yes'],
@@ -60,7 +52,11 @@ const xmlBooleanSetting = {
     return xmlBooleanOptionValue.get(value)
   }
 }
-const serializationOptionNames = ['insert-final-newline', 'omit-xml-declaration', 'expand-xincludes']
+const serializationOptionNames = ['insert-final-newline', 'omit-xml-declaration', 'expand-xincludes', 'method']
+
+const htmlSerializationMethod = {
+  method: 'html'
+}
 
 const serializationDefaults = {
   'expand-xincludes': 'yes'
@@ -69,15 +65,26 @@ const serializationDefaults = {
   // "output.indent": "no",
   // "compression": "yes"
 }
-
-function getSerializationOptions (options) {
-  const serializationOptions = serializationDefaults
+function getHtmlSerializationOptions (options) {
+  const serializationOptions = { ...serializationDefaults }
   serializationOptionNames.forEach((o) => {
     if (o in options) {
       serializationOptions[o] = options[o]
     }
   })
-  // console.log(serializationOptions)
+  Object.assign(serializationOptions, htmlSerializationMethod)
+  // console.log('Serialization options:', serializationOptions)
+  return serializationOptions
+}
+
+function getSerializationOptions (options) {
+  const serializationOptions = { ...serializationDefaults }
+  serializationOptionNames.forEach((o) => {
+    if (o in options) {
+      serializationOptions[o] = options[o]
+    }
+  })
+  // console.log('Serialization options:', serializationOptions)
   return serializationOptions
 }
 
@@ -91,12 +98,20 @@ function getSerializationOptions (options) {
  */
 async function downloadResource (db, options, resource, directory, collection, rename) {
   try {
-    const { verbose } = options
+    const { verbose, matchesExcludeGlob, matchesIncludeGlob, matchesHtmlGlob } = options
     let fileContents
     const path = collection ? posix.join(collection, resource.name) : resource.name
+    if (matchesExcludeGlob(resource) || !matchesIncludeGlob(resource)) {
+      if (verbose) {
+        console.log(`- skipping resource ${path}`)
+      }
+      return true
+    }
 
     if (resource.type === 'BinaryResource') {
       fileContents = await db.documents.readBinary(path)
+    } else if (matchesHtmlGlob(resource)) {
+      fileContents = await db.documents.read(path, getHtmlSerializationOptions(options))
     } else {
       fileContents = await db.documents.read(path, getSerializationOptions(options))
     }
@@ -202,16 +217,16 @@ async function getPathInfo (db, path) {
  */
 async function downloadCollectionOrResource (db, source, target, options) {
   // read parameters
-  //  const start = Date.now()
+  // const start = Date.now()
   const root = resolve(target)
 
   if (options.verbose) {
-    console.error('Downloading:', source, 'to', root)
-    if (options.include.length > 1 || options.include[0] !== '**') {
-      console.error('Include:\n', ...options.include, '\n')
+    console.error('Downloading', source, 'to', root)
+    if (options.include !== '**') {
+      console.error('Include', options.include)
     }
-    if (options.exclude.length) {
-      console.error('Exclude:\n', ...options.exclude, '\n')
+    if (options.exclude && options.exclude.length) {
+      console.error('Exclude', options.exclude)
     }
     console.error(`Downloading up to ${options.threads} resources at a time`)
     if (options['expand-xincludes'] === 'false') {
@@ -288,15 +303,15 @@ export function builder (yargs) {
   yargs
     .option('i', {
       alias: 'include',
-      describe: 'Include only files matching one or more of include patterns (comma separated)',
+      describe: 'Include only files matching the include globbing pattern',
       default: '**',
-      ...stringList
+      type: 'string'
     })
     .option('e', {
       alias: 'exclude',
-      describe: 'Exclude any file matching one or more of exclude patterns (comma separated)',
-      default: [],
-      ...stringList
+      describe: 'Exclude any file matching the exclude globbing pattern',
+      default: '',
+      type: 'string'
     })
     .option('x', {
       group: 'serialization',
@@ -315,6 +330,13 @@ export function builder (yargs) {
       alias: 'insert-final-newline',
       describe: 'Force a final newline at the end of an XMLResource (requires eXist >=6.1.0)',
       ...xmlBooleanSetting
+    })
+    .option('H', {
+      group: 'serialization',
+      alias: 'serialize-as-html',
+      describe: 'Serialize resources that match the globbing pattern as HTML',
+      default: '*.html',
+      type: 'string'
     })
     .option('v', {
       alias: 'verbose',
@@ -342,7 +364,11 @@ export async function handler (argv) {
     return 0
   }
 
-  const { threads, mintime, source } = argv
+  const { threads, mintime, source, include, exclude, serializeAsHtml } = argv
+
+  const matchesIncludeGlob = getGlobMatcher(include)
+  const matchesExcludeGlob = getGlobMatcher(exclude)
+  const matchesHtmlGlob = getGlobMatcher(serializeAsHtml)
 
   if (typeof mintime !== 'number' || mintime < 0) {
     throw Error('Invalid value for option "mintime"; must be an integer equal or greater than zero.')
@@ -357,5 +383,5 @@ export async function handler (argv) {
   const version = await db.server.version()
   argv.version = version
 
-  return await downloadCollectionOrResource(db, source, target, argv)
+  return await downloadCollectionOrResource(db, source, target, { ...argv, matchesIncludeGlob, matchesExcludeGlob, matchesHtmlGlob })
 }

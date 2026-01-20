@@ -173,7 +173,7 @@ test('with test collection', async (t) => {
     st.plan(9)
     const verboseLines = stderr.split('\n')
     st.equal(verboseLines[0], 'Connecting to https://localhost:8443 as admin', verboseLines[0])
-    st.ok(verboseLines[1].startsWith('Downloading: /db/get-test to'), verboseLines[1])
+    st.ok(verboseLines[1].startsWith('Downloading /db/get-test to'), verboseLines[1])
     st.equal(verboseLines[2], 'Downloading up to 4 resources at a time', verboseLines[2])
     st.equal(verboseLines[3], '', verboseLines[3])
     st.equal(verboseLines.length, 4, 'all expected lines in verbose output')
@@ -220,6 +220,30 @@ test('with test collection', async (t) => {
       `empty subcollection was created in ${additionalTestDirectory} folder`
     )
     await run('rm', ['-rf', additionalTestDirectory])
+  })
+
+  const globTestDirectory = 'glob-test'
+  t.test('Downloading only txt files matching glob but exclude a1.txt', async (st) => {
+    await run('mkdir', [globTestDirectory])
+    const { stderr, stdout } = await run(
+      'xst',
+      ['get', testCollection, globTestDirectory, '--include', '*.txt', '--exclude', 'a1.txt'],
+      asAdmin
+    )
+    if (stderr) {
+      st.fail(stderr)
+      return st.end()
+    }
+    st.plan(2)
+
+    st.notOk(stdout, 'no output')
+    st.deepEqual(
+      readdirSync(`${globTestDirectory}/${testCollectionName}`),
+      ['a.txt', 'a20.txt', 'empty-subcollection', 'subcollection'],
+      'only .txt files (except a1.txt) were downloaded'
+    )
+    await run('rm', ['-rf', globTestDirectory])
+    st.end()
   })
 
   t.teardown(tearDown)
