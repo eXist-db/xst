@@ -12,7 +12,7 @@ jobs:
               --publish 8080:8080 --publish 8443:8443 \
               --volume ./empty:/exist/autodeploy:ro \
               existdb/existdb:release
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Modify web.xml in docker instance
         run: docker cp ./spec/fixtures/web-no-rest.xml exist:exist/etc/webapp/WEB-INF/web.xml
       - run: docker start exist
