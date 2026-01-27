@@ -77,6 +77,30 @@ xst <command> --help
 |`package install <command>`|Install XAR packages from various sources|`pkg i <command>`|
 |`package uninstall [options] <packages..>`|Remove XAR packages (does check dependents)|`pkg uninstall`|
 
+### Programmatic Usage
+
+XST can also be used as a library in your Node.js applications. See the [API Documentation](./API.md) for detailed information on using XST programmatically.
+
+**Quick Example:**
+
+```javascript
+import { connect } from '@existdb/node-exist'
+import { handler as upload } from '@existdb/xst/commands/upload.js'
+
+const db = connect({
+  host: 'localhost',
+  port: 8080,
+  basic_auth: { user: 'admin', pass: 'admin' }
+})
+
+await upload({
+  source: './local-directory',
+  target: '/db/apps/myapp',
+  verbose: true,
+  connectionOptions: db.client.options
+})
+```
+
 ### Examples
 
 #### List collections
