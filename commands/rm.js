@@ -1,4 +1,4 @@
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 import { readXquery } from '../utility/xq.js'
 
 /**
@@ -64,7 +64,7 @@ async function rm (db, paths, options) {
       force
     }
   })
-  const json = JSON.parse(result.pages.toString())
+  const json = await JSON.parse(result.pages.toString())
   if (json.error) {
     if (options.debug) {
       console.error(json.error)
@@ -104,12 +104,14 @@ const options = {
   r: {
     alias: 'recursive',
     describe: 'Descend down the collection tree',
-    type: 'boolean'
+    type: 'boolean',
+    default: false
   },
   f: {
     alias: 'force',
     describe: 'Force deletion of non-empty collections',
-    type: 'boolean'
+    type: 'boolean',
+    default: false
   }
 }
 
@@ -124,7 +126,6 @@ export async function handler (argv) {
   if (argv.help) {
     return 0
   }
-
   const { /* glob, */ paths, connectionOptions } = argv
 
   // if (glob.includes('**')) {
@@ -138,7 +139,7 @@ export async function handler (argv) {
     return 1
   }
 
-  const db = connect(connectionOptions)
+  const db = getXmlRpcClient(connectionOptions)
 
   return rm(db, normalized, argv)
 }

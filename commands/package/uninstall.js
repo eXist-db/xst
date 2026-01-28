@@ -1,11 +1,11 @@
 import chalk from 'chalk'
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 import { readXquery } from '../../utility/xq.js'
 
 const query = readXquery('uninstall.xq')
 
 async function getUserInfo (db) {
-  const { user } = db.client.options.basic_auth
+  const { user } = db.connection
   return await db.users.getUserInfo(user)
 }
 
@@ -58,7 +58,7 @@ export async function handler (argv) {
   }
 
   // check permissions (and therefore implicitly the connection)
-  const db = connect(argv.connectionOptions)
+  const db = getXmlRpcClient(argv.connectionOptions)
   const accountInfo = await getUserInfo(db)
   const isAdmin = accountInfo.groups.includes('dba')
   if (!isAdmin) {

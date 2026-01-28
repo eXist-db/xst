@@ -1,5 +1,4 @@
-import { got } from 'got'
-import { readFile } from 'fs/promises'
+import { readFile } from 'node:fs/promises'
 import test from 'tape'
 import { run, asAdmin } from '../../../test.js'
 
@@ -34,11 +33,8 @@ async function cleanup (t) {
 }
 
 async function isLocalRepoAvailable () {
-  return (
-    await got.get('http://localhost:8080/exist/apps/public-repo', {
-      throwHttpErrors: false
-    })
-  ).ok
+  const { status } = await fetch('http://localhost:8080/exist/apps/public-repo')
+  return status === 200
 }
 
 /**
@@ -54,9 +50,10 @@ async function installPackageToLocalRepo (t) {
     formData.append('', '\\')
 
     // TODO: Read in localhost
-    const result = await got.post(
+    const { status } = await fetch(
       'http://localhost:8080/exist/apps/public-repo/publish',
       {
+        method: 'post',
         headers: {
           Authorization: `Basic ${Buffer.from('repo:repo').toString('base64')}`
         },
@@ -64,7 +61,7 @@ async function installPackageToLocalRepo (t) {
       }
     )
 
-    t.ok(result.ok, `The install of ${app} should have worked`)
+    t.ok(status === 200, `The install of ${app} should have worked`)
   }
 }
 

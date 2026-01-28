@@ -1,8 +1,8 @@
-import { got } from 'got'
+import { Client, interceptors, fetch } from 'undici'
 import { valid, gt, lt, eq } from 'semver'
 import chalk from 'chalk'
 
-import { connect, getRestClient } from '@existdb/node-exist'
+import { getXmlRpcClient, getRestClient } from '@existdb/node-exist'
 
 import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
@@ -12,9 +12,24 @@ import {
 } from '../../../utility/package.js'
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 
-async function getRelease (api, owner, repo, release, assetFilter, verbose) {
+/**
+ * @typedef { import("undici").Dispatcher.ComposedDispatcher } Dispatcher.ComposedDispatcher
+ */
+
+/**
+ * get the release information from Github API
+ * @param {Dispatcher.ComposedDispatcher} api
+ * @param {String} address the api address
+ * @param {String} owner the owner of the repo
+ * @param {String} repo the name of the repo
+ * @param {String} [release] the specific release naem (optional)
+ * @param {String} assetFilter the pattern to find the XAR
+ * @param {boolean} verbose display more information
+ * @returns {Promise<{ xarName: string, packageContents: string, releaseName: string, tagName:string }>} release info
+ */
+async function getRelease (api, origin, owner, repo, release, assetFilter, verbose) {
   const tag = release === 'latest' ? release : 'tags/' + release
-  const path = `repos/${owner}/${repo}/releases/${tag}`
+  const path = `/repos/${owner}/${repo}/releases/${tag}`
   /**
    * @type {unknown[]}
    */
@@ -28,14 +43,15 @@ async function getRelease (api, owner, repo, release, assetFilter, verbose) {
    */
   let tagName
   try {
-    const result = await got.get(path, { prefixUrl: api }).json()
+    const { body } = await api.request({ method: 'GET', path })
+    const result = await body.json()
     // The name is not always filled in. Fall back to the tag_name if it is absent
     releaseName = result.name || result.tag_name
     assets = result.assets
     tagName = result.tag_name
   } catch (e) {
     throw Error(
-      `Could not get release from: ${e.options.url} ${e.response.statusCode}: ${e.response.statusMessage}`
+      `Could not get release from: ${origin}${path} ${e.statusCode}: ${e.body.message}`
     )
   }
   const filteredAssets = assets.filter(assetFilter)
@@ -59,6 +75,15 @@ async function getRelease (api, owner, repo, release, assetFilter, verbose) {
   }
 }
 
+/**
+ * Install a package after it was uploaded
+ * @param {import('@existdb/node-exist').NodeExistXmlRpcClient} db the XML-RPC client connected to an exist-db
+ * @param {Function} upload a function uploading the XAR package
+ * @param {string} xarName the name of the XAR package
+ * @param {Readable} contents the ReadableStream that will be put to the database
+ * @param {string} registry the URL to the registry that will be used ot resolve dependencies
+ * @returns {Promise<{ success: boolean, error?: Error }>} the result of the installation
+ */
 async function install (db, upload, xarName, contents, registry) {
   const xarDisplay = chalk.dim(xarName)
   const uploadResult = await upload(contents, xarName)
@@ -128,6 +153,14 @@ export const builder = (yargs) => {
     .options(options)
 }
 
+const requestHeaderInterceptor = (baseheaders) => dispatch => {
+  return (opts, handler) => {
+    const { headers } = opts
+    opts.headers = { ...headers, ...baseheaders }
+    return dispatch(opts, handler)
+  }
+}
+
 export async function handler (argv) {
   if (argv.help) {
     return 0
@@ -148,7 +181,7 @@ export async function handler (argv) {
   } = argv
 
   const repo = argv.repo && argv.repo !== '' ? argv.repo : abbrev
-  const db = connect(connectionOptions)
+  const db = getXmlRpcClient(connectionOptions)
 
   // check permissions (and therefore implicitly the connection)
   const user = await getUserInfo(db)
@@ -158,7 +191,7 @@ export async function handler (argv) {
     )
   }
 
-  const restClient = await getRestClient(connectionOptions)
+  const restClient = getRestClient(connectionOptions)
   // check rest connection
   await restClient.get('db')
   const upload = putPackage.bind(null, db, restClient)
@@ -170,11 +203,16 @@ export async function handler (argv) {
   }
 
   const installedVersion = (await getInstalledPackageMeta(db, abbrev)).version
+  const apiClient = new Client(api).compose([
+    requestHeaderInterceptor({ 'User-Agent': 'xst/undici.Client' }),
+    interceptors.responseError({ throwOnError: true })
+  ])
 
   if (verbose) {
     console.log(`Preparing to install ${owner}/${repo} at version ${release}`)
   }
   const { xarName, packageContents, releaseName, tagName } = await getRelease(
+    apiClient,
     api,
     owner,
     repo,
@@ -219,8 +257,10 @@ export async function handler (argv) {
   }
 
   try {
-    const contentStream = got.stream.get(packageContents)
-    const result = await install(db, upload, xarName, contentStream, registry)
+    // using fetch here as the packageContents could be anywhere on the internet
+    // and the contents might be gzipped, so we benefit from automatic decompression
+    const { body } = await fetch(packageContents, { method: 'GET' })
+    const result = await install(db, upload, xarName, body, registry)
     let action
     if (isDowngrade) {
       action = `${chalk.yellow('downgraded')} to`

@@ -9,7 +9,7 @@ import * as readline from 'node:readline'
 import chalk from 'chalk'
 import { execa } from 'execa'
 import { getEditor } from 'env-editor'
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 
 /**
  * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
@@ -148,5 +148,5 @@ export async function handler (argv) {
     return 0
   }
   const { resource, connectionOptions, editor } = argv
-  return await edit(connect(connectionOptions), resource, editor)
+  return await edit(getXmlRpcClient(connectionOptions), resource, editor)
 }

@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 import Bottleneck from 'bottleneck'
 import fg from 'fast-glob'
 import chalk from 'chalk'
-import { connect, getMimeType } from '@existdb/node-exist'
+import { getXmlRpcClient, getMimeType } from '@existdb/node-exist'
 
 import { logFailure, logSuccess } from '../utility/message.js'
 import { formatErrorMessage, isNetworkError } from '../utility/errors.js'
@@ -105,7 +105,7 @@ function handleError (error, path) {
 
 /**
  * Upload a single file or an entire directory tree to a db into a target collection
- * @param {String} source filesustem path
+ * @param {String} source filesystem path
  * @param {String} target target collection
  * @param {{pattern: [String], threads: Number, mintime: Number}} options
  * @returns {Promise<ExitCode>} exit code
@@ -121,7 +121,7 @@ async function uploadFileOrFolder (db, source, target, options) {
     console.log(`Uploading ${chalk.white(resolve(source))}`)
     console.log(`To ${chalk.white(target)}`)
     console.log(`On ${chalk.white(getServerUrl(db))}`)
-    console.log(`As ${chalk.white(db.client.options.basic_auth.user)}`)
+    console.log(`As ${chalk.white(db.connection.user)}`)
     if (options.include.length) {
       console.log(`Include ${chalk.green(options.include)}`)
     }
@@ -335,7 +335,7 @@ export async function handler (argv) {
     throw Error(source + ' not found!')
   }
 
-  const db = connect(argv.connectionOptions)
+  const db = getXmlRpcClient(argv.connectionOptions)
 
   const accountInfo = await getUserInfo(db)
   const isAdmin = accountInfo.groups.includes('dba')

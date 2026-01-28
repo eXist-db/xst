@@ -1,10 +1,14 @@
-import { got } from 'got'
+import { createExistClient } from '@existdb/node-exist/util/exist-client.js'
 import { unzipSync, strFromU8 } from 'fflate'
 import { getRestClient } from '@existdb/node-exist'
 import { readXquery } from './xq.js'
 
 /**
- * @typedef {import('@existdb/node-exist').NodeExist} NodeExist
+ * @typedef {import('@existdb/node-exist').NodeExistXmlRpcClient} NodeExistXmlRpcClient
+ */
+
+/**
+ * @typedef {import('@existdb/node-exist').NodeExistRestClient} NodeExistRestClient
  */
 
 const queryInstalledPackageMeta = readXquery('get-installed-package-meta.xq')
@@ -12,10 +16,19 @@ const queryInstallFromRepo = readXquery('install-from-repo.xq')
 
 export const expathPackageMeta = 'expath-pkg.xml'
 
+/**
+ *
+ * @param {NodeExistXmlRpcClient} db XML-RPC client
+ * @param {NodeExistRestClient} restClient REST client
+ * @param {Readable | Buffer | String} content the contents to upload
+ * @param {String} fileName the target resource
+ * @returns {Promise<{ success: boolean, restult: string }>}
+ */
 export async function putPackage (db, restClient, content, fileName) {
   const dbPath = db.app.packageCollection + '/' + fileName
   const res = await restClient.put(content, dbPath)
-  return { success: res.statusCode === 201, result: res.body }
+  const result = await res.body.text()
+  return { success: res.statusCode === 201, result }
 }
 
 export async function uploadMethod (db, connectionOptions, xmlrpc, rest) {
@@ -23,7 +36,7 @@ export async function uploadMethod (db, connectionOptions, xmlrpc, rest) {
     return db.app.upload
   }
 
-  const restClient = await getRestClient(connectionOptions)
+  const restClient = getRestClient(connectionOptions)
   const boundUpload = putPackage.bind(null, db, restClient)
   if (rest) {
     return boundUpload
@@ -45,9 +58,9 @@ export async function removeTemporaryCollection (db) {
 /**
  * Query if a package identified by name or abbrev is installed in which
  * version on the database instance
- * @param {NodeExist} db The database connection
+ * @param {NodeExistXmlRpcClient} db The database connection
  * @param {string} nameOrAbbrev The package name or abbrev to search for
- * @returns {{version: string?, name: string? }} name and version if found
+ * @returns {Promise<{version: string?, name: string? }>} name and version if found
  */
 export async function getInstalledPackageMeta (db, nameOrAbbrev) {
   const { pages } = await db.queries.readAll(queryInstalledPackageMeta, {
@@ -61,7 +74,7 @@ export async function getInstalledPackageMeta (db, nameOrAbbrev) {
  * Query a package registry for a compatible version
  * Has a fallback plan for legacy registries (public-repo prior to version 4.0.0)
  * Throws in all error cases
- * @param {NodeExist} db The database connection
+ * @param {NodeExistXmlRpcClient} db The database connection
  * @param {{ nameOrAbbrev: string, version: string, verbose: boolean, registryUrl:string }} options The query options
  * @returns {{version: string, name: string}} name and version if found (can contain more info)
  */
@@ -76,13 +89,21 @@ export async function findCompatibleVersion (db, { nameOrAbbrev, version, verbos
   if (version) {
     baseParams.version = version
   }
+  const registry = createExistClient({
+    server: registryUrl,
+    throwOnError: true,
+    headers: {
+      accept: 'application/json,*/*'
+    }
+  })
 
-  const abbrevSearchUrl = queryRepo(registryUrl, { ...baseParams, abbrev: nameOrAbbrev })
+  const abbrevSearchUrl = queryRepo({ ...baseParams, abbrev: nameOrAbbrev })
   try {
     if (verbose) {
-      console.error(`Resolving by abbrev: ${abbrevSearchUrl}`)
+      console.error(`Resolving by abbrev: ${registryUrl}${abbrevSearchUrl}`)
     }
-    return await got.get(abbrevSearchUrl).json()
+    const { body } = await registry.request(abbrevSearchUrl)
+    return await body.json()
   } catch (err) {
     // We are talking to an old server that does not respond with JSON. Retry with XML
     // sadly we cannot allow queries by abbrev as we must have the name in order to safely
@@ -97,16 +118,18 @@ export async function findCompatibleVersion (db, { nameOrAbbrev, version, verbos
         console.log('Falling back to name search')
       }
 
-      const nameSearchUrl = queryRepo(registryUrl, { ...baseParams, name: nameOrAbbrev })
+      const nameSearchUrl = queryRepo({ ...baseParams, name: nameOrAbbrev })
       try {
-        return await got.get(nameSearchUrl).json()
+        const { body } = await registry.request(nameSearchUrl)
+        return await body.json()
       } catch (errAbbrev) {
         if (errAbbrev?.response?.statusCode === 404) {
           throw new Error('Package could not be found in the registry!')
         }
         if (errAbbrev.code === 'ERR_BODY_PARSE_FAILURE') {
           try {
-            const responseText = await got.get(nameSearchUrl).text()
+            const { body } = await registry.request(nameSearchUrl)
+            const responseText = await body.text()
             // We are talking with an old server _and_ we got an OK result. The name is correct!
             if (responseText) {
               const version = responseText.match(/version="([^"]+)"/)[1]
@@ -129,11 +152,11 @@ export async function findCompatibleVersion (db, { nameOrAbbrev, version, verbos
   }
 }
 
-function queryRepo (registryUrl, params) {
+function queryRepo (params) {
   if (params) {
-    return `${registryUrl}/find?${new URLSearchParams(params)}`
+    return `find?${new URLSearchParams(params)}`
   }
-  return `${registryUrl}/find`
+  return 'find'
 }
 
 export async function installFromRepo (

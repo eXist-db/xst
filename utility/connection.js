@@ -10,11 +10,11 @@
  *     must be set for EXISTDB_USER to take effect
  */
 import { readOptionsFromEnv } from '@existdb/node-exist'
-import { defaultConnectionOptions } from '@existdb/node-exist/components/connection.js'
+import { defaultConnectionOptions } from '@existdb/node-exist/util/connect.js'
 import { getAccountInfo, AdminGroup } from '../utility/account.js'
 
 /**
- * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
+ * @typedef { import("@existdb/node-exist").NodeExistXmlRpcClient } NodeExistXmlRpcClient
  */
 /**
  * @typedef { import("./account.js").AccountInfo } AccountInfo
@@ -38,31 +38,20 @@ export function readConnection (argv) {
 
 /**
  * get server Address
- * @param {NodeExist} db client
+ * @param {NodeExistXmlRpcClient} db client
  * @returns {String} server address
  */
 export function getServerUrl (db) {
-  const { isSecure, options } = db.client
-
-  const protocol = isSecure ? 'https:' : 'http:'
-  const isStdPort =
-    (isSecure && options.port === 443) ||
-    (!isSecure && options.port === 80)
-
-  if (isStdPort) {
-    return `${protocol}//${options.host}`
-  }
-  return `${protocol}//${options.host}:${options.port}`
+  return db.connection.server
 }
 
 /**
  * get the user account information that will be used to connect to the db
- * @param {NodeExist} db client
+ * @param {NodeExistXmlRpcClient} db client
  * @returns {Promise<AccountInfo>} user info object
  */
 export async function getUserInfo (db) {
-  const { user } = db.client.options.basic_auth
-  return await getAccountInfo(db, user)
+  return await getAccountInfo(db, db.connection.user)
 }
 
 /**

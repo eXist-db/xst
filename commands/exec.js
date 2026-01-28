@@ -1,4 +1,4 @@
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 import { readFileSync } from 'node:fs'
 
 /**
@@ -106,7 +106,7 @@ export async function handler (argv) {
   }
   const { file, bind, query } = argv
   const _query = getQuery(file, query)
-  const db = connect(argv.connectionOptions)
+  const db = getXmlRpcClient(argv.connectionOptions)
 
-  return await execute(db, _query, bind)
+  return execute(db, _query, bind)
 }

@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 
 import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
@@ -37,7 +37,7 @@ export async function handler (argv) {
 
   // main
   const { connectionOptions, registry, force, verbose } = argv
-  const db = connect(connectionOptions)
+  const db = getXmlRpcClient(connectionOptions)
 
   // check permissions (and therefore implicitly the connection)
   const user = await getUserInfo(db)
@@ -47,7 +47,7 @@ export async function handler (argv) {
     )
   }
 
-  const info = await getInstalledPackageMeta(db, argv.package)
+  const info = getInstalledPackageMeta(db, argv.package)
 
   if (verbose) {
     const installedOrNot = info.version ? `already installed in version ${info.version}` : 'not installed yet'
@@ -56,7 +56,7 @@ export async function handler (argv) {
 
   let pkgInfo
   try {
-    pkgInfo = await findCompatibleVersion(db, { nameOrAbbrev: argv.package, version: argv.version, registryUrl: registry, verbose })
+    pkgInfo = findCompatibleVersion(db, { nameOrAbbrev: argv.package, version: argv.version, registryUrl: registry, verbose })
   } catch (e) {
     throw new Error(`${fail} ${chalk.dim(argv.package)} > ${e.message}`)
   }
