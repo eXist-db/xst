@@ -64,18 +64,18 @@ xst <command> --help
 
 **Available Commands**
 
-|command|description|aliases|
-|--|--|--|
-|`info`|Gather system information| |
-|`get [options] <source> <target>`|Download a collection or resource|`download` `fetch`|
-|`upload [options] <source> <target>`|Upload files and directories|`up`|
-|`remove [options] <paths..>`|Remove collections or resources|`rm` `delete` `del`|
-|`edit [options] <resource>`|Edit a resource in a local editor| |
-|`execute [<query>] [options]`|Execute a query string or file|`run` `exec`|
-|`list [options] <collection>`|List collection contents|`ls`|
-|`package list [options]`|List installed packages|`pkg ls`|
-|`package install <command>`|Install XAR packages from various sources|`pkg i <command>`|
-|`package uninstall [options] <packages..>`|Remove XAR packages (does check dependents)|`pkg uninstall`|
+| command                                    | description                                 | aliases             |
+|--------------------------------------------|---------------------------------------------|---------------------|
+| `info`                                     | Gather system information                   |                     |
+| `get [options] <source> <target>`          | Download a collection or resource           | `download` `fetch`  |
+| `upload [options] <source> <target>`       | Upload files and directories.               | `up`                |
+| `remove [options] <paths..>`               | Remove collections or resources             | `rm` `delete` `del` |
+| `edit [options] <resource>`                | Edit a resource in a local editor           |                     |
+| `execute [<query>] [options]`              | Execute a query string or file              | `run` `exec`        |
+| `list [options] <collection>`              | List collection contents                    | `ls`                |
+| `package list [options]`                   | List installed packages                     | `pkg ls`            |
+| `package install <command>`                | Install XAR packages from various sources   | `pkg i <command>`   |
+| `package uninstall [options] <packages..>` | Remove XAR packages (does check dependents) | `pkg uninstall`.    |
 
 ### Examples
 
@@ -229,11 +229,11 @@ Override any of the default connection parameters by setting environment
 variables prefixed with `EXISTDB`. In the following table you see a list of the
 parameters with their default values and a description.
 
-| variable name | default | description
-|----|----|----
-| `EXISTDB_USER` | `guest` | the user used to connect to the database and to execute queries with
-| `EXISTDB_PASS` | `guest` | the password to authenticate the user against the database
-| `EXISTDB_SERVER` | `https://localhost:8443` | the URL of the database instance to connect to (only http and https protocols are allowed)
+| variable name   | default                  | description                                                                                |
+|-----------------|--------------------------|--------------------------------------------------------------------------------------------|
+| `EXISTDB_USER`  | `guest`                  | the user used to connect to the database and to execute queries with                       |
+| `EXISTDB_PASS`  | `guest`                  | the password to authenticate the user against the database                                 |
+| `EXISTDB_SERVER`| `https://localhost:8443` | the URL of the database instance to connect to (only http and https protocols are allowed) |
 
 **Example**
 
