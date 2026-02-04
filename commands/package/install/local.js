@@ -84,7 +84,9 @@ async function install (db, upload, localFilePath, force, verbose) {
     logSuccess(message)
     return installResult
   } catch (e) {
-    logFailure(`${xarDisplay} ${e.message}`)
+    // catch request errors
+    const message = e.statusCode ? `Request failed with status code ${e.statusCode}` : e.message
+    logFailure(`${xarDisplay} ${message}`)
     return { success: false, error: e }
   }
 }

@@ -68,7 +68,7 @@ function getQuery (file, query) {
  * @param {NodeExist.BoundModules} db bound NodeExist modules
  * @param {string|Buffer} query the query to execute
  * @param {object} variables the bound variables
- * @returns {Number}
+ * @returns {Promise<Number>} exit code
  */
 async function execute (db, query, variables) {
   const result = await db.queries.readAll(query, { variables })
@@ -108,5 +108,5 @@ export async function handler (argv) {
   const _query = getQuery(file, query)
   const db = getXmlRpcClient(argv.connectionOptions)
 
-  return execute(db, _query, bind)
+  return await execute(db, _query, bind)
 }

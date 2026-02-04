@@ -34,7 +34,6 @@ export async function handler (argv) {
   if (argv.help) {
     return 0
   }
-
   // main
   const { connectionOptions, registry, force, verbose } = argv
   const db = getXmlRpcClient(connectionOptions)
@@ -47,16 +46,16 @@ export async function handler (argv) {
     )
   }
 
-  const info = getInstalledPackageMeta(db, argv.package)
+  const info = await getInstalledPackageMeta(db, argv.package)
 
   if (verbose) {
     const installedOrNot = info.version ? `already installed in version ${info.version}` : 'not installed yet'
-    console.error(`Package ${info.name} is ${installedOrNot}.`)
+    console.error(`Package ${info.name || argv.package} is ${installedOrNot}.`)
   }
 
   let pkgInfo
   try {
-    pkgInfo = findCompatibleVersion(db, { nameOrAbbrev: argv.package, version: argv.version, registryUrl: registry, verbose })
+    pkgInfo = await findCompatibleVersion(db, { nameOrAbbrev: argv.package, version: argv.version, registryUrl: registry, verbose })
   } catch (e) {
     throw new Error(`${fail} ${chalk.dim(argv.package)} > ${e.message}`)
   }

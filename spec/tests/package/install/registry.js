@@ -164,7 +164,7 @@ test('Work with a local public registry', async function (t) {
   )
 
   t.test(
-    'does not attmept to re-install the same package version from a local public registry, resolved by abbreviation',
+    'does not attempt to re-install the same package version from a local public registry, resolved by abbreviation',
     async function (st) {
       const { stderr, stdout } = await run(
         'xst',
@@ -179,6 +179,7 @@ test('Work with a local public registry', async function (t) {
         asAdmin
       )
 
+      console.log(stderr, stdout)
       const lines = stdout.split('\n')
       st.equal(
         lines[0],
@@ -305,7 +306,7 @@ test('Work with a local public registry', async function (t) {
           'install',
           'registry',
           '--registry',
-          'http://nonsense.com',
+          'http://localhost:8080/doesnotexist/',
           testAppName
         ],
         asAdmin
@@ -316,7 +317,7 @@ test('Work with a local public registry', async function (t) {
       // @todo: maybe a better error here? Explain user what actually went wrong?
       st.equal(
         stderr,
-        '✘ http://exist-db.org/apps/test-app > Package could not be found in the registry!\n',
+        '✘ http://exist-db.org/apps/test-app > Server responded with a Servlet error. Probably a wrong path to the public-repo or public-repo not installed. Please check the URL http://localhost:8080/doesnotexist/\n',
         stderr
       )
       st.end()
