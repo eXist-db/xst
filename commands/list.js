@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import { connect, getMimeType } from '@existdb/node-exist'
+import { getXmlRpcClient, getMimeType } from '@existdb/node-exist'
 import { readXquery } from '../utility/xq.js'
 import { getDateFormatter } from '../utility/colored-date.js'
 import { multiSort } from '../utility/sorter.js'
@@ -592,7 +592,7 @@ export async function handler (argv) {
     return 1
   }
 
-  const db = connect(argv.connectionOptions)
+  const db = getXmlRpcClient(argv.connectionOptions)
 
   return ls(db, collection, argv)
 }

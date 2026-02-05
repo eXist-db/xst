@@ -1,4 +1,4 @@
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 import { readFileSync } from 'node:fs'
 
 /**
@@ -68,7 +68,7 @@ function getQuery (file, query) {
  * @param {NodeExist.BoundModules} db bound NodeExist modules
  * @param {string|Buffer} query the query to execute
  * @param {object} variables the bound variables
- * @returns {Number}
+ * @returns {Promise<Number>} exit code
  */
 async function execute (db, query, variables) {
   const result = await db.queries.readAll(query, { variables })
@@ -106,7 +106,7 @@ export async function handler (argv) {
   }
   const { file, bind, query } = argv
   const _query = getQuery(file, query)
-  const db = connect(argv.connectionOptions)
+  const db = getXmlRpcClient(argv.connectionOptions)
 
   return await execute(db, _query, bind)
 }

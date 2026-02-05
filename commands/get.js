@@ -1,7 +1,7 @@
 import { resolve, join, posix, dirname, basename } from 'node:path'
 import { statSync, existsSync, mkdirSync } from 'node:fs'
 import { writeFile } from 'node:fs/promises'
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 import Bottleneck from 'bottleneck'
 import { getGlobMatcher } from '../utility/glob.js'
 
@@ -379,7 +379,7 @@ export async function handler (argv) {
 
   const target = argv.target ? argv.target : '.'
 
-  const db = connect(argv.connectionOptions)
+  const db = getXmlRpcClient(argv.connectionOptions)
   const version = await db.server.version()
   argv.version = version
 

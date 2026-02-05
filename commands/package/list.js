@@ -1,5 +1,5 @@
 import chalk from 'chalk'
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 import { multiSort } from '../../utility/sorter.js'
 import { padReducer } from '../../utility/padding.js'
 import { getDateFormatter } from '../../utility/colored-date.js'
@@ -598,6 +598,6 @@ export async function handler (argv) {
     return 0
   }
 
-  const db = connect(argv.connectionOptions)
+  const db = getXmlRpcClient(argv.connectionOptions)
   return await listPackages(db, argv)
 }

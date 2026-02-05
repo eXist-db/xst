@@ -1,5 +1,4 @@
-import { got } from 'got'
-import { readFile } from 'fs/promises'
+import { readFile } from 'node:fs/promises'
 import test from 'tape'
 import { run, asAdmin } from '../../../test.js'
 
@@ -34,11 +33,8 @@ async function cleanup (t) {
 }
 
 async function isLocalRepoAvailable () {
-  return (
-    await got.get('http://localhost:8080/exist/apps/public-repo', {
-      throwHttpErrors: false
-    })
-  ).ok
+  const { status } = await fetch('http://localhost:8080/exist/apps/public-repo')
+  return status === 200
 }
 
 /**
@@ -54,9 +50,10 @@ async function installPackageToLocalRepo (t) {
     formData.append('', '\\')
 
     // TODO: Read in localhost
-    const result = await got.post(
+    const { status } = await fetch(
       'http://localhost:8080/exist/apps/public-repo/publish',
       {
+        method: 'post',
         headers: {
           Authorization: `Basic ${Buffer.from('repo:repo').toString('base64')}`
         },
@@ -64,7 +61,7 @@ async function installPackageToLocalRepo (t) {
       }
     )
 
-    t.ok(result.ok, `The install of ${app} should have worked`)
+    t.ok(status === 200, `The install of ${app} should have worked`)
   }
 }
 
@@ -167,7 +164,7 @@ test('Work with a local public registry', async function (t) {
   )
 
   t.test(
-    'does not attmept to re-install the same package version from a local public registry, resolved by abbreviation',
+    'does not attempt to re-install the same package version from a local public registry, resolved by abbreviation',
     async function (st) {
       const { stderr, stdout } = await run(
         'xst',
@@ -182,6 +179,7 @@ test('Work with a local public registry', async function (t) {
         asAdmin
       )
 
+      console.log(stderr, stdout)
       const lines = stdout.split('\n')
       st.equal(
         lines[0],
@@ -308,7 +306,7 @@ test('Work with a local public registry', async function (t) {
           'install',
           'registry',
           '--registry',
-          'http://nonsense.com',
+          'http://localhost:8080/doesnotexist/',
           testAppName
         ],
         asAdmin
@@ -319,7 +317,7 @@ test('Work with a local public registry', async function (t) {
       // @todo: maybe a better error here? Explain user what actually went wrong?
       st.equal(
         stderr,
-        '✘ http://exist-db.org/apps/test-app > Package could not be found in the registry!\n',
+        '✘ http://exist-db.org/apps/test-app > Server responded with a Servlet error. Probably a wrong path to the public-repo or public-repo not installed. Please check the URL http://localhost:8080/doesnotexist/\n',
         stderr
       )
       st.end()

@@ -60,7 +60,9 @@ try {
     serialize(
         map{
             "list": array:for-each(
-                array{ $paths }, local:safe-remove#1)
+                array{ $paths }, local:safe-remove#1),
+            "recursive": $recursive,
+            "force": $force
         },
         map { "method": "json" }
     )

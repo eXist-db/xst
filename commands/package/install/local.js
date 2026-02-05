@@ -3,7 +3,7 @@ import { basename } from 'node:path'
 import { valid, gt, lt, eq } from 'semver'
 import chalk from 'chalk'
 
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 
 import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
@@ -15,12 +15,12 @@ import {
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
 
 /**
- * @typedef { import("@existdb/node-exist").NodeExist } NodeExist
+ * @typedef { import("@existdb/node-exist").NodeExistXmlRpcClient } NodeExistXmlRpcClient
  */
 
 /**
- *
- * @param {NodeExist} db
+ * Upload and install a xar package from the local filesystem
+ * @param {NodeExistXmlRpcClient} db
  * @param {Function} upload
  * @param {String} localFilePath
  * @param {Boolean} force
@@ -84,7 +84,9 @@ async function install (db, upload, localFilePath, force, verbose) {
     logSuccess(message)
     return installResult
   } catch (e) {
-    logFailure(`${xarDisplay} ${e.message}`)
+    // catch request errors
+    const message = e.statusCode ? `Request failed with status code ${e.statusCode}` : e.message
+    logFailure(`${xarDisplay} ${message}`)
     return { success: false, error: e }
   }
 }
@@ -133,7 +135,7 @@ export async function handler (argv) {
     }
   })
 
-  const db = connect(connectionOptions)
+  const db = getXmlRpcClient(connectionOptions)
 
   // check permissions (and therefore implicitly the connection)
   const user = await getUserInfo(db)

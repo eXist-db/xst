@@ -47,6 +47,7 @@ try {
         )
 }
 catch * {
+    response:set-status-code(500),
     serialize(
         map {
             "error": map {

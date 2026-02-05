@@ -1,6 +1,6 @@
 import chalk from 'chalk'
 
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 
 import { isDBAdmin, getUserInfo } from '../../../utility/connection.js'
 import {
@@ -34,10 +34,9 @@ export async function handler (argv) {
   if (argv.help) {
     return 0
   }
-
   // main
   const { connectionOptions, registry, force, verbose } = argv
-  const db = connect(connectionOptions)
+  const db = getXmlRpcClient(connectionOptions)
 
   // check permissions (and therefore implicitly the connection)
   const user = await getUserInfo(db)
@@ -51,7 +50,7 @@ export async function handler (argv) {
 
   if (verbose) {
     const installedOrNot = info.version ? `already installed in version ${info.version}` : 'not installed yet'
-    console.error(`Package ${info.name} is ${installedOrNot}.`)
+    console.error(`Package ${info.name || argv.package} is ${installedOrNot}.`)
   }
 
   let pkgInfo

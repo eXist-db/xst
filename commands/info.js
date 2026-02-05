@@ -1,4 +1,4 @@
-import { connect } from '@existdb/node-exist'
+import { getXmlRpcClient } from '@existdb/node-exist'
 import { readXquery } from '../utility/xq.js'
 
 /**
@@ -59,5 +59,5 @@ export async function handler (argv) {
     return 0
   }
   const { connectionOptions } = argv
-  return info(connect(connectionOptions), argv)
+  return info(getXmlRpcClient(connectionOptions), argv)
 }
