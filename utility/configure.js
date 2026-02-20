@@ -1,12 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { loadEnvFile } from 'node:process'
-import { findUpSync } from 'find-up-simple'
-// read connection options from .env file in current working directory or any parent directory
-// existing environment variables take precedence
-const path = findUpSync('.env')
-if (path) {
-  loadEnvFile(path)
-}
 
 /**
  * read configuration files in .env, .existdb.json or node-exist format
