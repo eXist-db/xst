@@ -12,6 +12,8 @@
 import { readOptionsFromEnv } from '@existdb/node-exist'
 import { defaultConnectionOptions } from '@existdb/node-exist/util/connect.js'
 import { getAccountInfo, AdminGroup } from '../utility/account.js'
+import { findUpSync } from 'find-up-simple'
+import { loadEnvFile } from 'node:process'
 
 /**
  * @typedef { import("@existdb/node-exist").NodeExistXmlRpcClient } NodeExistXmlRpcClient
@@ -26,6 +28,13 @@ import { getAccountInfo, AdminGroup } from '../utility/account.js'
  * @returns {object} argv with connection options resolved
  */
 export function readConnection (argv) {
+  // read connection options from .env file in current working directory or any parent directory
+  // existing environment variables take precedence
+  const path = findUpSync('.env')
+  if (path) {
+    loadEnvFile(path)
+  }
+
   const connectionOptions = Object.assign({}, defaultConnectionOptions, readOptionsFromEnv(), argv.connectionOptions)
   if (argv.verbose) {
     const { protocol, host, port } = connectionOptions
