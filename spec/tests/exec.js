@@ -1,7 +1,8 @@
 import { test } from 'tape'
 import yargs from 'yargs'
 import * as exec from '../../commands/exec.js'
-import { runPipe } from '../test.js'
+import { getWsUrl, getAuthHeader } from '../../commands/exec.js'
+import { run, runPipe, asAdmin } from '../test.js'
 
 const parser = yargs().scriptName('xst').command(exec).help().fail(false)
 
@@ -137,4 +138,123 @@ test('read query from stdin', async function (t) {
   const { stdout, stderr } = await runPipe('echo', ['1+1'], 'xst', ['exec', '-'])
   if (stderr) { return t.fail(stderr) }
   t.equals('2\n', stdout)
+})
+
+// --stream flag parsing
+
+test('parses --stream flag', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--stream', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.plan(2)
+  t.equal(argv.stream, true)
+  t.equal(argv.query, '1+1')
+})
+
+test('parses -s shorthand for --stream', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '-s', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.stream, true)
+})
+
+test('--stream defaults to false', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.stream, false)
+})
+
+// --timing flag parsing
+
+test('parses --timing flag', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--timing', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.plan(2)
+  t.equal(argv.timing, true)
+  t.equal(argv.query, '1+1')
+})
+
+test('parses -t shorthand for --timing', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '-t', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.timing, true)
+})
+
+test('--timing defaults to false', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.timing, false)
+})
+
+test('parses --stream and --timing together', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--stream', '--timing', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.plan(3)
+  t.equal(argv.stream, true)
+  t.equal(argv.timing, true)
+  t.equal(argv.query, '1+1')
+})
+
+// WebSocket URL construction
+
+test('getWsUrl builds ws:// URL from http connection', function (t) {
+  const url = getWsUrl({ protocol: 'http:', host: 'localhost', port: 8080 })
+  t.equal(url, 'ws://localhost:8080/exist/ws/eval')
+  t.end()
+})
+
+test('getWsUrl builds wss:// URL from https connection', function (t) {
+  const url = getWsUrl({ protocol: 'https:', host: 'example.com', port: 8443 })
+  t.equal(url, 'wss://example.com:8443/exist/ws/eval')
+  t.end()
+})
+
+// Auth header construction
+
+test('getAuthHeader builds Basic auth header', function (t) {
+  const header = getAuthHeader({ basic_auth: { user: 'admin', pass: '' } })
+  const expected = 'Basic ' + Buffer.from('admin:').toString('base64')
+  t.equal(header, expected)
+  t.end()
+})
+
+test('getAuthHeader encodes user and pass', function (t) {
+  const header = getAuthHeader({ basic_auth: { user: 'joe', pass: 's3cret' } })
+  const expected = 'Basic ' + Buffer.from('joe:s3cret').toString('base64')
+  t.equal(header, expected)
+  t.end()
+})
+
+// --timing integration (HTTP mode, no WebSocket needed)
+
+test('--timing prints timing to stderr', async function (t) {
+  const { stdout, stderr } = await run('xst', ['exec', '--timing', '1+1'], asAdmin)
+  t.equal(stdout, '2\n', 'query result on stdout')
+  t.ok(stderr && stderr.match(/Total: \d+ms/), 'timing on stderr')
 })
