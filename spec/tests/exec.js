@@ -1,7 +1,7 @@
 import { test } from 'tape'
 import yargs from 'yargs'
 import * as exec from '../../commands/exec.js'
-import { getWsUrl, getAuthHeader } from '../../commands/exec.js'
+import { getWsUrl, getAuthHeader, escapeXQuery, buildEvalQuery, buildFetchQuery } from '../../commands/exec.js'
 import { run, runPipe, asAdmin } from '../test.js'
 
 const parser = yargs().scriptName('xst').command(exec).help().fail(false)
@@ -248,6 +248,120 @@ test('getAuthHeader encodes user and pass', function (t) {
   const header = getAuthHeader({ basic_auth: { user: 'joe', pass: 's3cret' } })
   const expected = 'Basic ' + Buffer.from('joe:s3cret').toString('base64')
   t.equal(header, expected)
+  t.end()
+})
+
+// --page-size flag parsing
+
+test('parses --page-size flag', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--page-size', '50', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.plan(2)
+  t.equal(argv.pageSize, 50)
+  t.equal(argv.query, '1+1')
+})
+
+test('--page-size defaults to 20', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.pageSize, 20)
+})
+
+// --output flag parsing
+
+test('parses --output json flag', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--output', 'json', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.plan(2)
+  t.equal(argv.output, 'json')
+  t.equal(argv.query, '1+1')
+})
+
+test('parses -o shorthand for --output', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '-o', 'json', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.output, 'json')
+})
+
+test('--output defaults to text', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.output, 'text')
+})
+
+test('--output rejects invalid values', async function (t) {
+  try {
+    await new Promise((resolve, reject) => {
+      parser.parse(['exec', '--output', 'xml', '1+1'], (err, argv, output) => {
+        if (err) { return reject(err) }
+        resolve(argv)
+      })
+    })
+    t.fail('should have thrown')
+  } catch (e) {
+    t.ok(e, 'rejects invalid output format')
+  }
+})
+
+// XQuery escaping
+
+test('escapeXQuery wraps in double quotes', function (t) {
+  t.equal(escapeXQuery('1+1'), '"1+1"')
+  t.end()
+})
+
+test('escapeXQuery escapes internal double quotes', function (t) {
+  t.equal(escapeXQuery('let $x := "hello"'), '"let $x := ""hello"""')
+  t.end()
+})
+
+test('escapeXQuery handles empty string', function (t) {
+  t.equal(escapeXQuery(''), '""')
+  t.end()
+})
+
+// buildEvalQuery
+
+test('buildEvalQuery produces lsp:eval wrapper', function (t) {
+  const result = buildEvalQuery('1+1')
+  t.ok(result.includes('import module namespace lsp='), 'imports lsp module')
+  t.ok(result.includes('lsp:eval("1+1"'), 'calls lsp:eval with escaped query')
+  t.ok(result.includes('"xmldb:exist:///db"'), 'includes context URI')
+  t.end()
+})
+
+// buildFetchQuery
+
+test('buildFetchQuery produces lsp:fetch wrapper', function (t) {
+  const result = buildFetchQuery('abc-123', 1, 20)
+  t.ok(result.includes('import module namespace lsp='), 'imports lsp module')
+  t.ok(result.includes('lsp:fetch("abc-123", 1, 20)'), 'calls lsp:fetch with cursor, start, count')
+  t.end()
+})
+
+test('buildFetchQuery handles different page parameters', function (t) {
+  const result = buildFetchQuery('xyz', 21, 50)
+  t.ok(result.includes('lsp:fetch("xyz", 21, 50)'), 'uses correct start and count')
   t.end()
 })
 
