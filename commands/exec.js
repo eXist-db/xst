@@ -106,15 +106,44 @@ export function buildEvalQuery (query) {
 }
 
 /**
+ * Build serialization options from CLI flags
+ * @param {object} argv parsed CLI arguments
+ * @returns {object} serialization options map
+ */
+export function buildSerializationOptions (argv) {
+  const options = {}
+  if (argv.method) options.method = argv.method
+  if (argv.indent !== undefined) options.indent = argv.indent ? 'yes' : 'no'
+  if (argv.highlight) options['highlight-matches'] = 'elements'
+  return options
+}
+
+/**
+ * Serialize an options object as an XQuery map literal
+ * @param {object} options key-value pairs
+ * @returns {string} XQuery map expression, or empty string if no options
+ */
+export function serializeXQueryMap (options) {
+  const entries = Object.entries(options)
+  if (entries.length === 0) return ''
+  const pairs = entries.map(([k, v]) => '"' + k + '": "' + v + '"')
+  return 'map { ' + pairs.join(', ') + ' }'
+}
+
+/**
  * Build XQuery to fetch a page of results from a cursor
  * @param {string} cursorId the cursor identifier
  * @param {number} start 1-based start index
  * @param {number} count number of items to fetch
+ * @param {object} [options] serialization options
  * @returns {string} wrapper XQuery calling lsp:fetch
  */
-export function buildFetchQuery (cursorId, start, count) {
+export function buildFetchQuery (cursorId, start, count, options) {
+  const optionsArg = options ? serializeXQueryMap(options) : ''
+  const args = '"' + cursorId + '", ' + start + ', ' + count +
+    (optionsArg ? ', ' + optionsArg : '')
   return 'import module namespace lsp="http://exist-db.org/xquery/lsp";\n' +
-    'lsp:fetch("' + cursorId + '", ' + start + ', ' + count + ')'
+    'lsp:fetch(' + args + ')'
 }
 
 /**
@@ -142,10 +171,11 @@ function promptUser (message) {
  * @param {string} query the query to execute
  * @param {number} pageSize number of results per page
  * @param {string} outputFormat output format ('text' or 'json')
+ * @param {object} serializationOptions serialization options for lsp:fetch
  * @param {boolean} showTiming whether to show timing info
  * @returns {Promise<Number>} exit code
  */
-async function executeCursor (connectionOptions, query, pageSize, outputFormat, showTiming) {
+async function executeCursor (connectionOptions, query, pageSize, outputFormat, serializationOptions, showTiming) {
   const restClient = getRestClient(connectionOptions)
 
   // Evaluate query and obtain cursor
@@ -180,8 +210,12 @@ async function executeCursor (connectionOptions, query, pageSize, outputFormat, 
   let page = 1
   while (page <= totalPages) {
     const start = (page - 1) * pageSize + 1
+    const hasOptions = Object.keys(serializationOptions).length > 0
+    const fetchQuery = hasOptions
+      ? buildFetchQuery(cursor.cursor, start, pageSize, serializationOptions)
+      : buildFetchQuery(cursor.cursor, start, pageSize)
     const fetchResult = await restClient.get('exist/rest/db', {
-      _query: buildFetchQuery(cursor.cursor, start, pageSize),
+      _query: fetchQuery,
       _wrap: 'no'
     })
 
@@ -255,10 +289,11 @@ async function execute (db, query, variables, showTiming) {
  *
  * @param {object} connectionOptions
  * @param {string} query the query to execute
+ * @param {object} serializationOptions serialization options
  * @param {boolean} showTiming whether to show timing info
  * @returns {Promise<Number>} exit code
  */
-function executeStream (connectionOptions, query, showTiming) {
+function executeStream (connectionOptions, query, serializationOptions, showTiming) {
   return new Promise((resolve, reject) => {
     const wsUrl = getWsUrl(connectionOptions)
     const ws = new WebSocket(wsUrl, {
@@ -293,7 +328,11 @@ function executeStream (connectionOptions, query, showTiming) {
     process.on('SIGINT', handleCancel)
 
     ws.on('open', () => {
-      ws.send(JSON.stringify({ action: 'eval', id: requestId, query }))
+      const msg = { action: 'eval', id: requestId, query }
+      if (Object.keys(serializationOptions).length > 0) {
+        msg.serialization = serializationOptions
+      }
+      ws.send(JSON.stringify(msg))
     })
 
     ws.on('message', (data) => {
@@ -399,6 +438,20 @@ export async function builder (yargs) {
       choices: ['text', 'json'],
       default: 'text'
     })
+    .option('method', {
+      type: 'string',
+      describe: 'Serialization method (xml, json, text, html, adaptive)',
+      choices: ['xml', 'json', 'text', 'html', 'adaptive']
+    })
+    .option('indent', {
+      type: 'boolean',
+      describe: 'Indent serialized output'
+    })
+    .option('highlight', {
+      type: 'boolean',
+      describe: 'Highlight full-text matches in results',
+      default: false
+    })
     .option('h', { alias: 'help', type: 'boolean' })
     .nargs({ f: 1, b: 1 })
     .conflicts('f', 'query')
@@ -411,9 +464,10 @@ export async function handler (argv) {
   }
   const { file, bind, query, stream, timing, pageSize, output, connectionOptions } = argv
   const _query = getQuery(file, query)
+  const serOpts = buildSerializationOptions(argv)
 
   if (stream) {
-    return await executeStream(connectionOptions, _query, timing)
+    return await executeStream(connectionOptions, _query, serOpts, timing)
   }
 
   const db = getXmlRpcClient(connectionOptions)
@@ -422,7 +476,7 @@ export async function handler (argv) {
   const hasBindings = bind && Object.keys(bind).length > 0
   if (!hasBindings) {
     try {
-      return await executeCursor(connectionOptions, _query, pageSize, output, timing)
+      return await executeCursor(connectionOptions, _query, pageSize, output, serOpts, timing)
     } catch {
       // Fall back to XML-RPC if cursor API is not available
       return await execute(db, _query, bind, timing)

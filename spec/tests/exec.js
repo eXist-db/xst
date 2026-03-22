@@ -1,7 +1,7 @@
 import { test } from 'tape'
 import yargs from 'yargs'
 import * as exec from '../../commands/exec.js'
-import { getWsUrl, getAuthHeader, escapeXQuery, buildEvalQuery, buildFetchQuery } from '../../commands/exec.js'
+import { getWsUrl, getAuthHeader, escapeXQuery, buildEvalQuery, buildFetchQuery, buildSerializationOptions, serializeXQueryMap } from '../../commands/exec.js'
 import { run, runPipe, asAdmin } from '../test.js'
 
 const parser = yargs().scriptName('xst').command(exec).help().fail(false)
@@ -365,6 +365,143 @@ test('buildFetchQuery handles different page parameters', function (t) {
   t.end()
 })
 
+test('buildFetchQuery includes serialization options', function (t) {
+  const result = buildFetchQuery('abc', 1, 20, { method: 'json', indent: 'no' })
+  t.ok(result.includes('map {'), 'includes options map')
+  t.ok(result.includes('"method": "json"'), 'includes method option')
+  t.ok(result.includes('"indent": "no"'), 'includes indent option')
+  t.end()
+})
+
+test('buildFetchQuery omits options map when empty', function (t) {
+  const result = buildFetchQuery('abc', 1, 20)
+  t.notOk(result.includes('map {'), 'no options map without options arg')
+  t.end()
+})
+
+// serializeXQueryMap
+
+test('serializeXQueryMap produces XQuery map literal', function (t) {
+  const result = serializeXQueryMap({ method: 'xml', indent: 'yes' })
+  t.equal(result, 'map { "method": "xml", "indent": "yes" }')
+  t.end()
+})
+
+test('serializeXQueryMap returns empty string for empty object', function (t) {
+  t.equal(serializeXQueryMap({}), '')
+  t.end()
+})
+
+test('serializeXQueryMap handles highlight-matches', function (t) {
+  const result = serializeXQueryMap({ 'highlight-matches': 'elements' })
+  t.equal(result, 'map { "highlight-matches": "elements" }')
+  t.end()
+})
+
+// buildSerializationOptions
+
+test('buildSerializationOptions extracts method', function (t) {
+  const opts = buildSerializationOptions({ method: 'json' })
+  t.deepEqual(opts, { method: 'json' })
+  t.end()
+})
+
+test('buildSerializationOptions converts indent true to yes', function (t) {
+  const opts = buildSerializationOptions({ indent: true })
+  t.deepEqual(opts, { indent: 'yes' })
+  t.end()
+})
+
+test('buildSerializationOptions converts indent false to no', function (t) {
+  const opts = buildSerializationOptions({ indent: false })
+  t.deepEqual(opts, { indent: 'no' })
+  t.end()
+})
+
+test('buildSerializationOptions sets highlight-matches', function (t) {
+  const opts = buildSerializationOptions({ highlight: true })
+  t.deepEqual(opts, { 'highlight-matches': 'elements' })
+  t.end()
+})
+
+test('buildSerializationOptions returns empty object when no flags', function (t) {
+  const opts = buildSerializationOptions({})
+  t.deepEqual(opts, {})
+  t.end()
+})
+
+test('buildSerializationOptions combines all flags', function (t) {
+  const opts = buildSerializationOptions({ method: 'xml', indent: false, highlight: true })
+  t.deepEqual(opts, { method: 'xml', indent: 'no', 'highlight-matches': 'elements' })
+  t.end()
+})
+
+// Serialization flag parsing
+
+test('parses --method flag', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--method', 'json', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.method, 'json')
+})
+
+test('--method rejects invalid values', async function (t) {
+  try {
+    await new Promise((resolve, reject) => {
+      parser.parse(['exec', '--method', 'csv', '1+1'], (err, argv, output) => {
+        if (err) { return reject(err) }
+        resolve(argv)
+      })
+    })
+    t.fail('should have thrown')
+  } catch (e) {
+    t.ok(e, 'rejects invalid method')
+  }
+})
+
+test('parses --indent flag', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--indent', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.indent, true)
+})
+
+test('parses --no-indent flag', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--no-indent', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.indent, false)
+})
+
+test('parses --highlight flag', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '--highlight', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.highlight, true)
+})
+
+test('--highlight defaults to false', async function (t) {
+  const argv = await new Promise((resolve, reject) => {
+    parser.parse(['exec', '1+1'], (err, argv, output) => {
+      if (err) { return reject(err) }
+      resolve(argv)
+    })
+  })
+  t.equal(argv.highlight, false)
+})
+
 // Integration tests (require running eXist-db)
 
 test('--timing prints timing to stderr', async function (t) {
@@ -380,4 +517,16 @@ test('piped output fetches all pages without prompting', async function (t) {
   // Should contain all 12 results without any interactive prompt
   const lines = stdout.trim().split('\n').filter(l => l.trim() !== '')
   t.ok(lines.length >= 1, 'has result lines')
+})
+
+test('--method text produces raw text output', async function (t) {
+  const { stdout, stderr } = await run('xst', ['exec', '--method', 'text', 'string-join(("a","b","c"), ",")'], asAdmin)
+  if (stderr) { return t.fail(stderr) }
+  t.equal(stdout.trim(), 'a,b,c', 'text serialization returns raw values')
+})
+
+test('--indent no suppresses indentation', async function (t) {
+  const { stdout, stderr } = await run('xst', ['exec', '--no-indent', '<root><child/></root>'], asAdmin)
+  if (stderr) { return t.fail(stderr) }
+  t.notOk(stdout.includes('  <child'), 'output is not indented')
 })
