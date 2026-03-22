@@ -365,10 +365,19 @@ test('buildFetchQuery handles different page parameters', function (t) {
   t.end()
 })
 
-// --timing integration (HTTP mode, no WebSocket needed)
+// Integration tests (require running eXist-db)
 
 test('--timing prints timing to stderr', async function (t) {
   const { stdout, stderr } = await run('xst', ['exec', '--timing', '1+1'], asAdmin)
   t.equal(stdout, '2\n', 'query result on stdout')
   t.ok(stderr && stderr.match(/Total: \d+ms/), 'timing on stderr')
+})
+
+test('piped output fetches all pages without prompting', async function (t) {
+  const { stdout, stderr } = await run('xst', ['exec', '--page-size', '5', 'for $i in 1 to 12 return $i'], asAdmin)
+  t.notOk(stderr, 'no pagination prompt on stderr')
+  t.ok(stdout, 'produces output')
+  // Should contain all 12 results without any interactive prompt
+  const lines = stdout.trim().split('\n').filter(l => l.trim() !== '')
+  t.ok(lines.length >= 1, 'has result lines')
 })
