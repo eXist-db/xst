@@ -54,7 +54,7 @@ async function prepare (t) {
     storeResourceQuery(testCollection, 'a11.json', '\'{"a":1}\''),
     storeResourceQuery(testCollection, 'a20.txt', '"test"'),
     storeResourceQuery(testCollection, 'a22.xml', '<test />'),
-    storeResourceQuery(testCollection, 'index.html', '<html><body>1</body></html>'),
+    storeResourceQuery(testCollection, 'index.html', '"' + await readFile('spec/fixtures/five.html') + '"'),
     storeResourceQuery(testCollection, 'test.xq', '"1"'),
     storeResourceQuery(
       testCollection,
@@ -136,6 +136,22 @@ test('with test collection', async (t) => {
 
     const contents = await readFile(path.join(testCollectionName, 'xincludes.xml'), 'utf-8')
     st.strictEqual(contents, '<xml xmlns:xi="http://www.w3.org/2001/XInclude"><test/></xml>')
+
+    await removeLocalDownload()
+  })
+
+  t.test('can get a html file with custom tags and CDATA sections intact', async (st) => {
+    const { stderr, stdout } = await run('xst', ['get', testCollection, '.'], asAdmin)
+    if (stderr) {
+      return st.fail(stderr)
+    }
+    st.plan(3)
+
+    st.notOk(stdout, 'no output')
+    st.deepEqual(readdirSync(testCollectionName + '/subcollection'), ['b'], 'subcollection contents were downloaded')
+
+    const contents = await readFile(path.join(testCollectionName, 'index.html'), 'utf-8')
+    st.strictEqual(contents, await readFile('spec/fixtures/five.html') + '')
 
     await removeLocalDownload()
   })
