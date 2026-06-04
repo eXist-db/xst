@@ -6,12 +6,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - run: docker pull existdb/existdb:release
+      - run: docker pull existdb/existdb:6.4.1
       - run: |
           docker create --rm --name exist \
               --publish 8080:8080 --publish 8443:8443 \
               --volume ./empty:/exist/autodeploy:ro \
-              existdb/existdb:release
+              existdb/existdb:6.4.1
       - uses: actions/checkout@v6
       - name: Modify web.xml in docker instance
         run: docker cp ./spec/fixtures/web-no-rest.xml exist:exist/etc/webapp/WEB-INF/web.xml
