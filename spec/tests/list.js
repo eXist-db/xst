@@ -206,7 +206,7 @@ test('with fixtures uploaded', async (t) => {
   t.test(`calling "xst list ${testCollection} -s"`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-s'])
     if (stderr) { return st.fail(stderr) }
-    const expectedlines = 'a22.xml\nindex.html\ntest.js\na11.json\na.txt\na1.txt\na20.txt\nb\ntest.xq\nfixtures\ntests\n'
+    const expectedlines = 'test.js\na22.xml\nindex.html\na11.json\na.txt\na1.txt\na20.txt\nb\ntest.xq\nfixtures\ntests\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -215,7 +215,7 @@ test('with fixtures uploaded', async (t) => {
   t.test(`calling "xst list ${testCollection} -sr"`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-sr'])
     if (stderr) { return t.fail(stderr) }
-    const expectedlines = 'tests\nfixtures\ntest.xq\nb\na20.txt\na1.txt\na.txt\na11.json\ntest.js\nindex.html\na22.xml\n'
+    const expectedlines = 'tests\nfixtures\ntest.xq\nb\na20.txt\na1.txt\na.txt\na11.json\nindex.html\na22.xml\ntest.js\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -234,7 +234,7 @@ test('with fixtures uploaded', async (t) => {
   t.test(`calling "xst list ${testCollection} -stxr"`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-stxr'])
     if (stderr) { return st.fail(stderr) }
-    const expectedlines = 'fixtures\ntests\ntest.xq\nb\na.txt\na1.txt\na20.txt\na11.json\ntest.js\na22.xml\nindex.html\n'
+    const expectedlines = 'fixtures\ntests\ntest.xq\nb\na.txt\na1.txt\na20.txt\na11.json\na22.xml\nindex.html\ntest.js\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -301,9 +301,9 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/tests/cli.js
 /db/list-test/tests/info.js
 /db/list-test/tests/exec.js
-/db/list-test/tests/configuration.js
 /db/list-test/tests/upload.js
 /db/list-test/tests/rm.js
+/db/list-test/tests/configuration.js
 /db/list-test/tests/get.js
 /db/list-test/tests/list.js
 /db/list-test/test.xq
@@ -312,9 +312,9 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/a1.txt
 /db/list-test/a20.txt
 /db/list-test/a11.json
-/db/list-test/test.js
 /db/list-test/a22.xml
 /db/list-test/index.html
+/db/list-test/test.js
 `
     st.equal(stdout, expectedlines, stdout)
     st.end()
