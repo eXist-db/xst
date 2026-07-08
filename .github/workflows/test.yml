@@ -9,14 +9,15 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    # Exist latest is in development, so failures are allowed, but valuable to log
-    continue-on-error: ${{ matrix.exist-version == 'latest' }}
+    # Exist latest and release are in development, so failures are allowed
+    # (release currently broken upstream), but valuable to log
+    continue-on-error: ${{ matrix.exist-version == 'latest' || matrix.exist-version == 'release' }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         node-version: [20, 22, 24]
-        exist-version: [latest, release, 5.4.1, 4.10.0]
+        exist-version: [latest, release, 6.4.1, 5.4.1, 4.10.0]
     services:
       exist:
         image: existdb/existdb:${{ matrix.exist-version }}
