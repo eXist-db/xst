@@ -201,9 +201,11 @@ test('Work with a local public registry', async function (t) {
     st.notOk(stderr, 'There should have been no errors')
 
     const lines = stdout.split('\n')
-    st.equal(
+    // eXide is installed from the live public registry, so its version
+    // changes over time
+    st.match(
       lines[0],
-      '✔︎ http://exist-db.org/apps/eXide > installed version 3.5.4 at /db/apps/eXide',
+      /^✔︎ http:\/\/exist-db\.org\/apps\/eXide > installed version \d+\.\d+\.\d+ at \/db\/apps\/eXide$/,
       lines[0]
     )
     st.notOk(lines[1])
