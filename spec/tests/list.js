@@ -3,14 +3,19 @@ import { test } from 'tape'
 import { run, asAdmin, forceColorLevel } from '../test.js'
 
 const testCollection = '/db/list-test'
-const testSourceFolder = 'spec'
+const testSourceFolder = 'spec/fixtures'
 
+// Only fixed fixtures and literal stored resources may end up in the test
+// collection — never the spec files themselves. The sort tests hard-code
+// their expected order with size as the primary key, so listing files whose
+// byte size changes with unrelated edits would make these expectations stale.
 async function prepare (t) {
   try {
-    const phase1 = await run('xst', ['up', '-D', '-e', 'tests', '-e', 'norest', testSourceFolder, testCollection], asAdmin)
-    if (phase1.stderr) { throw Error(phase1.stderr) }
-    const ensureTestsOlder = await run('xst', ['up', '-e', 'package,utility', testSourceFolder + '/tests', testCollection + '/tests'], asAdmin)
-    if (ensureTestsOlder.stderr) { throw Error(ensureTestsOlder.stderr) }
+    const allFixtures = await run('xst', ['up', '-D', testSourceFolder, testCollection + '/fixtures'], asAdmin)
+    if (allFixtures.stderr) { throw Error(allFixtures.stderr) }
+    // second upload: proves -e excludes and creates a newer sibling collection
+    const fixtureSubset = await run('xst', ['up', '-D', '-e', '*.xar,*.xml', testSourceFolder, testCollection + '/tests'], asAdmin)
+    if (fixtureSubset.stderr) { throw Error(fixtureSubset.stderr) }
     await storeResource(testCollection, 'b', '"test"')
     await storeResource(testCollection, 'a.txt', '"test"')
     await storeResource(testCollection, 'a1.txt', '"test"')
@@ -79,8 +84,8 @@ test('with fixtures uploaded', async (t) => {
     st.end()
   })
 
-  t.test(`calling 'xst ls -g "*.js" ${testCollection}' as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['list', '-g', '*.js', testCollection])
+  t.test(`calling 'xst ls -g "*.xq" ${testCollection}' as guest`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', '-g', '*.xq', testCollection])
 
     if (stderr) { return st.fail(stderr) }
     st.ok(stdout, stdout)
@@ -97,13 +102,13 @@ test('with fixtures uploaded', async (t) => {
     st.end()
   })
 
-  t.test(`calling 'xst ls -g "*.js" -R ${testCollection}' as guest`, async (st) => {
-    const { stderr, stdout } = await run('xst', ['list', '-g', '*.js', '-R', testCollection])
+  t.test(`calling 'xst ls -g "*.xq" -R ${testCollection}' as guest`, async (st) => {
+    const { stderr, stdout } = await run('xst', ['list', '-g', '*.xq', '-R', testCollection])
 
     if (stderr) { return st.fail(stderr) }
     const lines = stdout.split('\n')
-    st.ok(lines.includes(testCollection + '/test.js'), 'found js in root-collection')
-    st.ok(lines.includes(testCollection + '/tests/list.js'), 'found js in sub-collection')
+    st.ok(lines.includes(testCollection + '/test.xq'), 'found xquery in root-collection')
+    st.ok(lines.includes(testCollection + '/tests/test.xq'), 'found xquery in sub-collection')
     st.end()
   })
 
@@ -123,7 +128,9 @@ test('with fixtures uploaded', async (t) => {
     if (stderr) { return st.fail(stderr) }
     const expectedlines = [
       'list-test',
-      '└── fixtures',
+      '├── fixtures',
+      '│   └── .env',
+      '└── tests',
       '    └── .env'
     ]
     const actualLines = stdout.split('\n')
@@ -179,7 +186,7 @@ test('with fixtures uploaded', async (t) => {
   t.test(`calling "xst list ${testCollection}" sorts by name`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection])
     if (stderr) { return st.fail(stderr) }
-    const expectedlines = 'a.txt\na1.txt\na11.json\na20.txt\na22.xml\nb\nfixtures\nindex.html\ntest.js\ntest.xq\ntests\n'
+    const expectedlines = 'a.txt\na1.txt\na11.json\na20.txt\na22.xml\nb\nfixtures\nindex.html\ntest.xq\ntests\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -188,7 +195,7 @@ test('with fixtures uploaded', async (t) => {
   t.test(`calling "xst list ${testCollection} -r" reverses default sorting`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-r'])
     if (stderr) { return st.fail(stderr) }
-    const expectedlines = 'tests\ntest.xq\ntest.js\nindex.html\nfixtures\nb\na22.xml\na20.txt\na11.json\na1.txt\na.txt\n'
+    const expectedlines = 'tests\ntest.xq\nindex.html\nfixtures\nb\na22.xml\na20.txt\na11.json\na1.txt\na.txt\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -197,7 +204,7 @@ test('with fixtures uploaded', async (t) => {
   t.test(`calling "xst list ${testCollection} -x"`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-x'])
     if (stderr) { return st.fail(stderr) }
-    const expectedlines = 'b\nfixtures\ntests\nindex.html\ntest.js\na11.json\na.txt\na1.txt\na20.txt\na22.xml\ntest.xq\n'
+    const expectedlines = 'b\nfixtures\ntests\nindex.html\na11.json\na.txt\na1.txt\na20.txt\na22.xml\ntest.xq\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -206,7 +213,7 @@ test('with fixtures uploaded', async (t) => {
   t.test(`calling "xst list ${testCollection} -s"`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-s'])
     if (stderr) { return st.fail(stderr) }
-    const expectedlines = 'a22.xml\nindex.html\ntest.js\na11.json\na.txt\na1.txt\na20.txt\nb\ntest.xq\nfixtures\ntests\n'
+    const expectedlines = 'a22.xml\nindex.html\na11.json\na.txt\na1.txt\na20.txt\nb\ntest.xq\nfixtures\ntests\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -214,8 +221,8 @@ test('with fixtures uploaded', async (t) => {
 
   t.test(`calling "xst list ${testCollection} -sr"`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-sr'])
-    if (stderr) { return t.fail(stderr) }
-    const expectedlines = 'tests\nfixtures\ntest.xq\nb\na20.txt\na1.txt\na.txt\na11.json\ntest.js\nindex.html\na22.xml\n'
+    if (stderr) { return st.fail(stderr) }
+    const expectedlines = 'tests\nfixtures\ntest.xq\nb\na20.txt\na1.txt\na.txt\na11.json\nindex.html\na22.xml\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -225,7 +232,7 @@ test('with fixtures uploaded', async (t) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-t'])
     if (stderr) { return st.fail(stderr) }
 
-    const expectedlines = 'test.xq\nindex.html\na22.xml\na20.txt\na11.json\na1.txt\na.txt\nb\ntests\ntest.js\nfixtures\n'
+    const expectedlines = 'test.xq\nindex.html\na22.xml\na20.txt\na11.json\na1.txt\na.txt\nb\ntests\nfixtures\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -234,7 +241,7 @@ test('with fixtures uploaded', async (t) => {
   t.test(`calling "xst list ${testCollection} -stxr"`, async (st) => {
     const { stderr, stdout } = await run('xst', ['list', testCollection, '-stxr'])
     if (stderr) { return st.fail(stderr) }
-    const expectedlines = 'fixtures\ntests\ntest.xq\nb\na.txt\na1.txt\na20.txt\na11.json\ntest.js\na22.xml\nindex.html\n'
+    const expectedlines = 'fixtures\ntests\ntest.xq\nb\na.txt\na1.txt\na20.txt\na11.json\na22.xml\nindex.html\n'
 
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -264,17 +271,16 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/test.xq
 /db/list-test/fixtures/web-no-rest.xml
 /db/list-test/index.html
-/db/list-test/test.js
 /db/list-test/test.xq
 /db/list-test/tests
-/db/list-test/tests/cli.js
-/db/list-test/tests/configuration.js
-/db/list-test/tests/exec.js
-/db/list-test/tests/get.js
-/db/list-test/tests/info.js
-/db/list-test/tests/list.js
-/db/list-test/tests/rm.js
-/db/list-test/tests/upload.js
+/db/list-test/tests/.env
+/db/list-test/tests/.env.staging
+/db/list-test/tests/.existdb.json
+/db/list-test/tests/.xstrc
+/db/list-test/tests/binding.json
+/db/list-test/tests/connection.xstrc
+/db/list-test/tests/five.html
+/db/list-test/tests/test.xq
 `
     st.equal(stdout, expectedlines, stdout)
     st.end()
@@ -298,21 +304,20 @@ test('with fixtures uploaded', async (t) => {
 /db/list-test/fixtures/test.xml
 /db/list-test/fixtures/web-no-rest.xml
 /db/list-test/tests
-/db/list-test/tests/cli.js
-/db/list-test/tests/info.js
-/db/list-test/tests/exec.js
-/db/list-test/tests/configuration.js
-/db/list-test/tests/upload.js
-/db/list-test/tests/rm.js
-/db/list-test/tests/get.js
-/db/list-test/tests/list.js
+/db/list-test/tests/test.xq
+/db/list-test/tests/.env
+/db/list-test/tests/.env.staging
+/db/list-test/tests/binding.json
+/db/list-test/tests/connection.xstrc
+/db/list-test/tests/.xstrc
+/db/list-test/tests/.existdb.json
+/db/list-test/tests/five.html
 /db/list-test/test.xq
 /db/list-test/b
 /db/list-test/a.txt
 /db/list-test/a1.txt
 /db/list-test/a20.txt
 /db/list-test/a11.json
-/db/list-test/test.js
 /db/list-test/a22.xml
 /db/list-test/index.html
 `
