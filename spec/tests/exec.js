@@ -1,12 +1,16 @@
 import { test } from 'tape'
 import yargs from 'yargs'
 import * as exec from '../../commands/exec.js'
+import { readConnection } from '../../utility/connection.js'
 import { runPipe } from '../test.js'
 
-// a yargs instance must not be reused across parses: on a reused instance a
+// Mirror app.js: resolve connection options from the environment, so
+// in-process handlers reach the same instance as spawned ones.
+//
+// A yargs instance must not be reused across parses: on a reused instance a
 // boolean option next to the positional (e.g. `execute --stats 1+1`) silently
-// drops the positional, so each parse gets a fresh parser
-const parser = () => yargs().scriptName('xst').command(exec).help().fail(false)
+// drops the positional, so each parse gets a fresh parser.
+const parser = () => yargs().scriptName('xst').command(exec).middleware(readConnection).help().fail(false)
 
 const execCmd = async (cmd, args) => {
   return await yargs()
