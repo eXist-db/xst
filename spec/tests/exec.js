@@ -3,7 +3,10 @@ import yargs from 'yargs'
 import * as exec from '../../commands/exec.js'
 import { runPipe } from '../test.js'
 
-const parser = yargs().scriptName('xst').command(exec).help().fail(false)
+// a yargs instance must not be reused across parses: on a reused instance a
+// boolean option next to the positional (e.g. `execute --stats 1+1`) silently
+// drops the positional, so each parse gets a fresh parser
+const parser = () => yargs().scriptName('xst').command(exec).help().fail(false)
 
 const execCmd = async (cmd, args) => {
   return await yargs()
@@ -16,7 +19,7 @@ const execCmd = async (cmd, args) => {
 test('shows help', async function (t) {
   // Run the command module with --help as argument
   const output = await new Promise((resolve, reject) => {
-    parser.parse(['execute', '--help'], (err, argv, output) => {
+    parser().parse(['execute', '--help'], (err, argv, output) => {
       if (err) { return reject(err) }
       resolve(output)
     })
@@ -28,7 +31,7 @@ test('shows help', async function (t) {
 
 test('executes command', async function (t) {
   const argv = await new Promise((resolve, reject) => {
-    parser.parse(['execute', '1+1'], (err, argv, output) => {
+    parser().parse(['execute', '1+1'], (err, argv, output) => {
       if (err) { return reject(err) }
       resolve(argv)
     })
@@ -39,7 +42,7 @@ test('executes command', async function (t) {
 
 test('executes command with alias \'exec\'', async function (t) {
   const argv = await new Promise((resolve, reject) => {
-    parser.parse(['exec', '1+1'], (err, argv, output) => {
+    parser().parse(['exec', '1+1'], (err, argv, output) => {
       if (err) { return reject(err) }
       resolve(argv)
     })
@@ -50,7 +53,7 @@ test('executes command with alias \'exec\'', async function (t) {
 
 test('executes command with alias \'run\'', async function (t) {
   const argv = await new Promise((resolve, reject) => {
-    parser.parse(['run', '1+1'], (err, argv, output) => {
+    parser().parse(['run', '1+1'], (err, argv, output) => {
       if (err) { return reject(err) }
       resolve(argv)
     })
@@ -61,7 +64,7 @@ test('executes command with alias \'run\'', async function (t) {
 
 test('executes bound command', async function (t) {
   const argv = await new Promise((resolve, reject) => {
-    parser.parse(['exec', '-b', '{"a":1}', '$a+$a'], (err, argv, output) => {
+    parser().parse(['exec', '-b', '{"a":1}', '$a+$a'], (err, argv, output) => {
       if (err) { return reject(err) }
       resolve(argv)
     })
@@ -107,7 +110,7 @@ test('cannot read query file from stdin', async function (t) {
 test('read query file', async function (t) {
   try {
     const argv = await new Promise((resolve, reject) => {
-      parser.parse(['exec', '-f', './spec/fixtures/test.xq'], (err, argv, output) => {
+      parser().parse(['exec', '-f', './spec/fixtures/test.xq'], (err, argv, output) => {
         if (err) { return reject(err) }
         resolve(argv)
       })
@@ -120,7 +123,7 @@ test('read query file', async function (t) {
 
 test('read query file with query', async function (t) {
   try {
-    const argv = await parser.parse(['exec', '-f', 'spec/fixtures/test.xq', '1+1'])
+    const argv = await parser().parse(['exec', '-f', 'spec/fixtures/test.xq', '1+1'])
     t.fail(argv, 'Should not return a result')
   } catch (e) {
     t.ok(e, e)
