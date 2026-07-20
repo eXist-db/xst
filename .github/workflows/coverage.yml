@@ -15,7 +15,7 @@ jobs:
       - name: Start eXist-db Container
         run: docker start exist
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 'lts/*'
           cache: 'npm'
