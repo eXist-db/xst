@@ -1,5 +1,7 @@
-import { getXmlRpcClient } from '@existdb/node-exist'
+import { getXmlRpcClient, getRestClient } from '@existdb/node-exist'
 import { readFileSync } from 'node:fs'
+import { createInterface } from 'node:readline'
+import WebSocket from 'ws'
 
 /**
  * parse bindings
@@ -63,17 +65,335 @@ function getQuery (file, query) {
 }
 
 /**
- * query db, output to standard out
+ * Build WebSocket URL from connection options
+ * @param {object} connectionOptions
+ * @returns {string} WebSocket URL
+ */
+export function getWsUrl (connectionOptions) {
+  const { host, port } = connectionOptions
+  const wsProtocol = connectionOptions.protocol === 'https:' ? 'wss' : 'ws'
+  return `${wsProtocol}://${host}:${port}/exist/ws/eval`
+}
+
+/**
+ * Build auth header from connection options
+ * @param {object} connectionOptions
+ * @returns {string} Basic auth header value
+ */
+export function getAuthHeader (connectionOptions) {
+  const { user, pass } = connectionOptions.basic_auth
+  return 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64')
+}
+
+/**
+ * Escape a query string for embedding as an XQuery string literal.
+ * Uses XQuery's double-quote escaping: " becomes ""
+ * @param {string} query the query to escape
+ * @returns {string} escaped query wrapped in double quotes
+ */
+export function escapeXQuery (query) {
+  return '"' + query.replace(/"/g, '""') + '"'
+}
+
+/**
+ * Build XQuery to evaluate a query and return a cursor
+ * @param {string} query the user's query
+ * @returns {string} wrapper XQuery calling lsp:eval
+ */
+export function buildEvalQuery (query) {
+  return 'import module namespace lsp="http://exist-db.org/xquery/lsp";\n' +
+    'lsp:eval(' + escapeXQuery(query) + ', "xmldb:exist:///db")'
+}
+
+/**
+ * Build serialization options from CLI flags
+ * @param {object} argv parsed CLI arguments
+ * @returns {object} serialization options map
+ */
+export function buildSerializationOptions (argv) {
+  const options = {}
+  if (argv.method) options.method = argv.method
+  if (argv.indent !== undefined) options.indent = argv.indent ? 'yes' : 'no'
+  if (argv.highlight) options['highlight-matches'] = 'elements'
+  return options
+}
+
+/**
+ * Serialize an options object as an XQuery map literal
+ * @param {object} options key-value pairs
+ * @returns {string} XQuery map expression, or empty string if no options
+ */
+export function serializeXQueryMap (options) {
+  const entries = Object.entries(options)
+  if (entries.length === 0) return ''
+  const pairs = entries.map(([k, v]) => '"' + k + '": "' + v + '"')
+  return 'map { ' + pairs.join(', ') + ' }'
+}
+
+/**
+ * Build XQuery to fetch a page of results from a cursor
+ * @param {string} cursorId the cursor identifier
+ * @param {number} start 1-based start index
+ * @param {number} count number of items to fetch
+ * @param {object} [options] serialization options
+ * @returns {string} wrapper XQuery calling lsp:fetch
+ */
+export function buildFetchQuery (cursorId, start, count, options) {
+  const optionsArg = options ? serializeXQueryMap(options) : ''
+  const args = '"' + cursorId + '", ' + start + ', ' + count +
+    (optionsArg ? ', ' + optionsArg : '')
+  return 'import module namespace lsp="http://exist-db.org/xquery/lsp";\n' +
+    'lsp:fetch(' + args + ')'
+}
+
+/**
+ * Prompt the user for input on stderr
+ * @param {string} message the prompt message
+ * @returns {Promise<string>} the user's answer
+ */
+function promptUser (message) {
+  return new Promise((resolve) => {
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stderr
+    })
+    rl.question(message + ' ', (answer) => {
+      rl.close()
+      resolve(answer)
+    })
+  })
+}
+
+/**
+ * Execute query via cursor-based pagination using REST API
  *
- * @param {NodeExist.BoundModules} db bound NodeExist modules
- * @param {string|Buffer} query the query to execute
- * @param {object} variables the bound variables
+ * @param {object} connectionOptions
+ * @param {string} query the query to execute
+ * @param {number} pageSize number of results per page
+ * @param {string} outputFormat output format ('text' or 'json')
+ * @param {object} serializationOptions serialization options for lsp:fetch
+ * @param {boolean} showTiming whether to show timing info
  * @returns {Promise<Number>} exit code
  */
-async function execute (db, query, variables) {
-  const result = await db.queries.readAll(query, { variables })
-  console.log(result.pages.toString())
+async function executeCursor (connectionOptions, query, pageSize, outputFormat, serializationOptions, showTiming) {
+  const restClient = getRestClient(connectionOptions)
+
+  // Evaluate query and obtain cursor
+  const evalResult = await restClient.get('exist/rest/db', {
+    _query: buildEvalQuery(query),
+    _wrap: 'no'
+  })
+  const cursor = JSON.parse(evalResult.bodyText)
+  const totalHits = cursor.hits ?? cursor.summary?.hits ?? 0
+
+  if (showTiming && cursor.timing) {
+    const t = cursor.timing
+    const parts = []
+    if (t.parse != null) parts.push('Parse: ' + t.parse + 'ms')
+    if (t.compile != null) parts.push('Compile: ' + t.compile + 'ms')
+    if (t.evaluate != null) parts.push('Eval: ' + t.evaluate + 'ms')
+    if (t.total != null) parts.push('Total: ' + t.total + 'ms')
+    if (parts.length) console.error(parts.join(' | '))
+  }
+
+  if (totalHits === 0) {
+    if (outputFormat === 'json') {
+      console.log('[]')
+    }
+    return 0
+  }
+
+  const totalPages = Math.ceil(totalHits / pageSize)
+  const isTTY = process.stdout.isTTY
+  const jsonResults = outputFormat === 'json' ? [] : null
+
+  let page = 1
+  while (page <= totalPages) {
+    const start = (page - 1) * pageSize + 1
+    const hasOptions = Object.keys(serializationOptions).length > 0
+    const fetchQuery = hasOptions
+      ? buildFetchQuery(cursor.cursor, start, pageSize, serializationOptions)
+      : buildFetchQuery(cursor.cursor, start, pageSize)
+    const fetchResult = await restClient.get('exist/rest/db', {
+      _query: fetchQuery,
+      _wrap: 'no'
+    })
+
+    if (jsonResults) {
+      // Collect results for JSON output
+      try {
+        const parsed = JSON.parse(fetchResult.bodyText)
+        if (Array.isArray(parsed)) {
+          jsonResults.push(...parsed)
+        } else {
+          jsonResults.push(parsed)
+        }
+      } catch {
+        // If not parseable as JSON, store as string
+        jsonResults.push(fetchResult.bodyText.trim())
+      }
+    } else {
+      process.stdout.write(fetchResult.bodyText)
+      if (!fetchResult.bodyText.endsWith('\n')) {
+        process.stdout.write('\n')
+      }
+    }
+
+    if (page >= totalPages) break
+
+    if (!isTTY || jsonResults) {
+      // When piped or collecting JSON, fetch all pages without prompting
+      page++
+      continue
+    }
+
+    const answer = await promptUser(
+      '[Page ' + page + ' of ' + totalPages + '. Press Enter for next page, q to quit]'
+    )
+    if (answer.toLowerCase() === 'q') break
+    page++
+  }
+
+  if (jsonResults) {
+    console.log(JSON.stringify(jsonResults, null, 2))
+  }
+
   return 0
+}
+
+/**
+ * Execute query via HTTP, output to standard out
+ *
+ * @param {object} db bound NodeExist modules
+ * @param {string|Buffer} query the query to execute
+ * @param {object} variables the bound variables
+ * @param {boolean} showTiming whether to show timing info
+ * @returns {Promise<Number>} exit code
+ */
+async function execute (db, query, variables, showTiming) {
+  const start = performance.now()
+  const result = await db.queries.readAll(query, { variables })
+  const total = performance.now() - start
+
+  console.log(result.pages.toString())
+
+  if (showTiming) {
+    console.error(`Total: ${Math.round(total)}ms`)
+  }
+
+  return 0
+}
+
+/**
+ * Execute query via WebSocket with streaming output
+ *
+ * @param {object} connectionOptions
+ * @param {string} query the query to execute
+ * @param {object} serializationOptions serialization options
+ * @param {boolean} showTiming whether to show timing info
+ * @returns {Promise<Number>} exit code
+ */
+function executeStream (connectionOptions, query, serializationOptions, showTiming) {
+  return new Promise((resolve, reject) => {
+    const wsUrl = getWsUrl(connectionOptions)
+    const ws = new WebSocket(wsUrl, {
+      headers: { Authorization: getAuthHeader(connectionOptions) }
+    })
+
+    const requestId = crypto.randomUUID()
+    let itemCount = 0
+    const start = performance.now()
+
+    function printTiming (timing) {
+      if (!showTiming) return
+      if (timing) {
+        const parts = []
+        if (timing.parse != null) parts.push(`Parse: ${timing.parse}ms`)
+        if (timing.compile != null) parts.push(`Compile: ${timing.compile}ms`)
+        if (timing.evaluate != null) parts.push(`Eval: ${timing.evaluate}ms`)
+        if (timing.serialize != null) parts.push(`Serialize: ${timing.serialize}ms`)
+        if (timing.total != null) parts.push(`Total: ${timing.total}ms`)
+        console.error(parts.join(' | '))
+      } else {
+        console.error(`Total: ${Math.round(performance.now() - start)}ms`)
+      }
+    }
+
+    function handleCancel () {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ action: 'cancel', id: requestId }))
+      }
+    }
+
+    process.on('SIGINT', handleCancel)
+
+    ws.on('open', () => {
+      const msg = { action: 'eval', id: requestId, query }
+      if (Object.keys(serializationOptions).length > 0) {
+        msg.serialization = serializationOptions
+      }
+      ws.send(JSON.stringify(msg))
+    })
+
+    ws.on('message', (data) => {
+      let msg
+      try {
+        msg = JSON.parse(data.toString())
+      } catch {
+        process.stdout.write(data.toString())
+        itemCount++
+        return
+      }
+
+      if (msg.type === 'error') {
+        console.error(msg.message)
+        printTiming(msg.timing)
+        ws.close()
+        resolve(1)
+        return
+      }
+
+      if (msg.type === 'cancelled') {
+        const elapsed = ((performance.now() - start) / 1000).toFixed(1)
+        const count = msg.items != null ? msg.items : itemCount
+        console.error(`Cancelled after ${count.toLocaleString()} items (${elapsed}s)`)
+        printTiming(msg.timing)
+        ws.close()
+        resolve(1)
+        return
+      }
+
+      if (msg.type === 'result') {
+        if (msg.data != null) {
+          process.stdout.write(msg.data)
+          if (!msg.data.endsWith('\n')) {
+            process.stdout.write('\n')
+          }
+        }
+        itemCount = msg.items != null ? msg.items : itemCount + 1
+        if (!msg.more) {
+          printTiming(msg.timing)
+          ws.close()
+          resolve(0)
+        }
+      }
+
+      // ignore progress messages silently
+    })
+
+    ws.on('error', (err) => {
+      process.removeListener('SIGINT', handleCancel)
+      if (err.code === 'ECONNREFUSED') {
+        reject(Error(`WebSocket connection refused at ${wsUrl}`))
+      } else {
+        reject(err)
+      }
+    })
+
+    ws.on('close', () => {
+      process.removeListener('SIGINT', handleCancel)
+    })
+  })
 }
 
 export const command = ['execute [<query>] [options]', 'run', 'exec']
@@ -94,6 +414,44 @@ export async function builder (yargs) {
       coerce: parseBindings,
       default: () => {}
     })
+    .option('s', {
+      alias: 'stream',
+      type: 'boolean',
+      describe: 'Stream results via WebSocket as they arrive',
+      default: false
+    })
+    .option('t', {
+      alias: 'timing',
+      type: 'boolean',
+      describe: 'Show execution timing',
+      default: false
+    })
+    .option('page-size', {
+      type: 'number',
+      describe: 'Number of results per page (cursor mode)',
+      default: 20
+    })
+    .option('o', {
+      alias: 'output',
+      type: 'string',
+      describe: 'Output format (text, json)',
+      choices: ['text', 'json'],
+      default: 'text'
+    })
+    .option('method', {
+      type: 'string',
+      describe: 'Serialization method (xml, json, text, html, adaptive)',
+      choices: ['xml', 'json', 'text', 'html', 'adaptive']
+    })
+    .option('indent', {
+      type: 'boolean',
+      describe: 'Indent serialized output'
+    })
+    .option('highlight', {
+      type: 'boolean',
+      describe: 'Highlight full-text matches in results',
+      default: false
+    })
     .option('h', { alias: 'help', type: 'boolean' })
     .nargs({ f: 1, b: 1 })
     .conflicts('f', 'query')
@@ -104,9 +462,26 @@ export async function handler (argv) {
   if (argv.help) {
     return 0
   }
-  const { file, bind, query } = argv
+  const { file, bind, query, stream, timing, pageSize, output, connectionOptions } = argv
   const _query = getQuery(file, query)
-  const db = getXmlRpcClient(argv.connectionOptions)
+  const serOpts = buildSerializationOptions(argv)
 
-  return await execute(db, _query, bind)
+  if (stream) {
+    return await executeStream(connectionOptions, _query, serOpts, timing)
+  }
+
+  const db = getXmlRpcClient(connectionOptions)
+
+  // Use cursor-based pagination when no variables are bound
+  const hasBindings = bind && Object.keys(bind).length > 0
+  if (!hasBindings) {
+    try {
+      return await executeCursor(connectionOptions, _query, pageSize, output, serOpts, timing)
+    } catch {
+      // Fall back to XML-RPC if cursor API is not available
+      return await execute(db, _query, bind, timing)
+    }
+  }
+
+  return await execute(db, _query, bind, timing)
 }
