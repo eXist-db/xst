@@ -167,6 +167,37 @@ xst package install from-registry demo-apps
 xst package install local-files path/to/*.xar
 ```
 
+##### From a GitHub release
+
+```bash
+xst package install github-release demo-apps
+xst package install github-release my-app v1.2.0 --owner my-org
+```
+
+###### Private repositories
+
+Set `GH_TOKEN` or `GITHUB_TOKEN` to install packages from releases of private
+repositories (`GH_TOKEN` takes precedence):
+
+```bash
+GH_TOKEN=github_pat_… xst package install github-release my-app --owner my-org
+```
+
+The token needs read access to the contents of the repository:
+
+- a fine-grained personal access token with the *Contents: read* permission, or
+- a classic token with the `repo` scope.
+
+In GitHub Actions, the workflow's own `GITHUB_TOKEN` only covers the repository
+the workflow runs in.
+
+The token is only sent to the GitHub API (`--api`). With a token, the package is
+downloaded through the API, which redirects to a storage URL that is fetched
+without the token.
+
+A token also raises the GitHub API rate limit from 60 to 5000 requests per hour,
+which helps on shared machines and CI runners.
+
 #### List all installed application packages with their dependencies
 
 ```bash
