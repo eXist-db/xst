@@ -7,3 +7,4 @@ nohup.out
 .husky/*
 commitlint.config.cjs
 coverage
+harness
