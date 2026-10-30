@@ -12,8 +12,9 @@ permissions:
 
 jobs:
   release:
-    # check Test success
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # only release after a successful Test run of a push to main, never for
+    # pull requests whose head branch happens to be named main
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     name: Release
     runs-on: ubuntu-latest
     permissions:
