@@ -11,6 +11,7 @@ import {
   putPackage
 } from '../../../utility/package.js'
 import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
+import { assetDownload, githubApiHeaders, tokenHint } from '../../../utility/github.js'
 
 /**
  * @typedef { import("undici").Dispatcher.ComposedDispatcher } Dispatcher.ComposedDispatcher
@@ -25,7 +26,7 @@ import { logFailure, logSuccess, logSkipped } from '../../../utility/message.js'
  * @param {String} [release] the specific release naem (optional)
  * @param {String} assetFilter the pattern to find the XAR
  * @param {boolean} verbose display more information
- * @returns {Promise<{ xarName: string, packageContents: string, releaseName: string, tagName:string }>} release info
+ * @returns {Promise<{ xarName: string, packageContents: string, assetUrl: string, releaseName: string, tagName:string }>} release info
  */
 async function getRelease (api, origin, owner, repo, release, assetFilter, verbose) {
   const tag = release === 'latest' ? release : 'tags/' + release
@@ -50,8 +51,10 @@ async function getRelease (api, origin, owner, repo, release, assetFilter, verbo
     assets = result.assets
     tagName = result.tag_name
   } catch (e) {
+    // error responses without a JSON message (e.g. a 504 from a proxy) fall back to the error itself
+    const reason = e.body?.message ?? e.message
     throw Error(
-      `Could not get release from: ${origin}${path} ${e.statusCode}: ${e.body.message}`
+      `Could not get release from: ${origin}${path} ${e.statusCode}: ${reason}${tokenHint(e.statusCode)}`
     )
   }
   const filteredAssets = assets.filter(assetFilter)
@@ -70,6 +73,7 @@ async function getRelease (api, origin, owner, repo, release, assetFilter, verbo
   return {
     xarName: asset.name,
     packageContents: asset.browser_download_url,
+    assetUrl: asset.url,
     releaseName,
     tagName
   }
@@ -203,15 +207,16 @@ export async function handler (argv) {
   }
 
   const installedVersion = (await getInstalledPackageMeta(db, abbrev)).version
+  // authenticates when GH_TOKEN or GITHUB_TOKEN is set, which also gives access to private repositories
   const apiClient = new Client(api).compose([
-    requestHeaderInterceptor({ 'User-Agent': 'xst/undici.Client' }),
+    requestHeaderInterceptor(githubApiHeaders()),
     interceptors.responseError({ throwOnError: true })
   ])
 
   if (verbose) {
     console.log(`Preparing to install ${owner}/${repo} at version ${release}`)
   }
-  const { xarName, packageContents, releaseName, tagName } = await getRelease(
+  const { xarName, packageContents, assetUrl, releaseName, tagName } = await getRelease(
     apiClient,
     api,
     owner,
@@ -256,11 +261,22 @@ export async function handler (argv) {
     return 0
   }
 
+  // With a token the package is downloaded through the GitHub API, which also serves
+  // assets of private repositories; fetch drops the Authorization header when it
+  // follows the redirect to the storage host. Without a token the public download
+  // URL is used, which does not count against the API rate limit.
+  // fetch also decompresses gzipped contents automatically.
+  const download = assetDownload({ url: assetUrl, browserDownloadUrl: packageContents }, api)
+  if (verbose) {
+    console.log(`Downloading ${xarName} ${download.authenticated ? 'through the GitHub API, authenticated' : `from ${download.url}`}`)
+  }
+  const response = await fetch(download.url, { method: 'GET', headers: download.headers })
+  if (!response.ok) {
+    throw Error(`Could not download ${xarName}: ${response.status} ${response.statusText}`)
+  }
+
   try {
-    // using fetch here as the packageContents could be anywhere on the internet
-    // and the contents might be gzipped, so we benefit from automatic decompression
-    const { body } = await fetch(packageContents, { method: 'GET' })
-    const result = await install(db, upload, xarName, body, registry)
+    const result = await install(db, upload, xarName, response.body, registry)
     let action
     if (isDowngrade) {
       action = `${chalk.yellow('downgraded')} to`
