@@ -1,6 +1,12 @@
 name: Test
 
-on: [push, pull_request]
+# push only on main, branches with a pull request are tested by the
+# pull_request event, merged into main
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 # Tests cannot run on windows due to issues with the windows server 2019 images
 # the github action runners are using not being able to run linux docker images
