@@ -1,6 +1,12 @@
 name: Coverage
 
-on: [push, pull_request]
+# push only on main, branches with a pull request are tested by the
+# pull_request event, merged into main
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
