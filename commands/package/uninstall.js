@@ -17,22 +17,10 @@ async function uninstall (nameOrAbbrev, db, options) {
   if (result.error && !result.error.code.startsWith('local:')) {
     throw new Error(result.error.description)
   }
-  // success = no local error from the XQuery wrapper AND the underlying
-  // repo:remove call actually returned true. The previous version of this
-  // line was `const success = Boolean(result.error)`, which (a) reads
-  // inverted relative to its name (the value is true when error exists)
-  // and (b) didn't consider result.remove at all -- so when repo:remove
-  // silently returned false (the eXist-side behavior where
-  // RemoveFunction.eval swallows the underlying PackageException and
-  // returns boolean false), xst still printed "✔︎ uninstalled" while the
-  // package remained installed. Both arms now have to be true for the
-  // operation to count as a success, and the display logic below uses
-  // this to pick the success vs error indicator. (Note: the handler's
-  // aggregated return value at line 75 is not currently propagated to
-  // the process exit code -- yargs's `parser.parse()` in cli.js doesn't
-  // wire it up -- so this change is about the display, not exit code.
-  // Exit-code propagation is out of scope for this PR.)
-  const success = !result.error && result.remove === true
+  // a package that is not installed counts as uninstalled
+  const success = result.error
+    ? result.error.code === 'local:NOT_FOUND'
+    : result.remove === true
   if (raw) {
     console.log(rawResult)
     return success
@@ -44,9 +32,7 @@ async function uninstall (nameOrAbbrev, db, options) {
     return success
   }
   if (!success) {
-    // repo:remove returned false. The underlying eXist exception was
-    // swallowed by RemoveFunction.eval (eXist <= 7.0.0-beta3). Surface as
-    // best we can.
+    // eXist before 7.0.0-beta4 returns false from repo:remove without an error
     const errorIndicator = chalk.red('✘')
     console.error(`${errorIndicator} ${result.name}: repo:remove returned false (no diagnostic available — check the eXist server log for the underlying exception)`)
     return success
