@@ -17,7 +17,10 @@ async function uninstall (nameOrAbbrev, db, options) {
   if (result.error && !result.error.code.startsWith('local:')) {
     throw new Error(result.error.description)
   }
-  const success = Boolean(result.error)
+  // a package that is not installed counts as uninstalled
+  const success = result.error
+    ? result.error.code === 'local:NOT_FOUND'
+    : result.remove === true
   if (raw) {
     console.log(rawResult)
     return success
@@ -26,6 +29,12 @@ async function uninstall (nameOrAbbrev, db, options) {
     const errorIndicator = chalk.red('✘')
     const extra = result.error.value ? `: ${result.error.value.join(', ')}` : ''
     console.error(`${errorIndicator} ${result.error.description}${extra}`)
+    return success
+  }
+  if (!success) {
+    // eXist before 7.0.0-beta4 returns false from repo:remove without an error
+    const errorIndicator = chalk.red('✘')
+    console.error(`${errorIndicator} ${result.name}: repo:remove returned false (no diagnostic available — check the eXist server log for the underlying exception)`)
     return success
   }
   const successIndicator = chalk.green('✔︎')
