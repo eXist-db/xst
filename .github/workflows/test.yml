@@ -15,8 +15,8 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    # Exist latest and release are in development, so failures are allowed
-    # (release currently broken upstream), but valuable to log
+    # Exist latest and release are in development (eXist 7), so failures are
+    # allowed, but valuable to log
     continue-on-error: ${{ matrix.exist-version == 'latest' || matrix.exist-version == 'release' }}
     env:
       # `xst package install github-release` authenticates with it: unauthenticated
@@ -44,11 +44,14 @@ jobs:
       - run: npm ci --omit=optional
       - run: npm link
       - name: Install public-repo locally
-        # Do not attempt to install the local public repo on Exist-DB 4 or 5. It won't work
-        # installation on latest is skipped because of an issue in public-repo
-        # see https://github.com/eXist-db/public-repo/issues/104
-        if:  matrix.exist-version != '4.10.0' && matrix.exist-version != '5.4.1' && matrix.exist-version != 'latest'
+        # The registry tests (spec/tests/package/install/registry.js) skip
+        # themselves where public-repo is not installed.
+        # - 4.10.0 and 5.4.1: public-repo does not install there
+        # - release (7.0.0-beta5): publishing to public-repo fails because of
+        #   https://github.com/eXist-db/exist/issues/6725, fixed on latest
+        # - latest needs public-repo >= 4.3.1 (response:stream-binary#2 is gone)
+        if: matrix.exist-version == '6.4.1' || matrix.exist-version == 'latest'
         run: |
           xst package install github-release templating v1.2.1 --config spec/fixtures/.env --verbose
-          xst package install github-release public-repo v4.0.0 --config spec/fixtures/.env --verbose
+          xst package install github-release public-repo ${{ matrix.exist-version == 'latest' && 'v4.3.2' || 'v4.0.0' }} --config spec/fixtures/.env --verbose
       - run: npm test
