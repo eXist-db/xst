@@ -120,7 +120,9 @@ export async function findCompatibleVersion (db, { nameOrAbbrev, version, verbos
     if (statusCode === 200 && err instanceof SyntaxError) {
       throw new Error(`Found package by abbrev on ${registryUrl}. Because this is a legacy server you have to provide the name instead.`)
     }
-    if (err?.statusCode === 404 && err?.body?.servlet) {
+    // Jetty's own JSON 404, not one from public-repo ({ error }): Jetty 9
+    // (eXist 4–6) names the `servlet`, Jetty 12 (eXist 7) the `origin`
+    if (err?.statusCode === 404 && (err?.body?.servlet || err?.body?.origin)) {
       throw new Error(`Server responded with a Servlet error. Probably a wrong path to the public-repo or public-repo not installed. Please check the URL ${registryUrl}`)
     }
     if (err?.statusCode === 404 && err.body && (err.body?.error || (err.body.trim && err.body.trim() === '<p>No package with abbrev: ' + nameOrAbbrev + ' found.</p>'))) {
